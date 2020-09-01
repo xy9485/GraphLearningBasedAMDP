@@ -17,20 +17,24 @@ class WatkinsQLambda():
         self.env = env
         self.epsilon = epsilon
         self.states = []
-        self.e_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
-        self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
+        self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
+        # self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
         self.lr = lr
         self.gamma = gamma
         self.lam = lam
+        self.resetEligibility()
         # 临时
         self.temp_delta = 0
 
-    def resetEligibility2(self):
-        # self.e_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
-        self.e_table.fill(0)
-    def resetEligibility(self):
+    # def resetEligibility(self):
+    #     # self.e_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
+    #     self.e_table.fill(0)
+    def resetEligibility(self):   ##可替换
         self.e_table = []
 
+    def resetQ(self):
+        # self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
+        self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
 
     def check_state_exist(self, state):  # in case q table is initialized as empty first
         if state not in self.q_table.index:
@@ -55,51 +59,51 @@ class WatkinsQLambda():
         ## Pure greedy policy used for displaying visual policy
         return actions[np.argmax([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])]
 
-    def learn2(self, s, a, s_, a_, a_star, reward):
-        ## Update the eligible states according to Watkins Q-lambda
-        # print("self.e_table.dtype:", self.e_table.dtype)        # self.e_table.dtype: float64
-        # print("self.q_table.dtype:", self.q_table.dtype)        # self.q_table.dtype: float64
-        # print("self.e_table.max():",self.e_table.max())
-        # print("self.q_table.max():",self.q_table.max())
+    # def learn(self, s, a, s_, a_, a_star, reward):
+    #     ## Update the eligible states according to Watkins Q-lambda
+    #     # print("self.e_table.dtype:", self.e_table.dtype)        # self.e_table.dtype: float64
+    #     # print("self.q_table.dtype:", self.q_table.dtype)        # self.q_table.dtype: float64
+    #     # print("self.e_table.max():",self.e_table.max())
+    #     # print("self.q_table.max():",self.q_table.max())
+    #
+    #     q_predict = self.q_table[s[0], s[1], s[2], s[3], s[4], a]
+    #
+    #     if (s_[0],s_[1]) != self.env.goal:
+    #         # print("not hit goal")
+    #         q_target = reward + self.gamma * self.q_table[s_[0], s_[1], s_[2], s_[3], s_[4], a_star]
+    #     else:
+    #         # print("hit goal")
+    #         q_target = reward   # 这里和original不一样
+    #     # q_target = reward + self.gamma * self.q_table[s_[0], s_[1], s_[2], s_[3], s_[4], a_star]
+    #
+    #     delta = q_target - q_predict
+    #     # print("delta:",delta)
+    #     # if abs(delta) > self.temp_delta:
+    #     #     self.temp_delta = abs(delta)
+    #     #     print("self.temp_delta:",self.temp_delta)
+    #     # delta = np.around(delta,decimals=4)
+    #     # print("delta,type(delta):",delta,type(delta))
+    #     #delta,type(delta): 44.585166377063615 <class 'numpy.float64'>
+    #
+    #     self.e_table[s[0], s[1], s[2], s[3], s[4], a] = 1
+    #     # self.e_table = np.around(self.e_table, decimals=4)
+    #     # self.q_table = np.around(self.q_table, decimals=4)
+    #     # print("self.q_table.shape, self.e_table.shape:", self.q_table.shape, self.e_table.shape)
+    #     #self.q_table.shape, self.e_table.shape: (20, 20, 2, 2, 2, 4) (20, 20, 2, 2, 2, 4)
+    #     # td = self.lr * delta * self.e_table
+    #     # print("td.shape:",td.shape)
+    #     # self.q_table += self.lr * delta * self.e_table
+    #     self.q_table += self.lr * delta * self.e_table
+    #     if a_ == a_star:
+    #         self.e_table *= (self.gamma * self.lam)
+    #         self.e_table = np.where(self.e_table > 0.01, self.e_table, 0)
+    #     else:
+    #         # self.e_table[s[0], s[1], s[2], s[3], s[4], a] = 0  here is a mistake to avoid
+    #         self.resetEligibility()
 
-        q_predict = self.q_table[s[0], s[1], s[2], s[3], s[4], a]
-
-        if (s_[0],s_[1]) != self.env.goal:
-            # print("not hit goal")
-            q_target = reward + self.gamma * self.q_table[s_[0], s_[1], s_[2], s_[3], s_[4], a_star]
-        else:
-            # print("hit goal")
-            q_target = reward   # 这里和original不一样
-        # q_target = reward + self.gamma * self.q_table[s_[0], s_[1], s_[2], s_[3], s_[4], a_star]
-
-        delta = q_target - q_predict
-        # print("delta:",delta)
-        # if abs(delta) > self.temp_delta:
-        #     self.temp_delta = abs(delta)
-        #     print("self.temp_delta:",self.temp_delta)
-        # delta = np.around(delta,decimals=4)
-        # print("delta,type(delta):",delta,type(delta))
-        #delta,type(delta): 44.585166377063615 <class 'numpy.float64'>
-
-        self.e_table[s[0], s[1], s[2], s[3], s[4], a] = 1
-        # self.e_table = np.around(self.e_table, decimals=4)
-        # self.q_table = np.around(self.q_table, decimals=4)
-        # print("self.q_table.shape, self.e_table.shape:", self.q_table.shape, self.e_table.shape)
-        #self.q_table.shape, self.e_table.shape: (20, 20, 2, 2, 2, 4) (20, 20, 2, 2, 2, 4)
-        # td = self.lr * delta * self.e_table
-        # print("td.shape:",td.shape)
-        # self.q_table += self.lr * delta * self.e_table
-        self.q_table += self.lr * delta * self.e_table
-        if a_ == a_star:
-            self.e_table *= (self.gamma * self.lam)
-            self.e_table = np.where(self.e_table > 0.01, self.e_table, 0)
-        else:
-            # self.e_table[s[0], s[1], s[2], s[3], s[4], a] = 0  here is a mistake to avoid
-            self.resetEligibility()
 
 
-
-    def learn(self, state1, action1, state2, action2, action_star, reward):
+    def learn(self, state1, action1, state2, action2, action_star, reward):   #可替换
         ## Update the eligible states according to Watkins Q-lambda
         # print("self.q_table.max():",self.q_table.max())
 
@@ -111,10 +115,16 @@ class WatkinsQLambda():
         if not found:
             self.e_table.append((state1, action1, 1))
 
-        maxValue = self.q_table[state2[0], state2[1], state2[2], state2[3], state2[4], action_star]
+        if (state2[0], state2[1]) != self.env.goal:
+            maxValue = self.q_table[state2[0], state2[1], state2[2], state2[3], state2[4], action_star]
+            delta = reward + (self.gamma * maxValue) - self.q_table[state1[0], state1[1], state1[2], state1[3], state1[4], action1]
+            # print("delta:",delta)
+        else:
+            delta = reward - self.q_table[state1[0], state1[1], state1[2], state1[3], state1[4], action1]
 
-        delta = reward + (self.gamma * maxValue) - self.q_table[state1[0], state1[1], state1[2], state1[3], state1[4], action1]
-        # print("delta:",delta)
+        # maxValue = self.q_table[state2[0], state2[1], state2[2], state2[3], state2[4], action_star]
+        # delta = reward + (self.gamma * maxValue) - self.q_table[
+        #     state1[0], state1[1], state1[2], state1[3], state1[4], action1]
 
         newE = []  ## remove eligibility traces that are too low by rebuilding
         for x in range(0, len(self.e_table)):

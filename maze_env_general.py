@@ -307,7 +307,8 @@ class Maze():
                 self.flags_collected+=1
                 return 100
         if (state_prime[0],state_prime[1]) in self.goal:
-            return (self.flags_collected) * 1000
+            return self.flags_collected * 1000  # 可修改
+            # return (self.flags_collected ** 2) * 1000    #可修改
         return -1
 
 # M=Maze()

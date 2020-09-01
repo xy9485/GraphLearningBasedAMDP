@@ -344,7 +344,8 @@ class AMDP:
             # # goal transition
             for g in range(len(self.goal_abstractions)):
                 action_g = "G" + self.goal_abstractions[g]
-                if action_g in ajacency_of_i:
+                # if action_g in ajacency_of_i:
+                if action_g in ajacency_of_i and sum(self.list_of_abstract_states[i][1:])==3:  #可修改
                     transition[-1, i, -1] = 1
                     # print("set goal transition:",[-1, i, -1])
 
@@ -354,13 +355,14 @@ class AMDP:
 
         # set rewards
         for i in range(num_of_abstract_state):
-            ajacency_of_i = self.getAbstractActions(self.list_of_abstract_states[i])
-            for g in range(len(self.goal_abstractions)):
-                action_g = "G" + self.goal_abstractions[g]
-                if action_g in ajacency_of_i:
-                    # if not self.list_of_abstract_states[i] == "bin":
-                    rewards[-1, i, -1] = sum(self.list_of_abstract_states[i][1:]) * 1000
-                    # print("set reward:", [-1, i, -1])
+            if not self.list_of_abstract_states[i]=="bin" and sum(self.list_of_abstract_states[i][1:])==3:    #可修改
+                ajacency_of_i = self.getAbstractActions(self.list_of_abstract_states[i])
+                for g in range(len(self.goal_abstractions)):
+                    action_g = "G" + self.goal_abstractions[g]
+                    if action_g in ajacency_of_i:
+                        # if not self.list_of_abstract_states[i] == "bin":
+                        rewards[-1, i, -1] = sum(self.list_of_abstract_states[i][1:]) * 1000    #可修改
+                        # print("set reward:", [-1, i, -1])
         # self.rewards = rewards
 
         # self.transition[-1,-1,-1]=1

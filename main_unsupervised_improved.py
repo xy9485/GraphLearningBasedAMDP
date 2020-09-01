@@ -32,10 +32,12 @@ omega = 20
 
 epsilon = 1   # probability for choosing random action  #可修改
 num_randomwalk_episodes = 400
+second_evolution  = 400 + 999
+third_evolution = 400 + 999 + 1999
 num_saved_from_p1 = 750
 num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 5009  # 可修改
-num_of_repetitions = 1      # 可修改
+num_of_episodes = num_randomwalk_episodes + 6000 # 可修改
+num_of_repetitions = 2      # 可修改
 max_move_count = 10000
 min_length_to_save_as_path = 400
 
@@ -48,38 +50,20 @@ config = {
     'min_length_to_save': min_length_to_save_as_path,
     'representation_size': 64,
     'window': 20,
-    'kmeans_clusters': [18,20,25],
+    'kmeans_clusters': [10,20,25],
     'package': 'sklearn'
 }
-# fpath_paths = f"paths/{config['maze']}/{config['mode']}/ep_{config['ep']}_maxmove_{config['max_move_count']}_length_" \
-#               f"{config['min_length_to_save']}+.txt"
-# folder_paths = f"paths/{config['maze']}/{config['mode']}"
-#
-# # fpath_paths2 = f"paths/{config['maze']}/{config['mode']}/ep_{config['ep']}_maxmove_{config['max_move_count']}_length_" \
-# #               f"{config['min_length_to_save']}+.txt"
-# # folder_paths2 = f"paths/{config['maze']}/{config['mode']}"
-# #
-# # fpath_paths3 = f"paths/{config['maze']}/{config['mode']}/ep_{config['ep']}_maxmove_{config['max_move_count']}_length_" \
-# #               f"{config['min_length_to_save']}+.txt"
-# # folder_paths3 = f"paths/{config['maze']}/{config['mode']}"
-#
-# fpath_embedding = f"embeddings/{config['maze']}/{config['mode']}/ep_{config['ep']}_maxmove_{config['max_move_count']}_length_" \
-#                   f"{config['min_length_to_save']}+/s{config['representation_size']}_w{config['window']}.embedding"
-# folder_embedding = f"embeddings/{config['maze']}/{config['mode']}/ep_{config['ep']}_maxmove_{config['max_move_count']}_length_" \
-#                    f"{config['min_length_to_save']}+"
-#
-# fpath_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/ep{config['ep']}_maxmove{config['max_move_count']}_length" \
-#                        f"{config['min_length_to_save']}+/s{config['representation_size']}_w{config['window']}" \
-#                        f"_kmeans{config['kmeans_clusters']}_package_{config['package']}.cluster"
-# folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}_maxmove{config['max_move_count']}_length" \
-#                         f"{config['min_length_to_save']}-{config['min_length_to_save']-150}-{config['min_length_to_save']-150-200}+"
 
-folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}_paths" \
-                        f"{num_randomwalk_episodes}_p1_{num_saved_from_p1}_p2_{num_saved_from_p2}"
-# if not os.path.isdir(folder_paths):
-#     makedirs(folder_paths)
-# if not os.path.isdir(folder_embedding):
-#     makedirs(folder_embedding)
+
+folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
+                        f"_c1_{num_randomwalk_episodes}" \
+                        f"_c2_{second_evolution}" \
+                        # f"_c3_{third_evolution}"
+
+# folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
+#                         f"_c1_{num_randomwalk_episodes}" \
+#                         f"_c2_{second_evolution}({num_saved_from_p1})" \
+
 if not os.path.isdir(folder_cluster_layout):
     makedirs(folder_cluster_layout)
 
@@ -132,6 +116,9 @@ for rep in range(0, num_of_repetitions):
 
         print("Begin Training:")
         for ep in range(0, num_of_episodes):
+            if (ep + 1) % 100 == 0:
+                print("episode_100:", ep)
+
             if ep == num_randomwalk_episodes:
                 # print("path_episodes:",path_episodes)
                 # min_length_to_save_as_path -= 150
@@ -144,7 +131,7 @@ for rep in range(0, num_of_repetitions):
 
                 gensim_opt.sentences = path_episodes
                 gensim_opt.get_clusterlayout_from_paths(size=64, window=20, clusters=config['kmeans_clusters'][0], package=config['package'])
-                fpath_cluster_layout = folder_cluster_layout + f"/s{config['representation_size']}_w{config['window']}" \
+                fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
                         f"_kmeans{config['kmeans_clusters'][0]}_{config['package']}.cluster"
                 gensim_opt.write_cluster_layout(fpath_cluster_layout)
 
@@ -153,36 +140,39 @@ for rep in range(0, num_of_repetitions):
                 amdp.solveAbstraction()
                 end1 = time.time()
                 solve_amdp_time_phases.append(end1 - start1)
-            # elif ep == num_randomwalk_episodes + 999:
-            #     # min_length_to_save_as_path -= 200
-            #
-            #     print("len of paths_period:",len(paths_period))
-            #     saved_paths_period1 = sorted(paths_period,key=lambda l:len(l))[:num_saved_from_p1]
-            #     path_episodes.extend(saved_paths_period1)
-            #     paths_period = []
-            #
-            #     gensim_opt.sentences = path_episodes
-            #     gensim_opt.get_clusterlayout_from_paths(size=64, window=20, clusters=config['kmeans_clusters'][1], package=config['package'])
-            #     fpath_cluster_layout = folder_cluster_layout + f"/s{config['representation_size']}_w{config['window']}" \
-            #             f"_kmeans{config['kmeans_clusters'][1]}_{config['package']}.cluster"
-            #     gensim_opt.write_cluster_layout(fpath_cluster_layout)
-            #
-            #     amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=np.array(gensim_opt.cluster_layout))
-            #     start1 = time.time()
-            #     amdp.solveAbstraction()
-            #     end1 = time.time()
-            #     solve_amdp_time_phases.append(end1 - start1)
-            # elif ep == num_randomwalk_episodes + 2999:
+            elif ep == second_evolution:
+                # min_length_to_save_as_path -= 200
+
+                print("len of paths_period:",len(paths_period))
+                # saved_paths_period1 = sorted(paths_period,key=lambda l:len(l))[:num_saved_from_p1]
+                saved_paths_period1 = paths_period
+                path_episodes.extend(saved_paths_period1)
+                paths_period = []
+
+                gensim_opt.sentences = path_episodes
+                gensim_opt.get_clusterlayout_from_paths(size=64, window=20, clusters=config['kmeans_clusters'][1], package=config['package'])
+                fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
+                        f"_kmeans{config['kmeans_clusters'][1]}_{config['package']}.cluster"
+                gensim_opt.write_cluster_layout(fpath_cluster_layout)
+
+                amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=np.array(gensim_opt.cluster_layout))
+                start1 = time.time()
+                amdp.solveAbstraction()
+                end1 = time.time()
+                solve_amdp_time_phases.append(end1 - start1)
+
+            # elif ep == third_evolution:
             #     # min_length_to_save_as_path -= 100
             #
             #     print("len of paths_period:",len(paths_period))
-            #     saved_paths_period2 = sorted(paths_period,key=lambda l:len(l))[:num_saved_from_p2]
+            #     # saved_paths_period2 = sorted(paths_period,key=lambda l:len(l))[:num_saved_from_p2]
+            #     saved_paths_period2 = paths_period
             #     path_episodes.extend(saved_paths_period2)
             #     paths_period = []
             #
             #     gensim_opt.sentences = path_episodes
             #     gensim_opt.get_clusterlayout_from_paths(size=64, window=20, clusters=config['kmeans_clusters'][2], package=config['package'])
-            #     fpath_cluster_layout = folder_cluster_layout + f"/s{config['representation_size']}_w{config['window']}" \
+            #     fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
             #             f"_kmeans{config['kmeans_clusters'][2]}_{config['package']}.cluster"
             #     gensim_opt.write_cluster_layout(fpath_cluster_layout)
             #
@@ -191,9 +181,6 @@ for rep in range(0, num_of_repetitions):
             #     amdp.solveAbstraction()
             #     end1 = time.time()
             #     solve_amdp_time_phases.append(end1 - start1)
-
-            if (ep + 1) % 100 == 0:
-                print("episode_100:", ep)
 
             env.reset()
             agent.resetEligibility()  # 可以修改
@@ -266,6 +253,16 @@ for rep in range(0, num_of_repetitions):
         path_episodes_experiments.append(path_episodes)
         flags_found_order_experiments.append(env.flags_found_order)
 
+        # plot flag collection in one experiment
+        plt.rcParams['agg.path.chunksize'] = 10000
+        d = pd.Series(flags_list_episodes)
+        movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
+        plt.plot(np.arange(len(movAv)), movAv, label='biased')
+        plt.ylabel("Number of Flags")
+        plt.xlabel("Episde No.")
+        plt.legend(loc=4)
+        plt.show()
+
         end2 = time.time()
         simulation_time_experiments.append(end2 - start2)
         print("last state:",env.state)
@@ -273,7 +270,7 @@ for rep in range(0, num_of_repetitions):
         print("len of all_path_lengths:", len(all_path_lengths))
 
         print("avg and len of random walk period:", mean(len(x) for x in saved_paths_randomwalk),len(saved_paths_randomwalk))
-        # print("avg and len of period1:", mean([len(x) for x in saved_paths_period1]),len(saved_paths_period1))
+        print("avg and len of period1:", mean([len(x) for x in saved_paths_period1]),len(saved_paths_period1))
         # print("avg and len of period2:", mean([len(x) for x in saved_paths_period2]), len(saved_paths_period2))
         # mean_unreduced = mean(all_path_lengths[:num_randomwalk_episodes])
         # saved_path_lengths = [x for x in all_path_lengths[:num_randomwalk_episodes] if x > min_length_to_save_as_path]
@@ -317,7 +314,9 @@ for rep in range(0, num_of_repetitions):
     flags_found_order_experiments_repetitions.append(flags_found_order_experiments)
 
 print(flags_list_episodes_experiments_repetitions)
+print("flags_list_episodes_experiments_repetitions.shape:", np.array(flags_list_episodes_experiments_repetitions).shape)
 print(move_count_episodes_experiments_repetitions)
+print("move_count_episodes_experiments_repetitions.shape:", np.array(move_count_episodes_experiments_repetitions).shape)
 print(np.sum(np.array(move_count_episodes_experiments_repetitions)))
 print(flags_found_order_experiments_repetitions)
 

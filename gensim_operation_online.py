@@ -19,7 +19,8 @@ class GensimOperator:
         self.cluster_layout = None
         self.cluster_labels = None
 
-    def get_clusterlayout_from_paths(self, size, window, clusters, min_count=5, workers=4, package='nltk'):
+    def get_clusterlayout_from_paths(self, size, window, clusters, min_count=5, workers=8, package='nltk'):
+        print("start gensim Word2Vec model training...")
         model = gensim.models.Word2Vec(sentences=self.sentences, min_count=min_count, size=size, workers=workers,
                                        window=window, sg=1)
         self.wv = model.wv
@@ -29,8 +30,10 @@ class GensimOperator:
             words.append(word)
             embeddings.append(self.wv[word])
         # print(words[0],type(words[0]))
+        print("start check unvisited nodes...")
         self.check_unvisited_nodes(words)
 
+        print("start clustering...")
         if package == 'sklearn':
             norm_embeddings = preprocessing.normalize(embeddings)
             kmeans_labels = KMeans(n_clusters=clusters, init='k-means++').fit_predict(np.array(norm_embeddings))

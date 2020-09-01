@@ -1,11 +1,38 @@
-import numpy
+import numpy as np
 import pandas as pd
 import random
 from sklearn import preprocessing  # to normalise existing X
 import os
+import matplotlib.pyplot as plt
+import matplotlib
+# matplotlib.use('tkagg')
+# print(matplotlib.get_backend())
+# #
+
+# # print(sorted(list1, key=lambda l: len(l)))
+# #
+# # sr = pd.Series([10, 25, 3, 11, 24, 6])
+# # result = sr.rolling(2).mean()
+# # print(type(result))
+# #
+# # fig, axs = plt.subplots(1,4, figsize=(10,5))
+# # print(axs.shape)
+# # st = fig.suptitle("curves of each repetition",fontsize=14)
+# # fig.subplots_adjust(top=0.85)
+# # fig.tight_layout()
+# # plt.show()
+# m = np.array([[[3,4],
+#                [2,3]],
+#               [[4,6],agent.epsilon = 0.5
+#                [5,7]]
+#               ])
+# print(m.shape)
+# print(np.mean(m,axis=0))
 
 list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
-print(sorted(list1, key=lambda l: len(l)))
-
-folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}_paths" \
-                        f"{num_randomwalk_episodes}_{num_saved_from_p1}_{num_saved_from_p2}"
+for i in list1:
+    for a,b in enumerate(i):
+        i[a] = i[a]+1
+print(list1)
+list2 = np.array(list1)
+print(np.power([[1,2,3],[2,4]],2))
