@@ -22,7 +22,7 @@ from gensim_operation_online import GensimOperator
 
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None]  # 可修改
-env = Maze(maze='low_connectivity')  # initialize env 可修改
+env = Maze(maze='big_basic')  # initialize env 可修改
 
 num_of_actions = 4
 num_of_experiments = len(abstraction_mode)
@@ -36,10 +36,10 @@ num_randomwalk_episodes = 400
 second_evolution = 400 + 1000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
-num_saved_from_p1 = 750
+num_saved_from_p1 = 800
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 4005        # 可修改
-num_of_repetitions = 8 # 可修改
+num_of_episodes = num_randomwalk_episodes + 4000        # 可修改
+num_of_repetitions = 3 # 可修改
 max_move_count = 10000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
@@ -51,15 +51,15 @@ config = {
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
     'min_length_to_save': min_length_to_save_as_path,
-    'representation_size': 64,
-    'window': 20,
-    'kmeans_clusters': [10, 20, 30],
+    'representation_size': 128,
+    'window': 10,
+    'kmeans_clusters': [20, 30, 30],
     'package': 'sklearn'
 }
 
 folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
                         f"_c1_{num_randomwalk_episodes}" \
-                        f"_c2_{second_evolution}({num_saved_from_p1})" \
+                        f"_c2_{second_evolution}({num_saved_from_p1})_epsilon0.2" \
 
 # folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
 #                         f"_c1_{num_randomwalk_episodes}" \
@@ -125,7 +125,8 @@ for rep in range(0, num_of_repetitions):
         print("Begin Training:")
         for ep in range(0, num_of_episodes):
             if (ep + 1) % 100 == 0:
-                print(f"episode_100: {ep} | move_count: {move_count} | env.state: {env.state}")
+                print(f"episode_100: {ep} | avg_move_count_last100ep: {int(np.mean(move_count_episodes[-100:]))} "
+                      f"| env.state: {env.state} | agent.epsilon: {agent.epsilon}")
 
             if ep == num_randomwalk_episodes:
                 # print("path_episodes:",path_episodes)

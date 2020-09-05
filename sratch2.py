@@ -29,10 +29,12 @@ import matplotlib
 # print(m.shape)
 # print(np.mean(m,axis=0))
 
-list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
-for i in list1:
-    for a,b in enumerate(i):
-        i[a] = i[a]+1
-print(list1)
-list2 = np.array(list1)
-print(np.power([[1,2,3],[2,4]],2))
+# list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
+# for i in list1:
+#     for a,b in enumerate(i):
+#         i[a] = i[a]+1
+# print(list1)
+# list2 = np.array(list1)
+# print(np.power([[1,2,3],[2,4]],2))
+import sys
+print(sys.path)
