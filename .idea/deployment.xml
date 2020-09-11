@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="yuan@deken1.l3s.uni-hannover.de:22" remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="yuan@deken1.l3s.uni-hannover.de:22 password" remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
     <serverData>
-      <paths name="yuan@deken1.l3s.uni-hannover.de:22">
+      <paths name="xue@localhost:6000 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/yuan/projects/master_thesis" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/xue/projects/masterthesis" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="yuan@deken1.l3s.uni-hannover.de:22 password">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/yuan/projects/master_thesis" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

@@ -213,6 +213,37 @@ class Maze():
                           [C, C, C, W, W, W, D, D, D, L, L, L, L, L, W, M, M, M, M, M]]
             return np.array(roomLayout)
 
+        if self.maze_name == 'big_low_connectivity':
+            roomLayout = [[A, A, A, W, H, H, H, I, I, I, I, I, I, I, W, J, J, J, J, J],  ##Low Connectivity
+                          [A, A, A, W, H, H, H, W, I, I, I, I, I, I, J, J, J, J, J, J],
+                          [A, A, A, W, H, H, H, W, I, I, I, I, I, I, W, J, J, J, J, J],
+                          [A, A, A, W, W, W, H, W, W, W, I, W, W, W, W, J, J, J, J, J],
+                          [A, A, A, W, G, G, G, G, G, W, K, W, P, P, W, J, J, J, J, J],
+                          [A, A, A, W, G, G, G, G, G, K, K, W, P, P, W, W, W, J, J, J],  # in this line there is an open wchich doesn't exist in paper
+                          [A, A, A, W, G, G, G, G, G, W, K, W, P, P, P, P, W, W, W, W],
+                          [A, A, A, W, W, W, W, G, G, W, K, W, P, P, P, P, P, P, P, P],
+                          [A, A, A, A, A, A, W, F, W, W, W, W, P, P, P, P, P, P, P, P],
+                          [A, A, A, A, A, A, W, F, F, F, F, W, P, P, P, P, P, P, P, P],
+                          [A, A, A, A, A, A, W, F, F, F, F, P, P, P, P, P, P, P, P, P],
+                          [W, W, W, B, W, W, W, W, W, W, W, W, P, W, W, W, W, W, W, W],
+                          [B, B, B, B, W, E, E, E, E, E, W, O, O, O, O, O, W, N, N, N],
+                          [B, B, B, B, W, E, E, E, E, E, W, O, O, O, O, O, O, N, N, N],
+                          [B, B, B, B, E, E, E, E, E, E, W, O, O, O, O, O, W, N, N, N],
+                          [B, B, B, B, E, W, E, E, E, W, W, W, W, W, O, O, W, N, N, N],
+                          [W, C, W, W, E, W, W, W, E, W, L, L, L, W, O, W, W, W, N, W],
+                          [C, C, C, W, W, W, D, D, D, W, L, L, L, W, W, M, M, M, M, M],
+                          [C, C, C, W, D, D, D, D, D, W, L, L, L, L, M, M, M, M, M, M],
+                          [C, C, C, W, W, W, D, D, D, L, L, L, L, L, W, M, M, M, M, M]]
+            newLayout = []
+            for l in roomLayout:
+                nextLine = []
+                for x in l:
+                    nextLine.extend([x, x, x])
+                newLayout.append(nextLine)
+                newLayout.append(nextLine)
+                newLayout.append(nextLine)
+            return np.array(newLayout)
+
 
     def isTerminal(self,state):
         return (state[0],state[1]) == self.goal  # self.goal is a tuple
@@ -254,6 +285,12 @@ class Maze():
             self.state = (19, 0, 0, 0, 0)
             self.flags = [(0, 1), (2, 18), (5, 6)]
             self.goal = (15, 0)
+        if self.maze_name == 'big_low_connectivity':
+            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            self.state = (19*3, 0*3, 0, 0, 0)
+            self.flags = [(0*3, 1*3), (2*3, 18*3), (5*3, 6*3)]
+            self.goal = (15*3, 0*3)
+
 
 
     def isMovable(self,state):
