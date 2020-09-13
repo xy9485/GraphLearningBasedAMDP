@@ -40,16 +40,16 @@ gamma = 0.99
 omega = 200
 epsilon = 1  # probability for choosing random action  #可修改
 epsilon_max = 1
-epsilon_max1 = 0.5
+epsilon_max1 = 1
 
 num_randomwalk_episodes = 500
-second_evolution = 500 + 1000
+second_evolution = 500 + 2000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
 num_of_episodes = num_randomwalk_episodes + 4000        # 可修改
-num_of_repetitions = 6 # 可修改
+num_of_repetitions = 4 # 可修改
 max_move_count = 10000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
@@ -73,7 +73,7 @@ length_of_phase2 = num_of_episodes-second_evolution
 
 config = {
     'maze': env.maze_name,
-    'mode': 'random+biased_paths3',
+    'mode': 'random+biased_paths4',
     'ep': num_of_episodes,
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
@@ -152,8 +152,12 @@ for rep in range(0, num_of_repetitions):
         print("agent.lr:",agent.lr)
         for ep in range(0, num_of_episodes):
             if (ep + 1) % 100 == 0:
-                print(f"episode_100: {ep} | avg_move_count_last100ep: {int(np.mean(move_count_episodes[-100:]))} "
-                      f"| env.state: {env.state} | agent.epsilon: {agent.epsilon} | agent.lr: {agent.lr}")
+                print(f"episode_100: {ep} | avg_move_count_last100ep: {int(np.mean(move_count_episodes[-100:]))} | "
+                      f"avd_reward: {int(np.mean(reward_list_episodes[-100:]))} | "
+                      f"env.state: {env.state} | "
+                      f"env.flagcollected: {env.flags_collected} | "
+                      f"agent.epsilon: {agent.epsilon} | "
+                      f"agent.lr: {agent.lr}")
 
             if ep == num_randomwalk_episodes:
                 # print("path_episodes:",path_episodes)
@@ -202,8 +206,8 @@ for rep in range(0, num_of_repetitions):
                 # agent.lr = lr_max
                 # agent.gamma =gamma_max
                 # saved_paths_period1 = sorted(paths_period, key=lambda l: len(l))[:num_saved_from_p1]
-                saved_paths_period1 = sorted(paths_period, key=lambda l: len(l))[:int(num_saved_from_p1 * len(paths_period))]
-                # saved_paths_period1 = paths_period
+                # saved_paths_period1 = sorted(paths_period, key=lambda l: len(l))[:int(num_saved_from_p1 * len(paths_period))]
+                saved_paths_period1 = paths_period
                 path_episodes.extend(saved_paths_period1)
                 paths_period = []
                 # get embedding from gensim and built cluster-layout
@@ -332,6 +336,10 @@ for rep in range(0, num_of_repetitions):
 
                     r = env.reward(env.state, a, new_state)  ## ground level reward
                     episode_reward += r
+                    # if r > 0:
+                    #     print("r>0:",r)
+                    # if r % 1000 == 0:
+                    #     print("hit goal:",r)
 
                     value_new_abstract_state = amdp.getValue(new_abstract_state)
                     value_abstract_state = amdp.getValue(abstract_state)
@@ -371,6 +379,7 @@ for rep in range(0, num_of_repetitions):
         # plot flag collection in one experiment
         plt.rcParams['agg.path.chunksize'] = 10000
         d = pd.Series(flags_list_episodes)
+        print("flags_list_episodes.shape:",np.array(flags_list_episodes).shape)
         movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
         print('type of movAv:', type(movAv))
         axs[rep, 0].plot(np.arange(len(movAv)), movAv, 'k', label=f"biased_exp{e}_rep{rep}")
@@ -492,8 +501,6 @@ output_dir = folder_cluster_layout
 fig, axs = plt.subplots(1, 4, figsize=(5 * 4, 4))
 
 ## Reward
-whenConverged = []
-toPickle = []
 plotRewards = np.mean(flags_list_episodes_experiments_repetitions, axis=0)
 plotSDs = np.std(flags_list_episodes_experiments_repetitions, axis=0)
 print("plotRewards.shape", plotRewards.shape)
@@ -502,9 +509,10 @@ plotErrors = plotSDs / np.sqrt(10)
 plt.rcParams['agg.path.chunksize'] = 10000
 for i in range(0, len(plotRewards)):
     d = pd.Series(plotRewards[i])
-    s = pd.Series(plotErrors[i])
+    print("d.shape:",d.shape)
+    # s = pd.Series(plotErrors[i])
     movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
-    toPickle.append(movAv)
+    print("movAv.shape:",movAv.shape)
     l, caps, c = axs[0].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black',label=labs[i], capsize=5,
                               errorevery=int(num_of_episodes / 30))
     for cap in caps:

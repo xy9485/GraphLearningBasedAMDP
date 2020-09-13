@@ -10,7 +10,7 @@ class Maze():
         self.size = (len(self.room_layout),len(self.room_layout[0]))
         print("maze.size:", self.size)
         self.reset()
-        self.flags_found_order = []
+
 
 
     def getRoomLayout(self):
@@ -249,6 +249,7 @@ class Maze():
         return (state[0],state[1]) == self.goal  # self.goal is a tuple
 
     def reset(self):
+        self.flags_found_order = []
         self.flags_collected = 0
         self.flags_collected2 = [0,0,0]
         if self.maze_name == 'basic':
@@ -335,7 +336,7 @@ class Maze():
     def reward(self, state, action, state_prime):
         flag_number = -1
         for index in range(0,len(self.flags)):
-            if (state_prime[0],state_prime[1]) == self.flags[index] :
+            if (state_prime[0],state_prime[1]) == self.flags[index]:
                 flag_number = index
                 if index not in self.flags_found_order:
                     self.flags_found_order.append(index)
@@ -343,7 +344,7 @@ class Maze():
             if state[flag_number+2] == 0:
                 self.flags_collected+=1
                 return 100
-        if (state_prime[0],state_prime[1]) in self.goal:
+        if (state_prime[0],state_prime[1]) == self.goal:
             return self.flags_collected * 1000  # 可修改
             # return (self.flags_collected ** 2) * 1000    #可修改
         return -1

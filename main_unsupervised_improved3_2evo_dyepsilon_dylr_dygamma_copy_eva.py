@@ -48,8 +48,8 @@ second_evolution = 500 + 1000
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 3000        # 可修改
-num_of_repetitions = 7 # 可修改
+num_of_episodes = num_randomwalk_episodes + 3003        # 可修改
+num_of_repetitions = 2 # 可修改
 max_move_count = 10000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
@@ -73,7 +73,7 @@ min_length_to_save_as_path = 400
 
 config = {
     'maze': env.maze_name,
-    'mode': 'random+biased_paths3',
+    'mode': 'random+biased_paths4',
     'ep': num_of_episodes,
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
@@ -90,7 +90,7 @@ config = {
 
 folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
                         f"_evo1_{num_randomwalk_episodes}(q_update)" \
-                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.99" \
+                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.99_eva" \
 
 if not os.path.isdir(folder_cluster_layout):
     makedirs(folder_cluster_layout)
@@ -98,11 +98,18 @@ if not os.path.isdir(folder_cluster_layout):
 # for ploting
 solve_amdp_time_experiments_repetitions = []
 simulation_time_experiments_repetitions = []
+
 reward_list_episodes_experiments_repetitions = []
 flags_list_episodes_experiments_repetitions = []
 move_count_episodes_experiments_repetitions = []
-path_episodes_experiments_repetitions = []
 flags_found_order_experiments_repetitions = []
+
+reward_list_episodes_experiments_repetitions_eva = []
+flags_list_episodes_experiments_repetitions_eva = []
+move_count_episodes_experiments_repetitions_eva = []
+flags_found_order_experiments_repetitions_eva = []
+
+path_episodes_experiments_repetitions = []
 epsilon_changing_written = False
 
 fig, axs = plt.subplots(num_of_repetitions, 5, figsize=(5 * 4, num_of_repetitions * 3))
@@ -111,12 +118,18 @@ for rep in range(0, num_of_repetitions):
 
     solve_amdp_time_experiments = []
     simulation_time_experiments = []
+
     reward_list_episodes_experiments = []
     flags_list_episodes_experiments = []
     move_count_episodes_experiments = []
-    path_episodes_experiments = []
     flags_found_order_experiments = []
 
+    reward_list_episodes_experiments_eva = []
+    flags_list_episodes_experiments_eva = []
+    move_count_episodes_experiments_eva = []
+    flags_found_order_experiments_eva = []
+
+    path_episodes_experiments = []
 
     # move_count = 0
     # totalMoveCount = 0
@@ -134,13 +147,21 @@ for rep in range(0, num_of_repetitions):
         maxflag = 0
         maxIndex = 0
         flagCount = 0
+
         reward_list_episodes = []
         flags_list_episodes = []
         move_count_episodes = []
+        flags_found_order_episodes = []
+        reward_list_episodes_eva = []
+        flags_list_episodes_eva = []
+        move_count_episodes_eva = []
+        flags_found_order_episodes_eva = []
+
         path_episodes = []
         solve_amdp_time_phases = []
         all_path_lengths = []
         paths_period = []
+
         epsilons_one_experiment = []
         lr_one_experiment = []
         gamma_one_experiment = []
@@ -152,8 +173,12 @@ for rep in range(0, num_of_repetitions):
         print("agent.lr:",agent.lr)
         for ep in range(0, num_of_episodes):
             if (ep + 1) % 100 == 0:
-                print(f"episode_100: {ep} | avg_move_count_last100ep: {int(np.mean(move_count_episodes[-100:]))} "
-                      f"| env.state: {env.state} | agent.epsilon: {agent.epsilon} | agent.lr: {agent.lr}")
+                print(f"episode_100: {ep} | "
+                      f"avg_move_count_last100ep,l/e: {int(np.mean(move_count_episodes[-100:]))}/{int(np.mean(move_count_episodes_eva[-100:]))}"
+                      f"avg_reward,l/e: {int(np.mean(reward_list_episodes[-100:]))}/{int(np.mean(reward_list_episodes_eva[-100:]))}"
+                      f"| env.state of eva: {env.state} | "
+                      f"agent.epsilon: {agent.epsilon} | "
+                      f"agent.lr: {agent.lr}")
 
             if ep == num_randomwalk_episodes:
                 # print("path_episodes:",path_episodes)
@@ -251,8 +276,6 @@ for rep in range(0, num_of_repetitions):
             #     end1 = time.time()
             #     solve_amdp_time_phases.append(end1 - start1)
 
-            env.reset()
-            agent.resetEligibility()  # 可以修改
 
 
             #=========Here to modify epsilon value:====================
@@ -267,10 +290,10 @@ for rep in range(0, num_of_repetitions):
             #         agent.epsilon = round(temp_eps, 5)
 
             #scheme2: prefer exploration a little more
-            if num_randomwalk_episodes+(second_evolution-num_randomwalk_episodes)/10 <= ep < second_evolution:
+            if num_randomwalk_episodes+(second_evolution-num_randomwalk_episodes)/10 < ep < second_evolution:
                 agent.epsilon -= epsilon_max/(second_evolution-num_randomwalk_episodes)
 
-            if ep >= second_evolution+(num_of_episodes-second_evolution)/10:
+            if ep > second_evolution+(num_of_episodes-second_evolution)/10:
                 agent.epsilon -= epsilon_max1/(num_of_episodes-second_evolution)
 
             #=========agent.lr changing=========
@@ -295,11 +318,15 @@ for rep in range(0, num_of_repetitions):
             lr_one_experiment.append(agent.lr)
             gamma_one_experiment.append(agent.gamma)
 
+            env.reset()
+            agent.resetEligibility()  # 可以修改
 
             episode_reward = 0
             move_count = 0
             a = agent.policy(env.state, env.actions(env.state))
             path = [str((env.state[0], env.state[1]))]
+
+
 
             while not env.isTerminal(env.state):
                 # print("env.isTerminal(env.state):",env.isTerminal(env.state))
@@ -330,6 +357,8 @@ for rep in range(0, num_of_repetitions):
 
                     r = env.reward(env.state, a, new_state)  ## ground level reward
                     episode_reward += r
+                    if r > 0:
+                        print("r>0:",r)
 
                     value_new_abstract_state = amdp.getValue(new_abstract_state)
                     value_abstract_state = amdp.getValue(abstract_state)
@@ -342,14 +371,42 @@ for rep in range(0, num_of_repetitions):
                 a = a_prime
             # next steps actions and states set.
 
-            ############# Keep Track of Stuff for each ep ################
+            #============= Keep Track of Stuff for each ep of learning =============
             # flagCount += env.flags_collected
             # totalMoveCount += move_count
             reward_list_episodes.append(episode_reward)
             flags_list_episodes.append(env.flags_collected)
             move_count_episodes.append(move_count)
+            flags_found_order_episodes.append(env.flags_found_order)
             paths_period.append(path)
             all_path_lengths.append(len(path))
+
+            # =======Evaluation=======
+            env.reset()
+            a_eva = agent.policyNoRand(env.state, env.actions(env.state))
+            episode_reward_eva = 0
+            move_count_eva = 0
+            while not env.isTerminal(env.state):
+                move_count_eva += 1
+                new_state_eva = env.step(env.state, a_eva)
+                r_eva = env.reward(env.state, a_eva, new_state_eva)
+                a_star_eva = agent.policyNoRand(new_state_eva, env.actions(new_state_eva))
+                episode_reward_eva += r_eva
+                env.state = new_state_eva
+                a_eva = a_star_eva
+                if r_eva > 0:
+                    print("r_eva > 0:", r_eva)
+                if move_count_eva > 10000:
+                    # print("overflow happens in evaluation!")
+                    break
+
+            # ============= Keep Track of Stuff for each ep for evaluation =============
+            reward_list_episodes_eva.append(episode_reward_eva)
+            flags_list_episodes_eva.append(env.flags_collected)
+            move_count_episodes_eva.append(move_count_eva)
+            flags_found_order_episodes_eva.append(env.flags_found_order)
+
+
             # if len(path) > min_length_to_save_as_path:
             #     path_episodes.append(path)
         # =====================
@@ -357,8 +414,14 @@ for rep in range(0, num_of_repetitions):
         reward_list_episodes_experiments.append(reward_list_episodes)
         flags_list_episodes_experiments.append(flags_list_episodes)
         move_count_episodes_experiments.append(move_count_episodes)
+        flags_found_order_experiments.append(flags_found_order_episodes)
+
+        reward_list_episodes_experiments_eva.append(reward_list_episodes_eva)
+        flags_list_episodes_experiments_eva.append(flags_list_episodes_eva)
+        move_count_episodes_experiments_eva.append(move_count_episodes_eva)
+        flags_found_order_experiments_eva.append(flags_found_order_episodes_eva)
+
         path_episodes_experiments.append(path_episodes)
-        flags_found_order_experiments.append(env.flags_found_order)
 
         end2 = time.time()
         simulation_time_experiments.append(end2 - start2)
@@ -368,35 +431,74 @@ for rep in range(0, num_of_repetitions):
 
         # plot flag collection in one experiment
         plt.rcParams['agg.path.chunksize'] = 10000
-        d = pd.Series(flags_list_episodes)
+        d1 = pd.Series(flags_list_episodes)
         print("flags_list_episodes.shape:",np.array(flags_list_episodes).shape)
-        movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
-        print('type of movAv:', type(movAv))
-        axs[rep, 0].plot(np.arange(len(movAv)), movAv, 'k', label=f"biased_exp{e}_rep{rep}")
+        movAv1 = pd.Series.rolling(d1, window=int(num_of_episodes / 30), center=False).mean()
+        print('type of movAv:', type(movAv1))
+        d2 = pd.Series(flags_list_episodes_eva)
+        movAv2 = pd.Series.rolling(d2, window=int(num_of_episodes / 30), center=False).mean()
+        axs[rep, 0].plot(np.arange(len(movAv1)), movAv1, 'k', label=f"learning_exp{e}_rep{rep}")
+        axs[rep, 0].plot(np.arange(len(movAv2)), movAv2, 'r', label=f"evaluation_exp{e}_rep{rep}")
         axs[rep, 0].set_ylabel("Number of Flags")
-        axs[rep, 0].set_xlabel("Episde No.")
-        axs[rep, 0].set_title(f"curve of exp{e}_rep{rep}")
+        axs[rep, 0].set_xlabel("Episode No.")
+        axs[rep, 0].set_title(f"flag curve of exp{e}_rep{rep}")
         axs[rep, 0].grid(True)
         axs[rep, 0].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
         axs[rep, 0].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue',alpha=0.5)
-        axs[rep, 0].axis([0, num_of_episodes, 0, 3])
-        axs[rep, 0].legend(loc=4)
+        axs[rep, 0].axis([0, None, 0, 3.5])
+        # axs[rep, 0].legend(loc=2)
 
-        len_list0 = [len(x) for x in saved_paths_randomwalk]
-        print("avg and len of random walk period0:", mean(len_list0),len(len_list0))
-        print("max_length, min_length and median of period0:", max(len_list0), min(len_list0), np.median(len_list0))
-        axs[rep, 1].set_title(f"episodes lengths distribution of phase0")
-        axs[rep, 1].hist(len_list0, bins=50, facecolor='green',density=True, alpha=0.5)
-        axs[rep, 1].set_ylabel("Proportion")
-        axs[rep, 1].set_xlabel("Length of episodes")
+        # d1 = pd.Series(reward_list_episodes)
+        # rolled_d1 = pd.Series.rolling(d1, window=int(num_of_episodes/30), center=False).mean()
+        # d2 = pd.Series(reward_list_episodes_eva)
+        # rolled_d2 = pd.Series.rolling(d2, window=int(num_of_episodes/30), center=False).mean()
+        d1 = np.array(reward_list_episodes)
+        d2 = np.array(reward_list_episodes_eva)
+        axs[rep, 1].plot(np.arange(len(d1)), d1, 'k', label=f"learning_exp{e}_rep{rep}")
+        axs[rep, 1].plot(np.arange(len(d2)), d2, 'r', label=f"evaluation_exp{e}_rep{rep}")
+        axs[rep, 1].set_ylabel("reward")
+        axs[rep, 1].set_xlabel("Episode No.")
+        axs[rep, 1].set_title(f"reward curve of exp{e}_rep{rep}")
+        axs[rep, 1].grid(True)
+        axs[rep, 1].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
+        axs[rep, 1].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue',alpha=0.5)
+        axs[rep, 1].axis([0, None, None, None])
+        # axs[rep, 1].legend(loc=2)
 
-        len_list1 = [len(x) for x in saved_paths_period1]
-        print("avg_length and len of period1:", mean(len_list1), len(saved_paths_period1))
-        print("max_length, min_length and median of period1:", max(len_list1), min(len_list1), np.median(len_list1))
-        axs[rep, 2].set_title(f"episodes lengths distribution of phase1")
-        axs[rep, 2].hist(len_list1, bins=50, facecolor='blue',density=True, alpha=0.5)
-        axs[rep, 2].set_ylabel("Proportion")
-        axs[rep, 2].set_xlabel("Length of episodes")
+        # d1 = pd.Series(move_count_episodes)
+        # rolled_d1 = pd.Series.rolling(d1, window=int(num_of_episodes / 30), center=False).mean()
+        # d2 = pd.Series(move_count_episodes_eva)
+        # rolled_d2 = pd.Series.rolling(d2, window=int(num_of_episodes / 30), center=False).mean()
+        d1 = np.array(move_count_episodes)
+        d2 = np.array(move_count_episodes_eva)
+        axs[rep, 2].plot(np.arange(len(d1)), d1, 'k', label=f"learning_exp{e}_rep{rep}")
+        axs[rep, 2].plot(np.arange(len(d2)), d2, 'r', label=f"evaluation_exp{e}_rep{rep}")
+        axs[rep, 2].set_ylabel("move_count")
+        axs[rep, 2].set_xlabel("Episode No.")
+        axs[rep, 2].set_title(f"move_count curve of exp{e}_rep{rep}")
+        axs[rep, 2].grid(True)
+        axs[rep, 2].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
+        axs[rep, 2].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
+        axs[rep, 2].axis([0, None, None, None])
+        # axs[rep, 2].legend(loc=1)
+
+
+        # len_list0 = [len(x) for x in saved_paths_randomwalk]
+        # print("avg and len of random walk period0:", mean(len_list0),len(len_list0))
+        # print("max_length, min_length and median of period0:", max(len_list0), min(len_list0), np.median(len_list0))
+        # axs[rep, 1].set_title(f"episodes lengths distribution of phase0")
+        # axs[rep, 1].hist(len_list0, bins=50, facecolor='green',density=True, alpha=0.5)
+        # axs[rep, 1].set_ylabel("Proportion")
+        # axs[rep, 1].set_xlabel("Length of episodes")
+        #
+        # len_list1 = [len(x) for x in saved_paths_period1]
+        # print("avg_length and len of period1:", mean(len_list1), len(saved_paths_period1))
+        # print("max_length, min_length and median of period1:", max(len_list1), min(len_list1), np.median(len_list1))
+        # axs[rep, 2].set_title(f"episodes lengths distribution of phase1")
+        # axs[rep, 2].hist(len_list1, bins=50, facecolor='blue',density=True, alpha=0.5)
+        # axs[rep, 2].set_ylabel("Proportion")
+        # axs[rep, 2].set_xlabel("Length of episodes")
+
         # =====================
         print("agent.epsilon:", agent.epsilon)
 
@@ -417,11 +519,18 @@ for rep in range(0, num_of_repetitions):
 
     solve_amdp_time_experiments_repetitions.append(solve_amdp_time_experiments)
     simulation_time_experiments_repetitions.append(simulation_time_experiments)
+
     flags_list_episodes_experiments_repetitions.append(flags_list_episodes_experiments)
     reward_list_episodes_experiments_repetitions.append(reward_list_episodes_experiments)
     move_count_episodes_experiments_repetitions.append(move_count_episodes_experiments)
-    path_episodes_experiments_repetitions.append(path_episodes_experiments)
     flags_found_order_experiments_repetitions.append(flags_found_order_experiments)
+
+    flags_list_episodes_experiments_repetitions_eva.append(flags_list_episodes_experiments_eva)
+    reward_list_episodes_experiments_repetitions_eva.append(reward_list_episodes_experiments_eva)
+    move_count_episodes_experiments_repetitions_eva.append(move_count_episodes_experiments_eva)
+    flags_found_order_experiments_repetitions_eva.append(flags_found_order_experiments_eva)
+
+    path_episodes_experiments_repetitions.append(path_episodes_experiments)
 
 plt.tight_layout()
 plt.show()
@@ -432,17 +541,29 @@ fig.savefig(f"{folder_cluster_layout}/flags_collection_of_each_rep.png", dpi=600
 print("flags collected in last 200ep of each exp:")
 for i in range(len(flags_list_episodes_experiments_repetitions)):
     for j in range(num_of_experiments):
-        print(flags_list_episodes_experiments_repetitions[i][j][-200:])
+        print("learning:",flags_list_episodes_experiments_repetitions[i][j][-200:])
+        print("evaluation:",flags_list_episodes_experiments_repetitions_eva[i][j][-200:])
 print("flags_list_episodes_experiments_repetitions.shape:", np.array(flags_list_episodes_experiments_repetitions).shape)
+print("flags_list_episodes_experiments_repetitions_eva.shape:", np.array(flags_list_episodes_experiments_repetitions_eva).shape)
 
 print("move count in last 200ep of each exp:")
 for i in range(len(move_count_episodes_experiments_repetitions)):
     for j in range(num_of_experiments):
-        print(move_count_episodes_experiments_repetitions[i][j][-200:])
+        print("learning:",move_count_episodes_experiments_repetitions[i][j][-200:])
+        print("evaluation:",move_count_episodes_experiments_repetitions_eva[i][j][-200:])
 print("move_count_episodes_experiments_repetitions.shape:", np.array(move_count_episodes_experiments_repetitions).shape)
+print("move_count_episodes_experiments_repetitions_eva.shape:", np.array(move_count_episodes_experiments_repetitions_eva).shape)
 
-print("total move count of :", np.sum(np.array(move_count_episodes_experiments_repetitions)))
-print("order of flags collection:",flags_found_order_experiments_repetitions)
+print("order of flags collection:")
+for i in range(len(flags_found_order_experiments_repetitions)):
+    for j in range(num_of_experiments):
+        print("learning:",flags_found_order_experiments_repetitions[i][j][-20:])
+        print("evaluation:", flags_found_order_experiments_repetitions_eva[i][j][-20:])
+print("flags_found_order_experiments_repetitions.shape:",np.array(flags_found_order_experiments_repetitions).shape)
+print("flags_found_order_experiments_repetitions_eva.shape:",np.array(flags_found_order_experiments_repetitions_eva).shape)
+
+print("total move count of learning :", np.sum(np.array(move_count_episodes_experiments_repetitions)))
+print("total move count of evaluation :", np.sum(np.array(move_count_episodes_experiments_repetitions_eva)))
 
 
 # if not os.path.isfile(fpath_paths):
@@ -491,21 +612,34 @@ output_dir = folder_cluster_layout
 fig, axs = plt.subplots(1, 4, figsize=(5 * 4, 4))
 
 ## Reward
-plotRewards = np.mean(flags_list_episodes_experiments_repetitions, axis=0)
-plotSDs = np.std(flags_list_episodes_experiments_repetitions, axis=0)
-print("plotRewards.shape", plotRewards.shape)
-print("plotSDs.shape", plotSDs.shape)
-plotErrors = plotSDs / np.sqrt(10)
+flags_mean_cross_repetitions = np.mean(flags_list_episodes_experiments_repetitions, axis=0)
+flags_std_cross_repetitions = np.std(flags_list_episodes_experiments_repetitions, axis=0)
+print("flags_mean_cross_repetitions.shape", flags_mean_cross_repetitions.shape)
+print("flags_std_cross_repetitions.shape", flags_std_cross_repetitions.shape)
+flags_mean_cross_repetitions_eva = np.mean(flags_list_episodes_experiments_repetitions_eva, axis=0)
+flags_std_cross_repetitions_eva = np.std(flags_list_episodes_experiments_repetitions_eva, axis=0)
+print("flags_mean_cross_repetitions_eva.shape", flags_mean_cross_repetitions_eva.shape)
+print("flags_std_cross_repetitions_eva.shape", flags_std_cross_repetitions_eva.shape)
+
+plotErrors = flags_std_cross_repetitions / np.sqrt(10)
+plotErrors_eva = flags_std_cross_repetitions_eva / np.sqrt(10)
+
 plt.rcParams['agg.path.chunksize'] = 10000
-for i in range(0, len(plotRewards)):
-    d = pd.Series(plotRewards[i])
-    print("d.shape:",d.shape)
-    # s = pd.Series(plotErrors[i])
+for i in range(0, len(flags_mean_cross_repetitions)):
+    d = pd.Series(flags_mean_cross_repetitions[i])
+    d2 = pd.Series(flags_mean_cross_repetitions_eva[i])
+    print("d.shape, d2.shape:", d.shape, d2.shape)
     movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
-    print("movAv.shape:",movAv.shape)
-    l, caps, c = axs[0].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black',label=labs[i], capsize=5,
+    movAv2 = pd.Series.rolling(d2, window=int(num_of_episodes / 30), center=False).mean()
+    print("movAv.shape, movAv2.shape:", movAv.shape, movAv2.shape)
+    l, caps, c = axs[0].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black',label="learning", capsize=5,
                               errorevery=int(num_of_episodes / 30))
     for cap in caps:
+        cap.set_marker("_")
+
+    l2, caps2, c2 = axs[0].errorbar(np.arange(len(movAv2)), movAv2, yerr=plotErrors_eva[i], color='red', label="evaluation", capsize=5,
+                                 errorevery=int(num_of_episodes / 30))
+    for cap in caps2:
         cap.set_marker("_")
 axs[0].set_ylabel("No. Of Flags Collected")
 axs[0].set_xlabel("Episode No.")
@@ -523,22 +657,36 @@ axs[0].axis([0, None, 0, 3])
 ##plt.title("Number of Episodes: " + str(num_of_episodes) + " Alpha: " + str(lr) + " Gamma: " + str(gamma) + " Lambda: " +str(lam) + " Epsilon: "+str(agent.epsilon))
 
 ## move_counts changing
-mean_by_rep_move_count = np.mean(move_count_episodes_experiments_repetitions, axis=0)
-std_by_rep_move_count = np.std(move_count_episodes_experiments_repetitions, axis=0)
-print("mean_by_rep_move_count.shape:", mean_by_rep_move_count.shape)
-print("std_by_rep_move_count.shape:", std_by_rep_move_count.shape)
-plotErrors = std_by_rep_move_count / np.sqrt(10)
+move_count_mean_cross_reps = np.mean(move_count_episodes_experiments_repetitions, axis=0)
+move_count_std_cross_reps = np.std(move_count_episodes_experiments_repetitions, axis=0)
+print("mean_by_rep_move_count.shape:", move_count_mean_cross_reps.shape)
+print("std_by_rep_move_count.shape:", move_count_std_cross_reps.shape)
+
+move_count_mean_cross_reps_eva = np.mean(move_count_episodes_experiments_repetitions_eva, axis=0)
+move_count_std_cross_reps_eva = np.std(move_count_episodes_experiments_repetitions_eva, axis=0)
+print("mean_by_rep_move_count_eva.shape:", move_count_mean_cross_reps_eva.shape)
+print("std_by_rep_move_count_eva.shape:", move_count_std_cross_reps_eva.shape)
+
+plotErrors = move_count_std_cross_reps / np.sqrt(10)
+plotErrors_eva = move_count_std_cross_reps_eva / np.sqrt(10)
+
 plt.rcParams['agg.path.chunksize'] = 10000
-for i in range(0, len(mean_by_rep_move_count)):
-    d = pd.Series(mean_by_rep_move_count[i])
-    s = pd.Series(plotErrors[i])
+for i in range(0, len(move_count_mean_cross_reps)):
+    d = pd.Series(move_count_mean_cross_reps[i])
+    d2 = pd.Series(move_count_mean_cross_reps_eva[i])
     movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
-    l, caps, c = axs[1].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black', capsize=5,
+    movAv2 = pd.Series.rolling(d2, window=int(num_of_episodes / 30), center=False).mean()
+    l, caps, c = axs[1].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black', label="learning", capsize=5,
                               errorevery=int(num_of_episodes / 30))
     for cap in caps:
         cap.set_marker("_")
+    l2, caps2, c2 = axs[1].errorbar(np.arange(len(movAv2)), movAv2, yerr=plotErrors_eva[i], color='red', label="evaluation", capsize=5,
+                                 errorevery=int(num_of_episodes / 30))
+    for cap in caps2:
+        cap.set_marker("_")
 axs[1].set_ylabel("move_count")
 axs[1].set_xlabel("Episode No.")
+axs[0].legend(loc=4)
 axs[1].grid(True)
 axs[1].set_title("move_count with errorbar")
 axs[1].axvspan(0,num_randomwalk_episodes,facecolor='green', alpha=0.5)
