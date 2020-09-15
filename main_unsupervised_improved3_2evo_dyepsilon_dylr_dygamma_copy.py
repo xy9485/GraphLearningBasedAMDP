@@ -27,7 +27,7 @@ from gensim_operation_online import GensimOperator
 
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None]  # 可修改
-env = Maze(maze='low_connectivity')  # initialize env 可修改
+env = Maze(maze='big_basic')  # initialize env 可修改
 print("env.name:",env.maze_name)
 print("env.flags:", env.flags)
 print("env.goal:", env.goal)
@@ -37,19 +37,19 @@ num_of_experiments = len(abstraction_mode)
 lr = 0.1
 lam = 0.9
 gamma = 0.99
-omega = 200
+omega = 20
 epsilon = 1  # probability for choosing random action  #可修改
 epsilon_max = 1
 epsilon_max1 = 1
-
+print(f"lr={lr} / lam={lam} / gamma={gamma} / omega={omega} / epsilon_max={epsilon_max} / epsilon_max1={epsilon_max1}")
 num_randomwalk_episodes = 500
-second_evolution = 500 + 2000
+second_evolution = 500 + 1000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
 num_of_episodes = num_randomwalk_episodes + 4000        # 可修改
-num_of_repetitions = 4 # 可修改
+num_of_repetitions = 3 # 可修改
 max_move_count = 10000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
@@ -261,23 +261,23 @@ for rep in range(0, num_of_repetitions):
 
             #=========Here to modify epsilon value:====================
             #scheme1: prefer exploitation a little more
-            # if num_randomwalk_episodes <= ep < second_evolution:
-            #     temp_eps = epsilon_max - (epsilon_max / length_of_phase1) * (ep - num_randomwalk_episodes)
-            #     if temp_eps > 0.1:
-            #         agent.epsilon = round(temp_eps, 5)
-            #         # agent.epsilon -= epsilon_at_first_evo/(second_evolution-num_randomwalk_episodes)
-            # if second_evolution <= ep:
-            #     temp_eps = epsilon_max - (epsilon_max / length_of_phase2) * (ep - second_evolution)
-            #     if temp_eps > 0.1:
-            #         agent.epsilon = round(temp_eps, 5)
-            #         # agent.epsilon -= epsilon_at_second_evo / (num_of_episodes - second_evolution)
+            if num_randomwalk_episodes <= ep < second_evolution:
+                temp_eps = epsilon_max - (epsilon_max / length_of_phase1) * (ep - num_randomwalk_episodes)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
+                    # agent.epsilon -= epsilon_at_first_evo/(second_evolution-num_randomwalk_episodes)
+            if second_evolution <= ep:
+                temp_eps = epsilon_max - (epsilon_max / length_of_phase2) * (ep - second_evolution)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
+                    # agent.epsilon -= epsilon_at_second_evo / (num_of_episodes - second_evolution)
 
             #scheme2: prefer exploration a little more
-            if num_randomwalk_episodes+(second_evolution-num_randomwalk_episodes)/10 < ep < second_evolution:
-                agent.epsilon -= epsilon_max/(second_evolution-num_randomwalk_episodes)
-
-            if ep > second_evolution+(num_of_episodes-second_evolution)/10:
-                agent.epsilon -= epsilon_max1/(num_of_episodes-second_evolution)
+            # if num_randomwalk_episodes+(second_evolution-num_randomwalk_episodes)/10 < ep < second_evolution:
+            #     agent.epsilon -= epsilon_max/(second_evolution-num_randomwalk_episodes)
+            #
+            # if ep > second_evolution+(num_of_episodes-second_evolution)/10:
+            #     agent.epsilon -= epsilon_max1/(num_of_episodes-second_evolution)
 
             #=========agent.lr changing=========
             # if num_randomwalk_episodes <= ep < second_evolution:
@@ -318,6 +318,7 @@ for rep in range(0, num_of_repetitions):
                     else:
                         new_state = env.step(env.state, a)
                         r = env.reward(env.state, a, new_state)
+                        episode_reward += r
                         a_prime = agent.policy(new_state, env.actions(new_state))
                         a_star = agent.policyNoRand(new_state, env.actions(new_state))
                         agent.learn(env.state, a, new_state, a_prime, a_star, r)

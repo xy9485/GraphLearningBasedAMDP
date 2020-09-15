@@ -31,25 +31,26 @@ env = Maze(maze='low_connectivity')  # initialize env 可修改
 print("env.name:",env.maze_name)
 print("env.flags:", env.flags)
 print("env.goal:", env.goal)
+print("env.state:",env.state)
 
 num_of_actions = 4
 num_of_experiments = len(abstraction_mode)
 lr = 0.1
 lam = 0.9
 gamma = 0.99
-omega = 20
+omega = 100
 epsilon = 1  # probability for choosing random action  #可修改
 epsilon_max = 1
 epsilon_max1 = 1
-
+print(f"lr={lr} / lam={lam} / gamma={gamma} / omega={omega} / epsilon_max={epsilon_max} / epsilon_max1={epsilon_max1}")
 num_randomwalk_episodes = 500
-second_evolution = 500 + 1000
+second_evolution = 500 + 2000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 4003        # 可修改
-num_of_repetitions = 2 # 可修改
+num_of_episodes = num_randomwalk_episodes + 5000       # 可修改
+num_of_repetitions = 3 # 可修改
 max_move_count = 10000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
@@ -387,7 +388,7 @@ for rep in range(0, num_of_repetitions):
             a_eva = agent.policyNoRand(env.state, env.actions(env.state))
             episode_reward_eva = 0
             move_count_eva = 0
-            if ep>= num_randomwalk_episodes:
+            if ep >= num_randomwalk_episodes:
                 while not env.isTerminal(env.state):
                     move_count_eva += 1
                     new_state_eva = env.step(env.state, a_eva)
@@ -433,14 +434,15 @@ for rep in range(0, num_of_repetitions):
 
         # plot flag collection in one experiment
         plt.rcParams['agg.path.chunksize'] = 10000
+        plt.rcParams['lines.linewidth'] = 1
         d1 = pd.Series(flags_list_episodes)
         print("flags_list_episodes.shape:",np.array(flags_list_episodes).shape)
         movAv1 = pd.Series.rolling(d1, window=int(num_of_episodes / 30), center=False).mean()
         print('type of movAv:', type(movAv1))
         d2 = pd.Series(flags_list_episodes_eva)
         movAv2 = pd.Series.rolling(d2, window=int(num_of_episodes / 30), center=False).mean()
-        axs[rep, 0].plot(np.arange(len(movAv1)), movAv1, 'k', label=f"learning_exp{e}_rep{rep}")
-        axs[rep, 0].plot(np.arange(len(movAv2)), movAv2, 'r', label=f"evaluation_exp{e}_rep{rep}")
+        axs[rep, 0].plot(np.arange(len(movAv1)), movAv1, 'k', label=f"learning_rolled")
+        axs[rep, 0].plot(np.arange(len(movAv2)), movAv2, 'r', label=f"evaluation_rolled")
         axs[rep, 0].set_ylabel("Number of Flags")
         axs[rep, 0].set_xlabel("Episode No.")
         axs[rep, 0].set_title(f"flag curve of exp{e}_rep{rep}")
@@ -451,13 +453,15 @@ for rep in range(0, num_of_repetitions):
         # axs[rep, 0].legend(loc=2)
 
         d1 = pd.Series(reward_list_episodes)
-        d1 = pd.Series.rolling(d1, window=int(num_of_episodes/30), center=False).mean()
+        rolled_d1 = pd.Series.rolling(d1, window=int(num_of_episodes/30), center=False).mean()
         d2 = pd.Series(reward_list_episodes_eva)
-        d2 = pd.Series.rolling(d2, window=int(num_of_episodes/30), center=False).mean()
-        # d1 = np.array(reward_list_episodes)
-        # d2 = np.array(reward_list_episodes_eva)
-        axs[rep, 1].plot(np.arange(len(d1)), d1, 'k', label=f"learning_exp{e}_rep{rep}")
-        axs[rep, 1].plot(np.arange(len(d2)), d2, 'r', label=f"evaluation_exp{e}_rep{rep}")
+        rolled_d2 = pd.Series.rolling(d2, window=int(num_of_episodes/30), center=False).mean()
+        d1 = np.array(reward_list_episodes)
+        d2 = np.array(reward_list_episodes_eva)
+        # axs[rep, 1].plot(np.arange(len(d1)), d1, color='black', alpha=0.25, label=f"learning")
+        # axs[rep, 1].plot(np.arange(len(d2)), d2, color='red', alpha=0.25, label=f"evaluation")
+        axs[rep, 1].plot(np.arange(len(rolled_d1)), rolled_d1, color='black', alpha=1, label=f"learning_rolled")
+        axs[rep, 1].plot(np.arange(len(rolled_d2)), rolled_d2, color='red', alpha=1, label=f"evaluation_rolled")
         axs[rep, 1].set_ylabel("reward")
         axs[rep, 1].set_xlabel("Episode No.")
         axs[rep, 1].set_title(f"reward curve of exp{e}_rep{rep}")
@@ -467,14 +471,16 @@ for rep in range(0, num_of_repetitions):
         axs[rep, 1].axis([0, None, None, None])
         # axs[rep, 1].legend(loc=2)
 
-        # d1 = pd.Series(move_count_episodes)
-        # rolled_d1 = pd.Series.rolling(d1, window=int(num_of_episodes / 30), center=False).mean()
-        # d2 = pd.Series(move_count_episodes_eva)
-        # rolled_d2 = pd.Series.rolling(d2, window=int(num_of_episodes / 30), center=False).mean()
+        d1 = pd.Series(move_count_episodes)
+        rolled_d1 = pd.Series.rolling(d1, window=int(num_of_episodes / 30), center=False).mean() * 10 #amplify 10X to compare with eva
+        d2 = pd.Series(move_count_episodes_eva)
+        rolled_d2 = pd.Series.rolling(d2, window=int(num_of_episodes / 30), center=False).mean()
         d1 = np.array(move_count_episodes)
         d2 = np.array(move_count_episodes_eva)
-        axs[rep, 2].plot(np.arange(len(d1)), d1, 'k', label=f"learning_exp{e}_rep{rep}")
-        axs[rep, 2].plot(np.arange(len(d2)), d2, 'r', label=f"evaluation_exp{e}_rep{rep}")
+        # axs[rep, 2].plot(np.arange(len(d1)), d1, color='black', alpha=0.25, label=f"learning")
+        # axs[rep, 2].plot(np.arange(len(d2)), d2, color='red', alpha=0.25, label=f"evaluation")
+        axs[rep, 2].plot(np.arange(len(rolled_d1)), rolled_d1, color='black', alpha=1, label=f"learning_rolled")
+        axs[rep, 2].plot(np.arange(len(rolled_d2)), rolled_d2, color='red', alpha=1, label=f"evaluation_rolled")
         axs[rep, 2].set_ylabel("move_count")
         axs[rep, 2].set_xlabel("Episode No.")
         axs[rep, 2].set_title(f"move_count curve of exp{e}_rep{rep}")

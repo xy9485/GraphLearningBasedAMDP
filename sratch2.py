@@ -50,9 +50,9 @@ list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
 # lr_func_a = solution[x]
 # lr_func_b = solution[y]
 # print(lr_func_a,lr_func_b,type(lr_func_a))
-# se=pd.Series([1,2,3,4,4,5,6,6,7,7,8,89,3,3])
-# d=pd.Series.rolling(se, window=4, center=False).mean()
-if (1,2) in (1,2):
-    print("ja")
-else:
-    print("nein")
+se=pd.Series([1,2,3,4,4,5,6,6,7,7,8,89,3,3])
+d1=pd.Series.rolling(se, window=4, center=False).mean()
+# plt.plot(np.arange(len(d1)), d1, color='black', alpha=0.3)
+# plt.show()
+print(d1)
+print(d1*10)

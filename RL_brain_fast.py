@@ -17,8 +17,8 @@ class WatkinsQLambda():
         self.env = env
         self.epsilon = epsilon
         self.states = []
-        self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
-        # self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
+        # self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
+        self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
         self.lr = lr
         self.gamma = gamma
         self.lam = lam

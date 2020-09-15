@@ -343,11 +343,13 @@ class Maze():
         if flag_number > -1:
             if state[flag_number+2] == 0:
                 self.flags_collected+=1
-                return 100
-        if (state_prime[0],state_prime[1]) == self.goal:
+                return 10000 * self.flags_collected
+        if (state_prime[0],state_prime[1]) in self.goal:
+            print("hit goal")
             return self.flags_collected * 1000  # 可修改
             # return (self.flags_collected ** 2) * 1000    #可修改
-        return -1
+            # return 1000
+        return 0  # -1 is also worth trying
 
 # M=Maze()
 # print(M.walls)
