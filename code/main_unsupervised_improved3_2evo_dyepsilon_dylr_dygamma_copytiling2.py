@@ -27,30 +27,34 @@ from gensim_operation_online import GensimOperator
 
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None]  # 可修改
-env = Maze(maze='big_basic')  # initialize env 可修改
+# tiling_modes=[(21,16),(13,12)]
+tiling_modes=[(10,10),(7,7)]
+env = Maze(maze='spiral')  # initialize env 可修改
 print("env.name:",env.maze_name)
-print("env.flags:", env.flags)
-print("env.goal:", env.goal)
+print("env.flags:", env.flags, env.room_layout[env.flags[0][0],env.flags[0][1]], env.room_layout[env.flags[1][0],env.flags[1][1]], env.room_layout[env.flags[2][0],env.flags[2][1]])
+print("env.goal:", env.goal, env.room_layout[env.goal[0],env.goal[1]])
+print("env.state:",env.state)
+
 
 num_of_actions = 4
 num_of_experiments = len(abstraction_mode)
 lr = 0.1
 lam = 0.9
-gamma = 0.9999
+gamma = 0.999
 omega = 100
 epsilon = 1  # probability for choosing random action  #可修改
 epsilon_max = 1
 epsilon_max1 = 1
 print(f"lr={lr} / lam={lam} / gamma={gamma} / omega={omega} / epsilon_max={epsilon_max} / epsilon_max1={epsilon_max1}")
-num_randomwalk_episodes = 500
-second_evolution = 500 + 2000
+num_randomwalk_episodes = 200
+second_evolution = num_randomwalk_episodes + 2000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 6000        # 可修改
-num_of_repetitions = 8 # 可修改
-max_move_count = 10000
+num_of_episodes = num_randomwalk_episodes + 4001        # 可修改
+num_of_repetitions = 2 # 可修改
+max_move_count = 1000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
 length_of_phase1 = second_evolution-num_randomwalk_episodes
@@ -73,14 +77,14 @@ length_of_phase2 = num_of_episodes-second_evolution
 
 config = {
     'maze': env.maze_name,
-    'mode': 'random+biased_paths4',
+    'mode': 'dotiling',
     'ep': num_of_episodes,
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
     'min_length_to_save': min_length_to_save_as_path,
-    'representation_size': 128,
+    'representation_size': 64,
     'window': 10,
-    'kmeans_clusters': [15, 30, 30],
+    'kmeans_clusters': [10, 20, 30],
     'package': 'sklearn'
 }
 
@@ -88,9 +92,11 @@ config = {
 #                         f"_c1_{num_randomwalk_episodes}" \
 #                         f"_c2_{second_evolution}({num_saved_from_p1})_rw q updated and epsilon1.0--1.0--" \
 
-folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
+folder_cluster_layout = f"/home/xue/projects/masterthesis/cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
                         f"_evo1_{num_randomwalk_episodes}(q_update)" \
-                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.9999_fr10000_gr0_nr-1" \
+                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.999_fr10000_gr1000*flags_nr-1_tiling" \
+
+print("folder_cluster_layout:", folder_cluster_layout)
 
 if not os.path.isdir(folder_cluster_layout):
     makedirs(folder_cluster_layout)
@@ -148,7 +154,7 @@ for rep in range(0, num_of_repetitions):
         gamma_one_experiment = []
 
         agent = WatkinsQLambda(env.size, num_of_actions, env, epsilon, lr, gamma, lam)  ## resets the agent
-        gensim_opt = GensimOperator(path_episodes, env)
+        # gensim_opt = GensimOperator(path_episodes, env)
 
         print("Begin Training:")
         print("agent.lr:",agent.lr)
@@ -165,76 +171,85 @@ for rep in range(0, num_of_repetitions):
                 # print("path_episodes:",path_episodes)
                 # min_length_to_save_as_path -= 150
                 print("num_overflowed_eps:",num_overflowed_eps)
-                print("len of paths_period:", len(paths_period))
-                # epsilon_at_first_evo = 1
+                # print("len of paths_period:", len(paths_period))
+                # # epsilon_at_first_evo = 1
                 agent.epsilon = epsilon_max
-                # agent.lr = lr_max
-                # agent.gamma =gamma_max
-                # saved_paths_randomwalk = sorted(paths_period, key=lambda l: len(l))[:int(0.99*len(paths_period))]
-                saved_paths_randomwalk = paths_period
-                path_episodes.extend(saved_paths_randomwalk)
-                paths_period = []
-                # get embedding from gensim and built cluster-layout
-                gensim_opt.sentences = path_episodes
-                gensim_opt.get_clusterlayout_from_paths(size=config['representation_size'], window=config['window'], clusters=config['kmeans_clusters'][0],
-                                                        package=config['package'])
-                fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
-                                                               f"_kmeans{config['kmeans_clusters'][0]}_{config['package']}.cluster"
-                gensim_opt.write_cluster_layout(fpath_cluster_layout)
-                # plot cluster layout
-                copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
-                for row in copy_cluster_layout:
-                    for index, item in enumerate(row):
-                        if row[index].isdigit():
-                            row[index] = (int(row[index])+1)*1000
-                        else:
-                            row[index] = 0
-                axs[rep, 3].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
-                axs[rep, 3].set_title(f"cluster_layout_{config['kmeans_clusters'][0]}")
-                # build and solve AMDP
-                amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=gensim_opt.cluster_layout)
+                # # agent.lr = lr_max
+                # # agent.gamma =gamma_max
+                # # saved_paths_randomwalk = sorted(paths_period, key=lambda l: len(l))[:int(0.99*len(paths_period))]
+                # saved_paths_randomwalk = paths_period
+                # path_episodes.extend(saved_paths_randomwalk)
+                # paths_period = []
+                # # ~~~get embedding from gensim and built cluster-layout~~~
+                # gensim_opt.sentences = path_episodes
+                # gensim_opt.get_clusterlayout_from_paths(size=config['representation_size'], window=config['window'], clusters=config['kmeans_clusters'][0],
+                #                                         package=config['package'])
+                # fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
+                #                                                f"_kmeans{config['kmeans_clusters'][0]}_{config['package']}.cluster"
+                # gensim_opt.write_cluster_layout(fpath_cluster_layout)
+
+
+                # ~~~build and solve AMDP~~~
+                amdp = AMDP(env=env, tiling_mode=tiling_modes[0], dw_clt_layout=None)
                 start1 = time.time()
                 amdp.solveAbstraction()
                 end1 = time.time()
                 solve_amdp_time_phases.append(end1 - start1)
+                # ~~~plot cluster layout~~~
+                copy_cluster_layout = copy.deepcopy(amdp.abstraction_layout.tolist())
+                for row in copy_cluster_layout:
+                    for index, item in enumerate(row):
+                        if row[index][0] == '(':
+                            # print("yes ( : ", row[index])
+                            row[index] = 100*int(row[index][1]) + 10*int(row[index][4])
+                            # print("new value:", row[index])
+                        else:
+                            row[index] = 100
+                axs[rep, 3].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                axs[rep, 3].set_title(f"cluster_layout_{tiling_modes[0]}")
+                # print("abstract clusters layout")
+                # print(np.array(copy_cluster_layout))
 
             elif ep == second_evolution:
                 # min_length_to_save_as_path -= 200
                 # agent.resetQ()
-
-                print("len of paths_period:", len(paths_period))
+                # print("len of paths_period:", len(paths_period))
                 # epsilon_at_second_evo = 1
                 agent.epsilon = epsilon_max1
                 # agent.lr = lr_max
                 # agent.gamma =gamma_max
                 # saved_paths_period1 = sorted(paths_period, key=lambda l: len(l))[:num_saved_from_p1]
                 # saved_paths_period1 = sorted(paths_period, key=lambda l: len(l))[:int(num_saved_from_p1 * len(paths_period))]
-                saved_paths_period1 = paths_period
-                path_episodes.extend(saved_paths_period1)
-                paths_period = []
-                # get embedding from gensim and built cluster-layout
-                gensim_opt.sentences = path_episodes
-                gensim_opt.get_clusterlayout_from_paths(size=config['representation_size'], window=config['window'], clusters=config['kmeans_clusters'][1],
-                                                        package=config['package'])
-                fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
-                                                               f"_kmeans{config['kmeans_clusters'][1]}_{config['package']}.cluster"
-                gensim_opt.write_cluster_layout(fpath_cluster_layout)
-                # plot cluster layout
-                copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
-                for row in copy_cluster_layout:
-                    for index, item in enumerate(row):
-                        if row[index].isdigit():
-                            row[index] = (int(row[index]) + 1) * 1000
-                        else:
-                            row[index] = 0
-                axs[rep, 4].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
-                axs[rep, 4].set_title(f"cluster_layout_{config['kmeans_clusters'][1]}")
-                # build and solve AMDP
-                amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=np.array(gensim_opt.cluster_layout))
+                # saved_paths_period1 = paths_period
+                # path_episodes.extend(saved_paths_period1)
+                # paths_period = []
+                # ~~~ get embedding from gensim and built cluster-layout ~~~
+                # gensim_opt.sentences = path_episodes
+                # gensim_opt.get_clusterlayout_from_paths(size=config['representation_size'], window=config['window'], clusters=config['kmeans_clusters'][1],
+                #                                         package=config['package'])
+                # fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
+                #                                                f"_kmeans{config['kmeans_clusters'][1]}_{config['package']}.cluster"
+                # gensim_opt.write_cluster_layout(fpath_cluster_layout)
+
+                # ~~~build and solve AMDP~~~
+                amdp = AMDP(env=env, tiling_mode=tiling_modes[1], dw_clt_layout=None)
                 start1 = time.time()
                 amdp.solveAbstraction()
                 end1 = time.time()
                 solve_amdp_time_phases.append(end1 - start1)
+
+                #~~~plot cluster layout~~~
+                copy_cluster_layout = copy.deepcopy(amdp.abstraction_layout.tolist())
+                for row in copy_cluster_layout:
+                    for index, item in enumerate(row):
+                        if row[index][0] == '(':
+                            row[index] = 100*int(row[index][1]) + 10*int(row[index][4])
+                        else:
+                            row[index] = 100
+                axs[rep, 4].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                axs[rep, 4].set_title(f"cluster_layout_{tiling_modes[1]}")
+                # print("abstract clusters layout")
+                # print(np.array(copy_cluster_layout))
 
             # Third EVO
             # elif ep == third_evolution:
@@ -262,25 +277,19 @@ for rep in range(0, num_of_repetitions):
 
 
             #=========Here to modify epsilon value:====================
-            #$$$scheme1: prefer exploitation a little more$$$
-            #~~~for 2 times of evo~~~
+            #scheme1: prefer exploitation a little more
             if num_randomwalk_episodes <= ep < second_evolution:
                 temp_eps = epsilon_max - (epsilon_max / length_of_phase1) * (ep - num_randomwalk_episodes)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_first_evo/(second_evolution-num_randomwalk_episodes)
             if second_evolution <= ep:
                 temp_eps = epsilon_max1 - (epsilon_max1 / length_of_phase2) * (ep - second_evolution)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_second_evo / (num_of_episodes - second_evolution)
-            #~~~for 1 time of evo~~~
-            # if num_randomwalk_episodes <= ep < num_of_episodes:
-            #     temp_eps = epsilon_max - (epsilon_max / (num_randomwalk_episodes-num_randomwalk_episodes)) * (ep - num_randomwalk_episodes)
-            #     if temp_eps > 0.1:
-            #         agent.epsilon = round(temp_eps, 5)
 
-            #$$$scheme2: prefer exploration a little more$$$
+            #scheme2: prefer exploration a little more
             # if num_randomwalk_episodes+(second_evolution-num_randomwalk_episodes)/10 < ep < second_evolution:
             #     agent.epsilon -= epsilon_max/(second_evolution-num_randomwalk_episodes)
             #
@@ -328,8 +337,8 @@ for rep in range(0, num_of_repetitions):
                         r = env.reward(env.state, a, new_state)
                         episode_reward += r
                         a_prime = agent.policy(new_state, env.actions(new_state))
-                        a_star = agent.policyNoRand(new_state, env.actions(new_state))
-                        agent.learn(env.state, a, new_state, a_prime, a_star, r)
+                        # a_star = agent.policyNoRand(new_state, env.actions(new_state))
+                        # agent.learn(env.state, a, new_state, a_prime, a_star, r)
                         path.append(str((new_state[0], new_state[1])))
 
                 else:

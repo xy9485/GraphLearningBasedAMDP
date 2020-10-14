@@ -2,16 +2,16 @@ import numpy as np
 import time
 import sys
 
+
 class Maze():
 
-    def __init__(self, maze = 'basic'):
+    def __init__(self, maze='basic'):
         self.maze_name = maze
         self.room_layout = self.getRoomLayout()
-        self.size = (len(self.room_layout),len(self.room_layout[0]))
+        self.size = (len(self.room_layout), len(self.room_layout[0]))
         print("maze.size:", self.size)
         self.reset()
-
-
+        print("env oh yeah!")
 
     def getRoomLayout(self):
 
@@ -142,7 +142,9 @@ class Maze():
                           [W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B],
                           [A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A],
                           [A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A]]
-            return np.array(roomLayout)
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name == 'open_space':
             roomLayout = [[C, C, C, C, C, C, C, C, C, C, C, C, C, E, E, E, E, W, W, W],  ## Open Space
@@ -196,7 +198,8 @@ class Maze():
                           [A, A, A, W, H, H, H, W, I, I, I, I, I, I, W, J, J, J, J, J],
                           [A, A, A, W, W, W, H, W, W, W, I, W, W, W, W, J, J, J, J, J],
                           [A, A, A, W, G, G, G, G, G, W, K, W, P, P, W, J, J, J, J, J],
-                          [A, A, A, W, G, G, G, G, G, K, K, W, P, P, W, W, W, J, J, J],  # in this line there is an open wchich doesn't exist in paper
+                          [A, A, A, W, G, G, G, G, G, K, K, W, P, P, W, W, W, J, J, J],
+                          # in this line there is an open wchich doesn't exist in paper
                           [A, A, A, W, G, G, G, G, G, W, K, W, P, P, P, P, W, W, W, W],
                           [A, A, A, W, W, W, W, G, G, W, K, W, P, P, P, P, P, P, P, P],
                           [A, A, A, A, A, A, W, F, W, W, W, W, P, P, P, P, P, P, P, P],
@@ -219,7 +222,7 @@ class Maze():
                           [A, A, A, W, H, H, H, W, I, I, I, I, I, I, W, J, J, J, J, J],
                           [A, A, A, W, W, W, H, W, W, W, I, W, W, W, W, J, J, J, J, J],
                           [A, A, A, W, G, G, G, G, G, W, K, W, P, P, W, J, J, J, J, J],
-                          [A, A, A, W, G, G, G, G, G, K, K, W, P, P, W, W, W, J, J, J],  # in this line there is an open wchich doesn't exist in paper
+                          [A, A, A, W, G, G, G, G, G, K, K, W, P, P, W, W, W, J, J, J],# in this line there is an open which doesn't exist in paper
                           [A, A, A, W, G, G, G, G, G, W, K, W, P, P, P, P, W, W, W, W],
                           [A, A, A, W, W, W, W, G, G, W, K, W, P, P, P, P, P, P, P, P],
                           [A, A, A, A, A, A, W, F, W, W, W, W, P, P, P, P, P, P, P, P],
@@ -244,14 +247,28 @@ class Maze():
                 newLayout.append(nextLine)
             return np.array(newLayout)
 
+        if self.maze_name.startswith('external'):
+            path = f"mazes/61x61/{self.maze_name}.txt"
+            roomLayout = []
+            with open(path, "r") as f:
+                content = f.readlines()
+                content = [x.strip() for x in content]
+                for item in content:
+                    item = item.replace('#', 'w')
+                    # item = item.replace('.', '0')
+                    row = [x for x in item]
+                    roomLayout.append(row)
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
-    def isTerminal(self,state):
-        return (state[0],state[1]) == self.goal  # self.goal is a tuple
+    def isTerminal(self, state):
+        return (state[0], state[1]) == self.goal  # self.goal is a tuple
 
     def reset(self):
         self.flags_found_order = []
         self.flags_collected = 0
-        self.flags_collected2 = [0,0,0]
+        self.flags_collected2 = [0, 0, 0]
         if self.maze_name == 'basic':
             self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (6, 4, 0, 0, 0)
@@ -262,14 +279,16 @@ class Maze():
             self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (6 * 3, 4 * 3, 0, 0, 0)
             self.flags = [(0 * 3, 5 * 3), (15 * 3, 0 * 3), (15 * 3, 20 * 3)]
-            self.goal = (14*3, 1*3)
+            self.goal = (14 * 3, 1 * 3)
         if self.maze_name == 'strips':
             self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (0, 0, 0, 0, 0)
             self.flags = [(15, 11), (19, 0), (4, 19)]
             self.goal = (18, 1)
         if self.maze_name == 'spiral':
-            pass
+            self.state = (19, 0, 0, 0, 0)
+            self.goal = (13, 13)
+            self.flags = [(0, 19), (15, 6), (6, 6)]
         if self.maze_name == 'open_space':
             self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (19, 0, 0, 0, 0)
@@ -279,7 +298,7 @@ class Maze():
         if self.maze_name == 'high_connectivity':
             self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (19, 0, 0, 0, 0)
-            self.flags = [(0,1), (2,18), (5,6)]
+            self.flags = [(0, 1), (2, 18), (5, 6)]
             self.goal = (15, 0)
         if self.maze_name == 'low_connectivity':
             self.walls = np.argwhere(self.room_layout == 'w').tolist()
@@ -288,39 +307,51 @@ class Maze():
             self.goal = (15, 0)
         if self.maze_name == 'big_low_connectivity':
             self.walls = np.argwhere(self.room_layout == 'w').tolist()
-            self.state = (19*3, 0*3, 0, 0, 0)
-            self.flags = [(0*3, 1*3), (2*3, 18*3), (5*3, 6*3)]
-            self.goal = (15*3, 0*3)
+            self.state = (19 * 3, 0 * 3, 0, 0, 0)
+            self.flags = [(0 * 3, 1 * 3), (2 * 3, 18 * 3), (5 * 3, 6 * 3)]
+            self.goal = (15 * 3, 0 * 3)
+
+        if self.maze_name == "external_maze1":
+            self.state = (1, 1, 0, 0, 0)
+            self.goal = (self.room_layout.shape[0]-2, self.room_layout.shape[1]-2)
+            self.flags = [(10,1),(1,17),(17,3)]
+        if self.maze_name == "external_maze2":
+            self.state = (0, 0, 0, 0, 0)
+            self.goal = (self.room_layout.shape[0]-1, self.room_layout.shape[1]-1)
+            self.flags = [(10, 1), (1, 17), (17, 3)]
+        if self.maze_name == "external_maze1_61x61":
+            self.state = (0, 0, 0, 0, 0)
+            self.goal = (1, 57)
+            self.flags = [(9, 1), (45, 58), (59, 25)]
 
 
-
-    def isMovable(self,state):
+    def isMovable(self, state):
         # check if wall is in the way or already out of the bounds
-        if state[0] < 0 or state[0] > (len(self.room_layout)-1):
+        if state[0] < 0 or state[0] > (len(self.room_layout) - 1):
             return False
-        elif state[1] < 0 or state[1]> (len(self.room_layout[0])-1):
+        elif state[1] < 0 or state[1] > (len(self.room_layout[0]) - 1):
             return False
-        elif [state[0],state[1]] in self.walls:
+        elif [state[0], state[1]] in self.walls:
             return False
         else:
             return True
 
-    def actions(self,state):
+    def actions(self, state):
         actions = []
-        for a in range(0,4):
+        for a in range(0, 4):
             if self.isMovable(self.step(state, a)):
                 actions.append(a)
         return actions
 
     def step(self, state, action):
-        newCoord = (0,0)
+        newCoord = (0, 0)
         if action == 0:  # right
             newCoord = (state[0], state[1] + 1)
-        elif action == 1:   # down
+        elif action == 1:  # down
             newCoord = (state[0] + 1, state[1])
-        elif action == 2:   #left
+        elif action == 2:  # left
             newCoord = (state[0], state[1] - 1)
-        elif action == 3:   #up
+        elif action == 3:  # up
             newCoord = (state[0] - 1, state[1])
         else:
             pass
@@ -335,17 +366,17 @@ class Maze():
 
     def reward(self, state, action, state_prime):
         flag_number = -1
-        for index in range(0,len(self.flags)):
-            if (state_prime[0],state_prime[1]) == self.flags[index]:
+        for index in range(0, len(self.flags)):
+            if (state_prime[0], state_prime[1]) == self.flags[index]:
                 flag_number = index
                 if index not in self.flags_found_order:
                     self.flags_found_order.append(index)
         if flag_number > -1:
-            if state[flag_number+2] == 0:
-                self.flags_collected+=1
+            if state[flag_number + 2] == 0:
+                self.flags_collected += 1
                 # return 10000 * self.flags_collected
                 return 10000
-        if (state_prime[0],state_prime[1]) == self.goal:
+        if (state_prime[0], state_prime[1]) == self.goal:
             # print("hit goal")
             return self.flags_collected * 1000  # 可修改
             # # return (self.flags_collected ** 2) * 1000    #可修改

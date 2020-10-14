@@ -18,7 +18,7 @@ import time
 from statistics import mean
 from abstraction import AMDP
 from maze_env_general import Maze
-from RL_brain_fast import WatkinsQLambda
+from RL_brain_fast_explore import WatkinsQLambda
 from gensim_operation_online import GensimOperator
 
 # from sympy.core.symbol import symbols
@@ -27,29 +27,30 @@ from gensim_operation_online import GensimOperator
 
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None]  # 可修改
-env = Maze(maze='big_basic')  # initialize env 可修改
+env = Maze(maze='big_low_connectivity')  # initialize env 可修改
 print("env.name:",env.maze_name)
 print("env.flags:", env.flags)
 print("env.goal:", env.goal)
+print("env.state:",env.state)
 
 num_of_actions = 4
 num_of_experiments = len(abstraction_mode)
 lr = 0.1
 lam = 0.9
-gamma = 0.99
+gamma = 0.999
 omega = 100
 epsilon = 1  # probability for choosing random action  #可修改
 epsilon_max = 1
 epsilon_max1 = 1
 print(f"lr={lr} / lam={lam} / gamma={gamma} / omega={omega} / epsilon_max={epsilon_max} / epsilon_max1={epsilon_max1}")
-num_randomwalk_episodes = 500
-second_evolution = 500 + 2000
+num_randomwalk_episodes = 300
+second_evolution = 300 + 1000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 6000        # 可修改
-num_of_repetitions = 10 # 可修改
+num_of_episodes = num_randomwalk_episodes + 4000        # 可修改
+num_of_repetitions = 2 # 可修改
 max_move_count = 10000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
@@ -73,7 +74,7 @@ length_of_phase2 = num_of_episodes-second_evolution
 
 config = {
     'maze': env.maze_name,
-    'mode': 'random+biased_paths4',
+    'mode': 'random+biased_paths',
     'ep': num_of_episodes,
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
@@ -90,7 +91,7 @@ config = {
 
 folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
                         f"_evo1_{num_randomwalk_episodes}(q_update)" \
-                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.99_fr10000*flags_hit_gr1000_nr0" \
+                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.999_fr10000_gr1000*flags_nr-1" \
 
 if not os.path.isdir(folder_cluster_layout):
     makedirs(folder_cluster_layout)
@@ -262,19 +263,25 @@ for rep in range(0, num_of_repetitions):
 
 
             #=========Here to modify epsilon value:====================
-            #scheme1: prefer exploitation a little more
+            #$$$scheme1: prefer exploitation a little more$$$
+            #~~~for 2 times of evo~~~
             if num_randomwalk_episodes <= ep < second_evolution:
                 temp_eps = epsilon_max - (epsilon_max / length_of_phase1) * (ep - num_randomwalk_episodes)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_first_evo/(second_evolution-num_randomwalk_episodes)
             if second_evolution <= ep:
-                temp_eps = epsilon_max - (epsilon_max / length_of_phase2) * (ep - second_evolution)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                temp_eps = epsilon_max1 - (epsilon_max1 / length_of_phase2) * (ep - second_evolution)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_second_evo / (num_of_episodes - second_evolution)
+            #~~~for 1 time of evo~~~
+            # if num_randomwalk_episodes <= ep < num_of_episodes:
+            #     temp_eps = epsilon_max - (epsilon_max / (num_randomwalk_episodes-num_randomwalk_episodes)) * (ep - num_randomwalk_episodes)
+            #     if temp_eps > 0.1:
+            #         agent.epsilon = round(temp_eps, 5)
 
-            #scheme2: prefer exploration a little more
+            #$$$scheme2: prefer exploration a little more$$$
             # if num_randomwalk_episodes+(second_evolution-num_randomwalk_episodes)/10 < ep < second_evolution:
             #     agent.epsilon -= epsilon_max/(second_evolution-num_randomwalk_episodes)
             #

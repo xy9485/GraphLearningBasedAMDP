@@ -18,7 +18,7 @@ import time
 from statistics import mean
 from abstraction import AMDP
 from maze_env_general import Maze
-from RL_brain_fast import WatkinsQLambda
+from RL_brain_fast_explore import WatkinsQLambda
 from gensim_operation_online import GensimOperator
 
 # from sympy.core.symbol import symbols
@@ -27,35 +27,37 @@ from gensim_operation_online import GensimOperator
 
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None]  # 可修改
-env = Maze(maze='big_basic')  # initialize env 可修改
+env = Maze(maze='low_connectivity')  # initialize env 可修改
 print("env.name:",env.maze_name)
-print("env.flags:", env.flags)
-print("env.goal:", env.goal)
+print("env.flags:", env.flags, env.room_layout[env.flags[0][0],env.flags[0][1]], env.room_layout[env.flags[1][0],env.flags[1][1]], env.room_layout[env.flags[2][0],env.flags[2][1]])
+print("env.goal:", env.goal, env.room_layout[env.goal[0],env.goal[1]])
+print("env.state:",env.state)
 
 num_of_actions = 4
 num_of_experiments = len(abstraction_mode)
 lr = 0.1
 lam = 0.9
-gamma = 0.9999
+gamma = 0.999
 omega = 100
 epsilon = 1  # probability for choosing random action  #可修改
 epsilon_max = 1
 epsilon_max1 = 1
 print(f"lr={lr} / lam={lam} / gamma={gamma} / omega={omega} / epsilon_max={epsilon_max} / epsilon_max1={epsilon_max1}")
-num_randomwalk_episodes = 500
-second_evolution = 500 + 2000
+num_randomwalk_episodes = 300
+second_evolution = num_randomwalk_episodes + 1000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 6000        # 可修改
-num_of_repetitions = 8 # 可修改
-max_move_count = 10000
+num_of_episodes = num_randomwalk_episodes + 4001        # 可修改
+num_of_repetitions = 2 # 可修改
+max_move_count = 2000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
 length_of_phase1 = second_evolution-num_randomwalk_episodes
 length_of_phase2 = num_of_episodes-second_evolution
 
+explore_mode = 'rm'
 # lr_max = lr
 # lr_min = 0.01
 # a, b= symbols('a, b', real=True)
@@ -73,14 +75,14 @@ length_of_phase2 = num_of_episodes-second_evolution
 
 config = {
     'maze': env.maze_name,
-    'mode': 'random+biased_paths4',
+    'mode': 'random+biased_paths2',
     'ep': num_of_episodes,
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
     'min_length_to_save': min_length_to_save_as_path,
-    'representation_size': 128,
+    'representation_size': 256,
     'window': 10,
-    'kmeans_clusters': [15, 30, 30],
+    'kmeans_clusters': [15, 25, 30],
     'package': 'sklearn'
 }
 
@@ -88,9 +90,11 @@ config = {
 #                         f"_c1_{num_randomwalk_episodes}" \
 #                         f"_c2_{second_evolution}({num_saved_from_p1})_rw q updated and epsilon1.0--1.0--" \
 
-folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
+folder_cluster_layout = f"/home/xue/projects/masterthesis/cluster_layout/{config['maze']}/{config['mode']}/{explore_mode} explore/rp{config['rp']}_ep{config['ep']}" \
                         f"_evo1_{num_randomwalk_episodes}(q_update)" \
-                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.9999_fr10000_gr0_nr-1" \
+                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.999_fr10000_gr1000*flags_nr-1" \
+
+# /home/xue/projects/masterthesis/cluster_layout
 
 if not os.path.isdir(folder_cluster_layout):
     makedirs(folder_cluster_layout)
@@ -105,7 +109,7 @@ flags_found_order_experiments_repetitions = []
 path_episodes_experiments_repetitions = []
 epsilon_changing_written = False
 
-fig, axs = plt.subplots(num_of_repetitions, 5, figsize=(5 * 4, num_of_repetitions * 3))
+fig, axs = plt.subplots(num_of_repetitions, 6, figsize=(6 * 4, num_of_repetitions * 3))
 # st = fig.suptitle("curves of each repetition",fontsize=14)
 for rep in range(0, num_of_repetitions):
 
@@ -191,6 +195,12 @@ for rep in range(0, num_of_repetitions):
                             row[index] = 0
                 axs[rep, 3].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
                 axs[rep, 3].set_title(f"cluster_layout_{config['kmeans_clusters'][0]}")
+
+                im = axs[rep, 5].imshow(agent.states_long_life, cmap='hot')
+                axs[rep, 5].set_title(f"maze: {env.maze_name}/{explore_mode}")
+                fig.colorbar(im, ax=axs[rep, 5])
+                fig.show()
+
                 # build and solve AMDP
                 amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=gensim_opt.cluster_layout)
                 start1 = time.time()
@@ -210,7 +220,7 @@ for rep in range(0, num_of_repetitions):
                 # saved_paths_period1 = sorted(paths_period, key=lambda l: len(l))[:num_saved_from_p1]
                 # saved_paths_period1 = sorted(paths_period, key=lambda l: len(l))[:int(num_saved_from_p1 * len(paths_period))]
                 saved_paths_period1 = paths_period
-                path_episodes.extend(saved_paths_period1)
+                # path_episodes.extend(saved_paths_period1)
                 paths_period = []
                 # get embedding from gensim and built cluster-layout
                 gensim_opt.sentences = path_episodes
@@ -266,13 +276,13 @@ for rep in range(0, num_of_repetitions):
             #~~~for 2 times of evo~~~
             if num_randomwalk_episodes <= ep < second_evolution:
                 temp_eps = epsilon_max - (epsilon_max / length_of_phase1) * (ep - num_randomwalk_episodes)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_first_evo/(second_evolution-num_randomwalk_episodes)
             if second_evolution <= ep:
                 temp_eps = epsilon_max1 - (epsilon_max1 / length_of_phase2) * (ep - second_evolution)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_second_evo / (num_of_episodes - second_evolution)
             #~~~for 1 time of evo~~~
             # if num_randomwalk_episodes <= ep < num_of_episodes:
@@ -315,7 +325,7 @@ for rep in range(0, num_of_repetitions):
             a = agent.policy(env.state, env.actions(env.state))
             path = [str((env.state[0], env.state[1]))]
 
-            while not env.isTerminal(env.state):
+            while (not env.isTerminal(env.state) or ep < num_randomwalk_episodes):
                 # print("env.isTerminal(env.state):",env.isTerminal(env.state))
                 move_count += 1
 
@@ -328,8 +338,9 @@ for rep in range(0, num_of_repetitions):
                         r = env.reward(env.state, a, new_state)
                         episode_reward += r
                         a_prime = agent.policy(new_state, env.actions(new_state))
-                        a_star = agent.policyNoRand(new_state, env.actions(new_state))
-                        agent.learn(env.state, a, new_state, a_prime, a_star, r)
+                        agent.states_long_life[new_state[0], new_state[1]] += 1
+                        # a_star = agent.policyNoRand(new_state, env.actions(new_state))
+                        # agent.learn(env.state, a, new_state, a_prime, a_star, r)
                         path.append(str((new_state[0], new_state[1])))
 
                 else:
@@ -484,8 +495,8 @@ for rep in range(0, num_of_repetitions):
     path_episodes_experiments_repetitions.append(path_episodes_experiments)
     flags_found_order_experiments_repetitions.append(flags_found_order_experiments)
 
-plt.tight_layout()
-plt.show()
+fig.tight_layout()
+fig.show()
 fig.savefig(f"{folder_cluster_layout}/flags_collection_of_each_rep.png", dpi=600, facecolor='w', edgecolor='w',
             orientation='portrait', format=None,
             transparent=False, bbox_inches=None, pad_inches=0.1)
@@ -633,8 +644,8 @@ axs[3].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alph
 # axs[3].set(xlim=(0, num_of_episodes))
 axs[3].axis([0, None, None, None])
 
-plt.tight_layout()
-plt.show()
+fig.tight_layout()
+fig.show()
 fig.savefig("{}/flagcollection_errorbar_and_epsilon_changing.png".format(output_dir), dpi=600, facecolor='w', edgecolor='w',
             orientation='portrait', format=None,
             transparent=False, bbox_inches=None, pad_inches=0.1)

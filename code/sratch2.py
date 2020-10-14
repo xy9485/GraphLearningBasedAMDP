@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib
 import sys
+np.set_printoptions(linewidth=1000)
 # matplotlib.use('tkagg')
 # print(matplotlib.get_backend())
 # #
@@ -55,15 +56,25 @@ list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
 # d1=pd.Series.rolling(se, window=4, center=False).mean()
 # plt.plot(np.arange(len(d1)), d1, color='black', alpha=0.3)
 # plt.show()
-# print(np.random.choice([1,2,3]))
-# print(sys.path)
 
-# path = "/Users/yuan/Downloads/maze2.txt"
+# path = "mazes/21x21/external_maze_daniel.txt"
 # embedding = []
 # with open(path, "r") as f:
 #     content = f.readlines()
 #     content = [x.strip() for x in content]
 #     for item in content:
-#         emd = [x for x in item.split()]
+#         item = item.replace('█', 'w')
+#         # item = item.replace(' ', '*')
+#         emd = [x for x in item]
 #         embedding.append(emd)
-# print(embedding)
+#
+# numbers = np.random.random((4, 5))
+# sample = np.random.choice([True, False], (5, 5))
+# print(numbers[sample])
+
+numbers = np.array([[1,0],[3,4]]).ravel()
+he = [1,2,3,4,5]
+ha= [8,9]
+he.extend(ha)
+random.shuffle(he)
+print(he)

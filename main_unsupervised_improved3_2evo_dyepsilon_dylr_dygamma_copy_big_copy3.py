@@ -48,8 +48,8 @@ second_evolution = 500 + 2000
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 6002        # 可修改
-num_of_repetitions = 10 # 可修改
+num_of_episodes = num_randomwalk_episodes + 6003        # 可修改
+num_of_repetitions = 8 # 可修改
 max_move_count = 10000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
@@ -90,7 +90,7 @@ config = {
 
 folder_cluster_layout = f"cluster_layout/{config['maze']}/{config['mode']}/rp{config['rp']}_ep{config['ep']}" \
                         f"_evo1_{num_randomwalk_episodes}(q_update)" \
-                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.99_fr10000*flags_hit_gr1000_nr-1" \
+                        f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.99_fr10000_gr1000*flags_nr-1" \
 
 if not os.path.isdir(folder_cluster_layout):
     makedirs(folder_cluster_layout)
@@ -265,13 +265,13 @@ for rep in range(0, num_of_repetitions):
             #scheme1: prefer exploitation a little more
             if num_randomwalk_episodes <= ep < second_evolution:
                 temp_eps = epsilon_max - (epsilon_max / length_of_phase1) * (ep - num_randomwalk_episodes)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_first_evo/(second_evolution-num_randomwalk_episodes)
             if second_evolution <= ep:
-                temp_eps = epsilon_max - (epsilon_max / length_of_phase2) * (ep - second_evolution)
-                # if temp_eps > 0.1:
-                agent.epsilon = round(temp_eps, 5)
+                temp_eps = epsilon_max1 - (epsilon_max1 / length_of_phase2) * (ep - second_evolution)
+                if temp_eps > 0.1:
+                    agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_second_evo / (num_of_episodes - second_evolution)
 
             #scheme2: prefer exploration a little more
