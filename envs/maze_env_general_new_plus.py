@@ -5,13 +5,16 @@ import sys
 
 class Maze():
 
-    def __init__(self, maze='basic'):
+    def __init__(self, maze='basic', big=0):
+        print("env oh yeah!!!!!")
         self.maze_name = maze
+        self.big = big
         self.room_layout = self.getRoomLayout()
         self.size = (len(self.room_layout), len(self.room_layout[0]))
         print("maze.size:", self.size)
         self.reset()
-        print("env oh yeah!")
+
+
 
     def getRoomLayout(self):
 
@@ -68,7 +71,9 @@ class Maze():
                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, F, F, F, F, F, F],
                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F]]
-            return np.array(roomLayout)
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name == 'big_basic':
             ## "True" layout determined by doorways.
@@ -96,7 +101,9 @@ class Maze():
                 newLayout.append(nextLine)
                 newLayout.append(nextLine)
                 newLayout.append(nextLine)
-            return np.array(newLayout)
+            roomLayout = np.array(newLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name == 'strips':
             roomLayout = [[A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G],  ## Strips
@@ -119,7 +126,34 @@ class Maze():
                           [A, A, W, B, B, W, C, C, W, D, D, D, D, E, E, W, F, F, W, G],
                           [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G],
                           [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G]]
-            return np.array(roomLayout)
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
+
+        if self.maze_name == 'strips2':
+            roomLayout = [[A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],  ## Strips
+                          [A, A, W, B, B, B, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, B, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, F, G, G],
+                          [A, A, W, B, B, W, C, C, C, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, C, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, A, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, E, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, E, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, D, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G],
+                          [A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G, G]]
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name == 'spiral':
             roomLayout = [[C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, B, B],  ## Spiral
@@ -167,7 +201,9 @@ class Maze():
                           [A, A, A, W, W, W, W, H, H, H, W, G, G, G, G, W, W, G, G, G],
                           [A, A, A, W, W, W, W, H, H, H, W, G, G, G, G, W, W, G, G, G],
                           [A, A, A, A, A, A, A, H, H, H, G, G, G, G, G, W, W, G, G, G]]
-            return np.array(roomLayout)
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name == 'high_connectivity':
             roomLayout = [[A, A, A, W, H, H, H, I, I, I, I, I, I, I, W, J, J, J, J, J],  ##High Connectivity
@@ -190,7 +226,9 @@ class Maze():
                           [C, C, C, W, W, W, D, D, D, W, L, L, L, W, W, M, M, M, M, M],
                           [C, C, C, C, D, D, D, D, D, W, L, L, L, L, M, M, M, M, M, M],
                           [C, C, C, W, W, W, D, D, D, L, L, L, L, L, W, M, M, M, M, M]]
-            return np.array(roomLayout)
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name == 'low_connectivity':
             roomLayout = [[A, A, A, W, H, H, H, I, I, I, I, I, I, I, W, J, J, J, J, J],  ##Low Connectivity
@@ -214,7 +252,9 @@ class Maze():
                           [C, C, C, W, W, W, D, D, D, W, L, L, L, W, W, M, M, M, M, M],
                           [C, C, C, W, D, D, D, D, D, W, L, L, L, L, M, M, M, M, M, M],
                           [C, C, C, W, W, W, D, D, D, L, L, L, L, L, W, M, M, M, M, M]]
-            return np.array(roomLayout)
+            roomLayout = np.array(roomLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name == 'big_low_connectivity':
             roomLayout = [[A, A, A, W, H, H, H, I, I, I, I, I, I, I, W, J, J, J, J, J],  ##Low Connectivity
@@ -245,10 +285,14 @@ class Maze():
                 newLayout.append(nextLine)
                 newLayout.append(nextLine)
                 newLayout.append(nextLine)
-            return np.array(newLayout)
+            roomLayout = np.array(newLayout)
+            self.walls = np.argwhere(roomLayout == 'w').tolist()
+            return roomLayout
 
         if self.maze_name.startswith('external'):
-            path = f"mazes/61x61/{self.maze_name}.txt"
+            # path = f"../external_mazes/{self.maze_name}.txt"
+            path = f"/home/xue/projects/masterthesis/external_mazes/{self.maze_name}.txt"
+            # path = f"external_mazes/{self.maze_name}.txt"
             roomLayout = []
             with open(path, "r") as f:
                 content = f.readlines()
@@ -260,6 +304,17 @@ class Maze():
                     roomLayout.append(row)
             roomLayout = np.array(roomLayout)
             self.walls = np.argwhere(roomLayout == 'w').tolist()
+            if self.big:
+                newLayout = []
+                for l in roomLayout:
+                    nextLine = []
+                    for x in l:
+                        nextLine.extend([x, x, x])
+                    newLayout.append(nextLine)
+                    newLayout.append(nextLine)
+                    newLayout.append(nextLine)
+                roomLayout = np.array(newLayout)
+                self.walls = np.argwhere(roomLayout == 'w').tolist()
             return roomLayout
 
     def isTerminal(self, state):
@@ -269,60 +324,108 @@ class Maze():
         self.flags_found_order = []
         self.flags_collected = 0
         self.flags_collected2 = [0, 0, 0]
+        if self.big:
+            if self.maze_name == "external_maze21x21_1":
+                self.state = (1 * 3, 1 * 3, 0, 0, 0)
+                self.goal = (1 * 3, 19 * 3) # big version can set goal like this, this is not a mistake
+                # self.goal = (19 * 3, 19 * 3)
+                self.flags = [(10 * 3, 1 * 3), (1 * 3, 17 * 3), (17 * 3, 3 * 3)]
+            if self.maze_name == "external_maze21x21_2":
+                self.state = (0, 0, 0, 0, 0)
+                self.goal = (1 * 3, 19 * 3)
+                # self.goal = (19 * 3, 19 * 3)
+                self.flags = [(10 * 3, 1 * 3), (1 * 3, 17 * 3), (17 * 3, 3 * 3)]
+            if self.maze_name == "external_maze21x21_3":
+                self.state = (0, 0, 0, 0, 0)
+                # self.goal = (1*3, 19*3)
+                self.goal = (19 * 3, 19 * 3)
+                self.flags = [(10*3, 1*3), (1*3, 17*3), (17*3, 3*3)]
+            if self.maze_name == "external_maze31x31_1":
+                self.state = (0*3, 0*3, 0, 0, 0)
+                self.goal = (1*3, 20*3)
+                # self.goal = (29*3, 29*3)
+                self.flags = [(15*3, 2*3), (7*3, 27*3), (29*3, 15*3)]
+            if self.maze_name == "external_maze61x61_1":
+                self.state = (0, 0, 0, 0, 0)
+                self.goal = (1*3, 57*3)
+                self.flags = [(9*3, 1*3), (45*3, 58*3), (59*3, 25*3)]
+            return
+
+
         if self.maze_name == 'basic':
-            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (6, 4, 0, 0, 0)
             # self.prev_state = (6,4,0,0,0)
             self.flags = [(0, 5), (15, 0), (15, 20)]
             self.goal = (14, 1)
         if self.maze_name == 'big_basic':
-            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (6 * 3, 4 * 3, 0, 0, 0)
             self.flags = [(0 * 3, 5 * 3), (15 * 3, 0 * 3), (15 * 3, 20 * 3)]
             self.goal = (14 * 3, 1 * 3)
         if self.maze_name == 'strips':
-            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            self.state = (0, 0, 0, 0, 0)
+            self.flags = [(15, 11), (19, 0), (4, 19)]
+            self.goal = (18, 1)
+        if self.maze_name == 'strips2':
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (0, 0, 0, 0, 0)
             self.flags = [(15, 11), (19, 0), (4, 19)]
             self.goal = (18, 1)
         if self.maze_name == 'spiral':
+            # self.walls = np.argwhere(self.roomLayout == 'w').tolist()
             self.state = (19, 0, 0, 0, 0)
             self.goal = (13, 13)
             self.flags = [(0, 19), (15, 6), (6, 6)]
         if self.maze_name == 'open_space':
-            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (19, 0, 0, 0, 0)
             self.flags = [(0, 0), (2, 17), (13, 14)]
             self.goal = (19, 3)
             # self.goal = (5, 3)   # 纯属试一试
         if self.maze_name == 'high_connectivity':
-            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (19, 0, 0, 0, 0)
             self.flags = [(0, 1), (2, 18), (5, 6)]
             self.goal = (15, 0)
         if self.maze_name == 'low_connectivity':
-            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (19, 0, 0, 0, 0)
             self.flags = [(0, 1), (2, 18), (5, 6)]
             self.goal = (15, 0)
         if self.maze_name == 'big_low_connectivity':
-            self.walls = np.argwhere(self.room_layout == 'w').tolist()
+            # self.walls = np.argwhere(self.room_layout == 'w').tolist()
             self.state = (19 * 3, 0 * 3, 0, 0, 0)
             self.flags = [(0 * 3, 1 * 3), (2 * 3, 18 * 3), (5 * 3, 6 * 3)]
             self.goal = (15 * 3, 0 * 3)
 
-        if self.maze_name == "external_maze1":
+        if self.maze_name == "external_maze21x21_1":
             self.state = (1, 1, 0, 0, 0)
-            self.goal = (self.room_layout.shape[0]-2, self.room_layout.shape[1]-2)
+            self.goal = (19, 19)
             self.flags = [(10,1),(1,17),(17,3)]
-        if self.maze_name == "external_maze2":
+        if self.maze_name == "external_maze21x21_2":
             self.state = (0, 0, 0, 0, 0)
-            self.goal = (self.room_layout.shape[0]-1, self.room_layout.shape[1]-1)
+            self.goal = (19, 19)
             self.flags = [(10, 1), (1, 17), (17, 3)]
-        if self.maze_name == "external_maze1_61x61":
+        if self.maze_name == "external_maze21x21_3":
+            self.state = (0, 0, 0, 0, 0)
+            self.goal = (1, 19)
+            self.flags = [(10, 1), (1, 17), (17, 3)]
+        if self.maze_name == "external_maze31x31_1":
+            self.state = (0, 0, 0, 0, 0)
+            # self.goal = (1, 20)
+            self.goal = (29, 29)
+            self.flags = [(15, 2), (7, 27), (29, 15)]
+        if self.maze_name == "external_maze61x61_1":
             self.state = (0, 0, 0, 0, 0)
             self.goal = (1, 57)
             self.flags = [(9, 1), (45, 58), (59, 25)]
+        if self.maze_name == "external_low_connectivity_1":
+            self.state = (0, 0, 0, 0, 0)
+            self.goal = (1, 18)
+            self.flags = [(10, 16), (12, 16), (15, 15)]
+
 
 
     def isMovable(self, state):
@@ -385,3 +488,6 @@ class Maze():
 
 # M=Maze()
 # print(M.walls)
+if __name__ == "__main__":
+    Maze(maze='external_maze2_21x21')
+    print("bingo!")

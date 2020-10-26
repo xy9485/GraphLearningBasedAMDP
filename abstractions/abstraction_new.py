@@ -3,8 +3,6 @@ import copy
 import numpy as np
 import sys
 np.set_printoptions(linewidth=400, threshold=sys.maxsize)
-import pandas as pd
-from pprint import pprint
 
 
 class AMDP:
@@ -407,7 +405,7 @@ class AMDP:
         return value
 
 if __name__ == "__main__":
-    from maze_env_general import Maze
+    from envs.maze_env_general import Maze
 
     env = Maze(maze='open_space')  # initialize env 可修改
     amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=None)

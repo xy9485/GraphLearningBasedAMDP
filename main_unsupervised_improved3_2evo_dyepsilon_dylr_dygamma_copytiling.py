@@ -1,25 +1,15 @@
 import copy
-import math
-import random
-import pickle
-import matplotlib
 # print(matplotlib.get_backend())
 import matplotlib.pyplot as plt
-from tkinter import font
-import tkinter as tk
 import pandas as pd
-from errno import EEXIST
-from os import makedirs, path
+from os import makedirs
 import numpy as np
 import os
-from stat import S_IREAD, S_IRGRP, S_IROTH
 # from PIL import Image
 import time
-from statistics import mean
-from abstraction import AMDP
-from maze_env_general import Maze
-from RL_brain_fast import WatkinsQLambda
-from gensim_operation_online import GensimOperator
+from abstractions.abstraction import AMDP
+from envs.maze_env_general import Maze
+from RL_brains.RL_brain_fast import WatkinsQLambda
 
 # from sympy.core.symbol import symbols
 # from sympy.solvers.solveset import nonlinsolve

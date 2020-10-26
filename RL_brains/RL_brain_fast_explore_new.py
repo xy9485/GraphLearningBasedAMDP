@@ -6,6 +6,7 @@ All decisions are made in here.
 
 import numpy as np
 import pandas as pd
+import scipy
 import random
 
 
@@ -19,7 +20,10 @@ class WatkinsQLambda():
         self.states = []
         # self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
         self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
+        # self.q_table2 = np.zeros((self.state_size[0], self.state_size[1], self.action_size))
         self.q_table2 = np.random.rand(self.state_size[0], self.state_size[1], self.action_size)
+        self.q_init = 1
+        self.q2_init = 1
         self.lr = lr
         self.gamma = gamma
         self.lam = lam
@@ -43,8 +47,10 @@ class WatkinsQLambda():
         self.states_episodic = np.zeros((self.state_size[0], self.state_size[1]))
 
     def resetQ(self):
-        # self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
-        self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
+        if self.q_init:
+            self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
+        else:
+            self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
 
     def check_state_exist(self, state):  # in case q table is initialized as empty first
         if state not in self.q_table.index:
@@ -62,12 +68,22 @@ class WatkinsQLambda():
         if ran < self.epsilon * 100:
             # return actions[random.randint(0, len(actions) - 1)]
             return np.random.choice(actions)
-        return actions[np.argmax([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])]
+        if self.q_init:
+            return actions[np.argmax([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])]
+        else:
+            q_values = np.array([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])
+            action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
+            return action
 
 
     def policyNoRand(self, state, actions):
         ## Pure greedy policy used for displaying visual policy
-        return actions[np.argmax([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])]
+        if self.q_init:
+            return actions[np.argmax([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])]
+        else:
+            q_values = np.array([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])
+            action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
+            return action
 
     # def policy(self, state, actions):
     #     # print("yaya")
@@ -88,35 +104,52 @@ class WatkinsQLambda():
     #     return actions[np.argmax([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])]
 
     def policy_explore(self, state, actions):
+        counts = np.array([self.state_actions_long_life[state[0], state[1], a] for a in actions])
+        action = actions[np.random.choice(np.flatnonzero(counts == counts.min()))]
+        self.state_actions_long_life[state[0], state[1], action] += 1
+        return action
+
+
+    def policy_explore2(self, state, actions):
         # print("yaya")
         # print(state)
         ##epsilon greedy policy
         ran = np.random.randint(100)
         if ran < self.epsilon * 100:
-            counts = np.array([self.state_actions_long_life[state[0], state[1], a] for a in actions])
-            action = actions[np.random.choice(np.flatnonzero(counts == counts.min()))]
-            self.state_actions_long_life[state[0], state[1], action] += 1
+            action = np.random.choice(actions)
+            self.state_actions_long_life[state[0], state[1], action] -= 1
             return action
-        return actions[np.argmax([self.q_table[state[0], state[1], state[2], state[3], state[4], a] for a in actions])]
+        # sum = np.sum([np.exp(self.state_actions_long_life[state[0], state[1], a]) for a in actions])
+        Probs = scipy.special.softmax([self.state_actions_long_life[state[0], state[1], a] for a in actions])
+        # for a in actions:
+        #     p = np.exp(self.state_actions_long_life[state[0], state[1], a])/sum
+        #     Probs.append(p)
+        # print(Probs)
+        action = np.random.choice(actions, p=Probs)
+        self.state_actions_long_life[state[0], state[1], action] -= 1
+        return action
 
     def policy_explore_rl(self, state, actions):
         ran = np.random.randint(100)
         if ran < self.epsilon * 100:
             action = np.random.choice(actions)
-            # self.state_actions_long_life[state[0], state[1], action] += 1
-            # self.state_actions_episodic[state[0], state[1], action] += 1
             return action
-        q_values = np.array([self.q_table2[state[0], state[1], a] for a in actions])
-        action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
-        # self.state_actions_long_life[state[0], state[1], action] += 1
-        # self.state_actions_episodic[state[0], state[1], action] += 1
-        return action
+        if self.q2_init:
+            action = actions[np.argmax([self.q_table2[state[0], state[1], a] for a in actions])]
+            return action
+        else:
+            q_values = np.array([self.q_table2[state[0], state[1], a] for a in actions])
+            action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
+            return action
 
     def policyNoRand_explore_rl(self, state, actions):
-        ## Pure greedy policy used for displaying visual policy
-        q_values = np.array([self.q_table2[state[0], state[1], a] for a in actions])
-        action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
-        return action
+        if self.q2_init:
+            action = actions[np.argmax([self.q_table2[state[0], state[1], a] for a in actions])]
+            return action
+        else:
+            q_values = np.array([self.q_table2[state[0], state[1], a] for a in actions])
+            action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
+            return action
 
     # def learn(self, s, a, s_, a_, a_star, reward):
     #     ## Update the eligible states according to Watkins Q-lambda

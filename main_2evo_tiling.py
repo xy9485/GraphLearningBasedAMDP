@@ -1,25 +1,15 @@
 import copy
-import math
-import random
-import pickle
-import matplotlib
 # print(matplotlib.get_backend())
 import matplotlib.pyplot as plt
-from tkinter import font
-import tkinter as tk
 import pandas as pd
-from errno import EEXIST
-from os import makedirs, path
+from os import makedirs
 import numpy as np
 import os
-from stat import S_IREAD, S_IRGRP, S_IROTH
 # from PIL import Image
 import time
-from statistics import mean
-from abstraction import AMDP
-from maze_env_general import Maze
-from RL_brain_fast import WatkinsQLambda
-from gensim_operation_online import GensimOperator
+from abstractions.abstraction import AMDP
+from envs.maze_env_general import Maze
+from RL_brains.RL_brain_fast import WatkinsQLambda
 
 # from sympy.core.symbol import symbols
 # from sympy.solvers.solveset import nonlinsolve
@@ -28,8 +18,8 @@ from gensim_operation_online import GensimOperator
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None]  # 可修改
 # tiling_modes=[(21,16),(13,12)]
-tiling_modes=[(10,10),(7,7)]
-env = Maze(maze='spiral')  # initialize env 可修改
+tiling_modes=[(15,15),(12,12)]
+env = Maze(maze='big_low_connectivity')  # initialize env 可修改
 print("env.name:",env.maze_name)
 print("env.flags:", env.flags, env.room_layout[env.flags[0][0],env.flags[0][1]], env.room_layout[env.flags[1][0],env.flags[1][1]], env.room_layout[env.flags[2][0],env.flags[2][1]])
 print("env.goal:", env.goal, env.room_layout[env.goal[0],env.goal[1]])
@@ -47,12 +37,12 @@ epsilon_max = 1
 epsilon_max1 = 1
 print(f"lr={lr} / lam={lam} / gamma={gamma} / omega={omega} / epsilon_max={epsilon_max} / epsilon_max1={epsilon_max1}")
 num_randomwalk_episodes = 200
-second_evolution = num_randomwalk_episodes + 2000
+second_evolution = num_randomwalk_episodes + 1000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 4001        # 可修改
+num_of_episodes = num_randomwalk_episodes + 4002        # 可修改
 num_of_repetitions = 2 # 可修改
 max_move_count = 1000
 num_overflowed_eps = 0

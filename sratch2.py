@@ -67,3 +67,18 @@ list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
 #         emd = [x for x in item.split()]
 #         embedding.append(emd)
 # print(embedding)
+import scipy
+
+list1 = [[0, 1, 5], [3, 5, 6], [4, 0, 1]]
+print("jiji",str(list1))
+print(np.argwhere(list1==3))
+# print(np.sum(list1[0]))
+list2 = np.array(list1)
+print(list2)
+print(np.argwhere(list2==3))
+# list3 = np.array(list2)
+# print(list3[1].shape)
+#
+# yerr = np.linspace(0.05, 0.2, 10)
+# print(np.random.choice([0,1,2,3],p=np.array([0,0,0.5,0.5])))
+# # print(scipy.special.softmax([1,2,3,4,-4]))

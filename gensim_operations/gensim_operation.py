@@ -1,10 +1,8 @@
 import gensim.models
-from gensim.models import word2vec
 import numpy as np
 import os
-from stat import S_IREAD, S_IRGRP, S_IROTH
-from maze_env_general import Maze
-from sklearn.cluster import KMeans, DBSCAN
+from envs.maze_env_general import Maze
+from sklearn.cluster import KMeans
 from sklearn import preprocessing  # to normalise existing X
 import copy
 from nltk.cluster import KMeansClusterer

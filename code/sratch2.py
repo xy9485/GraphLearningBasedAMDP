@@ -57,7 +57,7 @@ list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
 # plt.plot(np.arange(len(d1)), d1, color='black', alpha=0.3)
 # plt.show()
 
-# path = "mazes/21x21/external_maze_daniel.txt"
+# path = "external_mazes/21x21/external_maze_daniel.txt"
 # embedding = []
 # with open(path, "r") as f:
 #     content = f.readlines()

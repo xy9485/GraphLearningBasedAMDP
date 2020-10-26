@@ -1,10 +1,8 @@
 import gensim.models
-from gensim.models import word2vec
 import numpy as np
 import os
-from stat import S_IREAD, S_IRGRP, S_IROTH
-from maze_env_general import Maze
-from sklearn.cluster import KMeans, DBSCAN
+from envs.maze_env_general import Maze
+from sklearn.cluster import KMeans
 from sklearn import preprocessing  # to normalise existing X
 import copy
 from nltk.cluster import KMeansClusterer
@@ -18,12 +16,16 @@ class GensimOperator:
         self.wv = None
         self.cluster_layout = None
         self.cluster_labels = None
+        self.length_corpus = 0
         print("GensimOperator oh yeah!")
 
     def get_clusterlayout_from_paths(self, size, window, clusters, min_count=5, workers=30, package='nltk'):
         print("start gensim Word2Vec model training...")
-        model = gensim.models.Word2Vec(sentences=self.sentences, min_count=min_count, size=size, workers=workers,
-                                       window=window, sg=1)
+        if len(self.sentences) == self.length_corpus:
+            model = self.model
+        else:
+            model = gensim.models.Word2Vec(sentences=self.sentences, min_count=min_count, size=size, workers=workers,
+                                           window=window, sg=1)
         self.wv = model.wv
         embeddings = []
         words = []
@@ -62,6 +64,8 @@ class GensimOperator:
                 roomlayout_prime[coord[0]][coord[1]] = label
             self.cluster_layout = roomlayout_prime
         # print(self.cluster_layout)
+        self.model = model
+        self.length_corpus = len(self.sentences)
 
     def check_unvisited_nodes(self, words):
         valid_node_coords = []

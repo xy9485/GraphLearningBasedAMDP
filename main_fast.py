@@ -1,18 +1,8 @@
-import copy
-import random
-import pickle
-import matplotlib.pyplot as plt
-from tkinter import font
-import tkinter as tk
-import pandas as pd
-import numpy as np
-import os
-from stat import S_IREAD, S_IRGRP, S_IROTH
 # from PIL import Image
 import time
-from abstraction import AMDP
-from maze_env_general import Maze
-from RL_brain_empty_q_3 import WatkinsQLambda
+from abstractions.abstraction import AMDP
+from envs.maze_env_general import Maze
+from RL_brains.RL_brain_empty_q_3 import WatkinsQLambda
 
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None, None]  # 可修改
