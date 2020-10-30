@@ -1,4 +1,5 @@
 import sys
+
 print(sys.path)
 import copy
 import math
@@ -11,11 +12,10 @@ import numpy as np
 import os
 # from PIL import Image
 import time
-# from abstractions.abstraction_new import AMDP
-from abstractions.abstraction_new_streamlined import AMDP
+from abstractions.abstraction_new_building import AMDP
 from envs.maze_env_general_new_plus import Maze
-from RL_brains.RL_brain_fast_explore_new import WatkinsQLambda
-from gensim_operations.gensim_operation_online_new import GensimOperator
+from RL_brains.RL_brain_fast_explore_new_building import WatkinsQLambda
+from gensim_operations.gensim_operation_online_new_building import GensimOperator
 
 # from sympy.core.symbol import symbols
 # from sympy.solvers.solveset import nonlinsolve
@@ -23,15 +23,18 @@ from gensim_operations.gensim_operation_online_new import GensimOperator
 
 # abstraction_mode = [None, (3, 3), (4, 4), (5, 5), (7, 7), (9, 9), None]   # 可修改
 abstraction_mode = [None]  # 可修改
-# env = Maze(maze='low_connectivity', big=0)  # initialize env 可修改
 env = Maze(maze='external_maze31x31_1', big=0)  # initialize env 可修改
+# env = Maze(maze='low_connectivity', big=0)  # initialize env 可修改
+
+# print("env.room_layout:\n", env.room_layout)
 
 # env = Maze(maze='spiral')  # initialize env 可修改
-print("env.name:",env.maze_name)
-print("env.big:",env.big)
-print("env.flags:", env.flags, env.room_layout[env.flags[0][0],env.flags[0][1]], env.room_layout[env.flags[1][0],env.flags[1][1]], env.room_layout[env.flags[2][0],env.flags[2][1]])
-print("env.goal:", env.goal, env.room_layout[env.goal[0],env.goal[1]])
-print("env.state:",env.state)
+print("env.name:", env.maze_name)
+print("env.big:", env.big)
+print("env.flags:", env.flags, env.room_layout[env.flags[0][0], env.flags[0][1]],
+      env.room_layout[env.flags[1][0], env.flags[1][1]], env.room_layout[env.flags[2][0], env.flags[2][1]])
+print("env.goal:", env.goal, env.room_layout[env.goal[0], env.goal[1]])
+print("env.state:", env.state)
 
 num_of_actions = 4
 num_of_experiments = len(abstraction_mode)
@@ -43,19 +46,19 @@ epsilon = 1  # probability for choosing random action  #可修改
 epsilon_max = 1
 epsilon_max1 = 1
 print(f"lr={lr} / lam={lam} / gamma={gamma} / omega={omega} / epsilon_max={epsilon_max} / epsilon_max1={epsilon_max1}")
-num_randomwalk_episodes = 500
+num_randomwalk_episodes = 1000
 second_evolution = num_randomwalk_episodes + 1000
 # third_evolution = 500 + 1500
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 2000        # 可修改
-num_of_repetitions = 10 # 可修改
-max_move_count = 500
+num_of_episodes = num_randomwalk_episodes + 2000  # 可修改
+num_of_repetitions = 2  # 可修改
+max_move_count = 1000
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
-length_of_phase1 = second_evolution-num_randomwalk_episodes
-length_of_phase2 = num_of_episodes-second_evolution
+length_of_phase1 = second_evolution - num_randomwalk_episodes
+length_of_phase2 = num_of_episodes - second_evolution
 
 explore_mode = 'rl probe diff starts'
 # lr_max = lr
@@ -74,15 +77,15 @@ explore_mode = 'rl probe diff starts'
 
 
 config = {
-    'maze': env.maze_name+"_big="+str(env.big),
-    'mode': 'topology(RL probe) | default goal | streamlined amdp',
+    'maze': env.maze_name + "_big=" + str(env.big),
+    'mode': 'topology(RL probe) | building | default goal',
     'ep': num_of_episodes,
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
     'min_length_to_save': min_length_to_save_as_path,
-    'representation_size': 300,
-    'window': 50,
-    'kmeans_clusters': [9, 16, 30],
+    'representation_size': 400,
+    'window': 150,
+    'kmeans_clusters': [80, 150, 30],
     'package': 'sklearn',
     'word2vec': 'SG'
 }
@@ -94,7 +97,7 @@ config = {
 folder_cluster_layout = f"/home/xue/projects/masterthesis/cluster_layout/{config['maze']}/{config['mode']}/k{str(config['kmeans_clusters'][:2])}/rp{config['rp']}_ep{config['ep']}_mm{max_move_count}" \
                         f"_evo1_{num_randomwalk_episodes}(q_update)" \
                         f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.999_fr10000_gr1000*flags_nr-1" \
-
+ \
 # /home/xue/projects/masterthesis/cluster_layout
 
 if not os.path.isdir(folder_cluster_layout):
@@ -123,7 +126,6 @@ for rep in range(0, num_of_repetitions):
     path_episodes_experiments = []
     flags_found_order_experiments = []
 
-
     # move_count = 0
     # totalMoveCount = 0
     # maxflag = 0
@@ -148,6 +150,7 @@ for rep in range(0, num_of_repetitions):
         solve_amdp_time_phases = []
         all_path_lengths = []
         paths_period = []
+        memory = []
 
         epsilons_one_experiment = []
         lr_one_experiment = []
@@ -157,7 +160,7 @@ for rep in range(0, num_of_repetitions):
         gensim_opt = GensimOperator(path_episodes, env)
 
         print("Begin Training:")
-        print("agent.lr:",agent.lr)
+        print("agent.lr:", agent.lr)
         for ep in range(0, num_of_episodes):
             if (ep + 1) % 100 == 0:
                 print(f"episode_100: {ep} | avg_move_count: {int(np.mean(move_count_episodes[-100:]))} | "
@@ -165,13 +168,14 @@ for rep in range(0, num_of_repetitions):
                       f"env.state: {env.state} | "
                       f"env.flagcollected: {env.flags_collected} | "
                       f"agent.epsilon: {agent.epsilon} | "
-                      f"agent.lr: {agent.lr}")
+                      f"agent.lr: {agent.lr} | "
+                      f"agent.states_long_life-std: {np.std(agent.states_long_life)}")
 
             if ep == num_randomwalk_episodes:
 
                 # print("path_episodes:",path_episodes)
                 # min_length_to_save_as_path -= 150
-                print("num_overflowed_eps:",num_overflowed_eps)
+                print("num_overflowed_eps:", num_overflowed_eps)
                 print("len of paths_period:", len(paths_period))
                 # epsilon_at_first_evo = 1
                 agent.epsilon = epsilon_max
@@ -184,25 +188,26 @@ for rep in range(0, num_of_repetitions):
                 # get embedding from gensim and built cluster-layout
                 random.shuffle(path_episodes)
                 gensim_opt.sentences = path_episodes
-                gensim_opt.get_clusterlayout_from_paths(size=config['representation_size'], window=config['window'], clusters=config['kmeans_clusters'][0],
+                gensim_opt.get_clusterlabels_from_paths(size=config['representation_size'], window=config['window'],
+                                                        clusters=config['kmeans_clusters'][0],
                                                         package=config['package'])
                 fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
                                                                f"_kmeans{config['kmeans_clusters'][0]}_{config['package']}.cluster"
-                gensim_opt.write_cluster_layout(fpath_cluster_layout)
-                # plot cluster layout
-                copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
-                for row in copy_cluster_layout:
-                    for index, item in enumerate(row):
-                        if row[index].isdigit():
-                            row[index] = (int(row[index])+1)*1000
-                        else:
-                            row[index] = 0
-                axs[rep, 3].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
-                axs[rep, 3].set_title(f"clusters{config['kmeans_clusters'][0]}s{config['representation_size']}w{config['window']}{config['word2vec']}")
-
-                im=axs[rep, 5].imshow(agent.states_long_life, cmap='hot')
-                axs[rep, 5].set_title(f"{env.maze_name}/big:{env.big}/{explore_mode}")
-                fig.colorbar(im,ax=axs[rep, 5])
+                # gensim_opt.write_cluster_layout(fpath_cluster_layout)
+                # # plot cluster layout
+                # copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
+                # for row in copy_cluster_layout:
+                #     for index, item in enumerate(row):
+                #         if row[index].isdigit():
+                #             row[index] = (int(row[index])+1)*1000
+                #         else:
+                #             row[index] = 0
+                # axs[rep, 3].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                # axs[rep, 3].set_title(f"clusters{config['kmeans_clusters'][0]}s{config['representation_size']}w{config['window']}{config['word2vec']}")
+                #
+                # im=axs[rep, 5].imshow(agent.states_long_life, cmap='hot')
+                # axs[rep, 5].set_title(f"{env.maze_name}/big:{env.big}/{explore_mode}")
+                # fig.colorbar(im,ax=axs[rep, 5])
                 # fig.show()
                 # fig.savefig(f"{folder_cluster_layout}/visitation.png", dpi=600, facecolor='w',
                 #             edgecolor='w',
@@ -210,9 +215,9 @@ for rep in range(0, num_of_repetitions):
                 #             transparent=False, bbox_inches=None, pad_inches=0.1)
 
                 # build and solve AMDP
-                amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=gensim_opt.cluster_layout)
+                amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=None, gensim_opt=gensim_opt, building=True)
                 start1 = time.time()
-                amdp.solveAbstraction()
+                amdp.solve_amdp()
                 end1 = time.time()
                 solve_amdp_time_phases.append(end1 - start1)
 
@@ -233,25 +238,26 @@ for rep in range(0, num_of_repetitions):
                 # get embedding from gensim and built cluster-layout
                 # random.shuffle(path_episodes)
                 gensim_opt.sentences = path_episodes
-                gensim_opt.get_clusterlayout_from_paths(size=config['representation_size'], window=config['window'], clusters=config['kmeans_clusters'][1],
+                gensim_opt.get_clusterlabels_from_paths(size=config['representation_size'], window=config['window'],
+                                                        clusters=config['kmeans_clusters'][1],
                                                         package=config['package'])
                 fpath_cluster_layout = folder_cluster_layout + f"/rep{rep}_s{config['representation_size']}_w{config['window']}" \
                                                                f"_kmeans{config['kmeans_clusters'][1]}_{config['package']}.cluster"
-                gensim_opt.write_cluster_layout(fpath_cluster_layout)
-                # plot cluster layout
-                copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
-                for row in copy_cluster_layout:
-                    for index, item in enumerate(row):
-                        if row[index].isdigit():
-                            row[index] = (int(row[index]) + 1) * 1000
-                        else:
-                            row[index] = 0
-                axs[rep, 4].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
-                axs[rep, 4].set_title(f"clusters{config['kmeans_clusters'][1]}s{config['representation_size']}w{config['window']}{config['word2vec']}")
+                # gensim_opt.write_cluster_layout(fpath_cluster_layout)
+                # # plot cluster layout
+                # copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
+                # for row in copy_cluster_layout:
+                #     for index, item in enumerate(row):
+                #         if row[index].isdigit():
+                #             row[index] = (int(row[index]) + 1) * 1000
+                #         else:
+                #             row[index] = 0
+                # axs[rep, 4].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                # axs[rep, 4].set_title(f"clusters{config['kmeans_clusters'][1]}s{config['representation_size']}w{config['window']}{config['word2vec']}")
                 # build and solve AMDP
-                amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=np.array(gensim_opt.cluster_layout))
+                amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=None, gensim_opt=gensim_opt, building=True)
                 start1 = time.time()
-                amdp.solveAbstraction()
+                amdp.solve_amdp()
                 end1 = time.time()
                 solve_amdp_time_phases.append(end1 - start1)
 
@@ -277,20 +283,19 @@ for rep in range(0, num_of_repetitions):
             #     solve_amdp_time_phases.append(end1 - start1)
             last_final = env.state
             env.reset()
-            if ep < num_randomwalk_episodes:
+            if ep < num_randomwalk_episodes and ep % 5 == 0:
                 env.state = last_final
             agent.resetEligibility()  # 可以修改
 
-
-            #=========Here to modify epsilon value:====================
-            #$$$scheme1: prefer exploitation a little more$$$
-            #~~~for 2 times of evo~~~
+            # =========Here to modify epsilon value:====================
+            # $$$scheme1: prefer exploitation a little more$$$
+            # ~~~for 2 times of evo~~~
             if num_randomwalk_episodes > ep:
                 temp_eps = epsilon - (epsilon / num_randomwalk_episodes) * (ep)
                 if temp_eps > 0.2:
                     agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_first_evo/(second_evolution-num_randomwalk_episodes)
-                # agent.epsilon = 0.2
+                # agent.epsilon = 0.3
             if num_randomwalk_episodes <= ep < second_evolution:
                 temp_eps = epsilon_max - (epsilon_max / length_of_phase1) * (ep - num_randomwalk_episodes)
                 if temp_eps > 0.1:
@@ -301,20 +306,20 @@ for rep in range(0, num_of_repetitions):
                 if temp_eps > 0.1:
                     agent.epsilon = round(temp_eps, 5)
                     # agent.epsilon -= epsilon_at_second_evo / (num_of_episodes - second_evolution)
-            #~~~for 1 time of evo~~~
+            # ~~~for 1 time of evo~~~
             # if num_randomwalk_episodes <= ep < num_of_episodes:
             #     temp_eps = epsilon_max - (epsilon_max / (num_randomwalk_episodes-num_randomwalk_episodes)) * (ep - num_randomwalk_episodes)
             #     if temp_eps > 0.1:
             #         agent.epsilon = round(temp_eps, 5)
 
-            #$$$scheme2: prefer exploration a little more$$$
+            # $$$scheme2: prefer exploration a little more$$$
             # if num_randomwalk_episodes+(second_evolution-num_randomwalk_episodes)/10 < ep < second_evolution:
             #     agent.epsilon -= epsilon_max/(second_evolution-num_randomwalk_episodes)
             #
             # if ep > second_evolution+(num_of_episodes-second_evolution)/10:
             #     agent.epsilon -= epsilon_max1/(num_of_episodes-second_evolution)
 
-            #=========agent.lr changing=========
+            # =========agent.lr changing=========
             # if num_randomwalk_episodes <= ep < second_evolution:
             #     agent.lr = math.exp(-(ep - num_randomwalk_episodes + lr_func_b)/lr_func_a)
             # if second_evolution <= ep < num_of_episodes:
@@ -336,7 +341,6 @@ for rep in range(0, num_of_repetitions):
             lr_one_experiment.append(agent.lr)
             gamma_one_experiment.append(agent.gamma)
 
-
             episode_reward = 0
             move_count = 0
             if ep < num_randomwalk_episodes:
@@ -344,10 +348,10 @@ for rep in range(0, num_of_repetitions):
                 # a = agent.policy_explore2(env.state, env.actions(env.state))
             else:
                 a = agent.policy(env.state, env.actions(env.state))
-            path = [str((env.state[0], env.state[1]))]
+            path = [str(env.state)]
 
             while (not env.isTerminal(env.state) or ep < num_randomwalk_episodes):
-            # while not env.isTerminal(env.state):
+                # while not env.isTerminal(env.state):
                 # print("env.isTerminal(env.state):",env.isTerminal(env.state))
                 move_count += 1
 
@@ -357,35 +361,39 @@ for rep in range(0, num_of_repetitions):
                         break
                     # ===RL exploration policy===
                     new_state = env.step(env.state, a)
-                    agent.states_episodic[new_state[0], new_state[1]] += 1
-                    agent.states_long_life[new_state[0], new_state[1]] += 1
+                    agent.states_episodic[new_state[0], new_state[1], new_state[2], new_state[3], new_state[4]] += 1
+                    agent.states_long_life[new_state[0], new_state[1], new_state[2], new_state[3], new_state[4]] += 1
                     # r = env.reward(env.state, a, new_state)
                     # r1 = math.sqrt(1/agent.states_episodic[env.state[0],env.state[1]])
                     # r2 = math.sqrt(1/agent.states_long_life[env.state[0],env.state[1]])
-                    r1 = -math.sqrt(agent.states_long_life[new_state[0], new_state[1]])
+                    r1 = -math.sqrt(
+                        agent.states_long_life[new_state[0], new_state[1], new_state[2], new_state[3], new_state[4]])
                     # r1 = -math.log(agent.states_long_life[new_state[0], new_state[1]])
-                    r2 = -agent.states_episodic[new_state[0], new_state[1]]
-                    beta = ep/num_randomwalk_episodes
-                    r = (1-beta)*r1 + (beta)*r2
+                    r2 = -agent.states_episodic[new_state[0], new_state[1], new_state[2], new_state[3], new_state[4]]
+                    beta = ep / num_randomwalk_episodes
+                    r = (1 - beta) * r1 + (beta) * r2
                     # r = r1
                     episode_reward += r
                     a_prime = agent.policy_explore_rl(new_state, env.actions(new_state))
                     a_star = agent.policyNoRand_explore_rl(new_state, env.actions(new_state))
                     agent.learn_explore(env.state, a, new_state, a_prime, a_star, r)
-                    path.append(str((new_state[0], new_state[1])))
+                    # path.append(str((new_state[0], new_state[1])))
+                    path.append(str(new_state))
+                    memory.append([env.state, a, new_state, r])
+
                     # env.flags_collected = 0
 
                     # ===another exploration policy===
                     # new_state = env.step(env.state, a)
-                    # agent.states_long_life[new_state[0], new_state[1]] += 1
+                    # agent.states_long_life[new_state[0], new_state[1], new_state[2], new_state[3], new_state[4]] += 1
                     # a_prime = agent.policy_explore2(new_state, env.actions(new_state))
-                    # path.append(str((new_state[0], new_state[1])))
+                    # path.append(str(new_state))
 
                 else:
                     ##Select action using policy
-                    abstract_state = amdp.getAbstractState(env.state)
+                    abstract_state = amdp.get_abstract_state(env.state)
                     new_state = env.step(env.state, a)
-                    new_abstract_state = amdp.getAbstractState(new_state)
+                    new_abstract_state = amdp.get_abstract_state(new_state)
                     # print(new_state, new_abstract_state)
 
                     a_prime = agent.policy(new_state, env.actions(new_state))  ##Greedy next-action selected
@@ -399,12 +407,13 @@ for rep in range(0, num_of_repetitions):
                     # if r % 1000 == 0:
                     #     print("hit goal:",r)
 
-                    value_new_abstract_state = amdp.getValue(new_abstract_state)
-                    value_abstract_state = amdp.getValue(abstract_state)
+                    value_new_abstract_state = amdp.get_value_astate(new_abstract_state)
+                    value_abstract_state = amdp.get_value_astate(abstract_state)
                     # print("type(value_abstract_state):",type(value_abstract_state))
                     shaping = gamma * value_new_abstract_state * omega - value_abstract_state * omega
                     agent.learn(env.state, a, new_state, a_prime, a_star, r + shaping)  # 可以修改
-                    path.append(str((new_state[0], new_state[1])))
+                    # path.append(str((new_state[0], new_state[1])))
+                    path.append(str(new_state))
 
                 env.state = new_state
                 a = a_prime
@@ -442,7 +451,7 @@ for rep in range(0, num_of_repetitions):
         plt.rcParams['agg.path.chunksize'] = 10000
         plt.rcParams['lines.linewidth'] = 1
         d = pd.Series(flags_list_episodes)
-        print("flags_list_episodes.shape:",np.array(flags_list_episodes).shape)
+        print("flags_list_episodes.shape:", np.array(flags_list_episodes).shape)
         movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
         print('type of movAv:', type(movAv))
         axs[rep, 0].plot(np.arange(len(movAv)), movAv, 'k', label=f"learning_rolled")
@@ -451,12 +460,12 @@ for rep in range(0, num_of_repetitions):
         axs[rep, 0].set_title(f"flag curve of exp{e}_rep{rep}")
         axs[rep, 0].grid(True)
         axs[rep, 0].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
-        axs[rep, 0].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue',alpha=0.5)
+        axs[rep, 0].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
         axs[rep, 0].axis([0, None, 0, 3.5])
         # axs[rep, 0].legend(loc=2)
 
         d1 = pd.Series(reward_list_episodes)
-        rolled_d1 = pd.Series.rolling(d1, window=int(num_of_episodes/30), center=False).mean()
+        rolled_d1 = pd.Series.rolling(d1, window=int(num_of_episodes / 30), center=False).mean()
         # d2 = pd.Series(reward_list_episodes_eva)
         # rolled_d2 = pd.Series.rolling(d2, window=int(num_of_episodes/30), center=False).mean()
         # d1 = np.array(reward_list_episodes)
@@ -470,7 +479,7 @@ for rep in range(0, num_of_repetitions):
         axs[rep, 1].set_title(f"reward curve of exp{e}_rep{rep}")
         axs[rep, 1].grid(True)
         axs[rep, 1].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
-        axs[rep, 1].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue',alpha=0.5)
+        axs[rep, 1].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
         axs[rep, 1].axis([0, None, None, None])
         # axs[rep, 1].legend(loc=2)
 
@@ -492,7 +501,6 @@ for rep in range(0, num_of_repetitions):
         axs[rep, 2].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
         axs[rep, 2].axis([0, None, None, None])
         # axs[rep, 2].legend(loc=1)
-
 
         # len_list0 = [len(x) for x in saved_paths_randomwalk]
         # print("avg and len of random walk period0:", mean(len_list0),len(len_list0))
@@ -525,8 +533,6 @@ for rep in range(0, num_of_repetitions):
         #                  orientation='portrait', papertype=None, format=None,
         #                  transparent=False, bbox_inches=None, pad_inches=0.1)
 
-
-
     solve_amdp_time_experiments_repetitions.append(solve_amdp_time_experiments)
     simulation_time_experiments_repetitions.append(simulation_time_experiments)
     flags_list_episodes_experiments_repetitions.append(flags_list_episodes_experiments)
@@ -554,6 +560,8 @@ for i in range(len(move_count_episodes_experiments_repetitions)):
 print("move_count_episodes_experiments_repetitions.shape:", np.array(move_count_episodes_experiments_repetitions).shape)
 
 print("total move count of :", np.sum(np.array(move_count_episodes_experiments_repetitions)))
+
+
 # print("order of flags collection:",flags_found_order_experiments_repetitions)
 
 
@@ -611,12 +619,13 @@ plotErrors = plotSDs / np.sqrt(10)
 plt.rcParams['agg.path.chunksize'] = 10000
 for i in range(0, len(plotRewards)):
     d = pd.Series(plotRewards[i])
-    print("d.shape:",d.shape)
+    print("d.shape:", d.shape)
     # s = pd.Series(plotErrors[i])
     movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
-    print("movAv.shape:",movAv.shape)
-    l, caps, c = axs[0].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black',label=labs[i], capsize=5,
-                              errorevery=int(num_of_episodes / 30))
+    print("movAv.shape:", movAv.shape)
+    l, caps, c = axs[0].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black', label=labs[i],
+                                 capsize=5,
+                                 errorevery=int(num_of_episodes / 30))
     for cap in caps:
         cap.set_marker("_")
 axs[0].set_ylabel("No. Of Flags Collected")
@@ -624,8 +633,8 @@ axs[0].set_xlabel("Episode No.")
 axs[0].legend(loc=4)
 axs[0].grid(True)
 axs[0].set_title("flags collection with errorbar")
-axs[0].axvspan(0,num_randomwalk_episodes,facecolor='green', alpha=0.5)
-axs[0].axvspan(num_randomwalk_episodes,second_evolution, facecolor='blue', alpha=0.5)
+axs[0].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
+axs[0].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
 axs[0].axis([0, None, 0, 3])
 # print(whenConverged)
 
@@ -646,22 +655,21 @@ for i in range(0, len(mean_by_rep_move_count)):
     s = pd.Series(plotErrors[i])
     movAv = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
     l, caps, c = axs[1].errorbar(np.arange(len(movAv)), movAv, yerr=plotErrors[i], color='black', capsize=5,
-                              errorevery=int(num_of_episodes / 30))
+                                 errorevery=int(num_of_episodes / 30))
     for cap in caps:
         cap.set_marker("_")
 axs[1].set_ylabel("move_count")
 axs[1].set_xlabel("Episode No.")
 axs[1].grid(True)
 axs[1].set_title("move_count with errorbar")
-axs[1].axvspan(0,num_randomwalk_episodes,facecolor='green', alpha=0.5)
-axs[1].axvspan(num_randomwalk_episodes,second_evolution, facecolor='blue', alpha=0.5)
+axs[1].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
+axs[1].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
 # axs[1].set(xlim=(0, num_of_episodes))
 axs[1].axis([0, None, None, None])
 
-
 ## epsilon changing
-axs[2].plot(np.arange(len(epsilons_one_experiment)),np.array(epsilons_one_experiment), 'k', label='epsilon')
-axs[2].plot(np.arange(len(lr_one_experiment)),np.array(lr_one_experiment), 'r', label='lr')
+axs[2].plot(np.arange(len(epsilons_one_experiment)), np.array(epsilons_one_experiment), 'k', label='epsilon')
+axs[2].plot(np.arange(len(lr_one_experiment)), np.array(lr_one_experiment), 'r', label='lr')
 axs[2].set_ylabel("epsilon/lr")
 axs[2].set_xlabel("episodes")
 axs[2].legend(loc=1)
@@ -673,7 +681,7 @@ axs[2].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alph
 axs[2].axis([0, None, 0, None])
 
 # gamma changingabel='epsilon')
-axs[3].plot(np.arange(len(gamma_one_experiment)),np.array(gamma_one_experiment), 'r', label='gamma')
+axs[3].plot(np.arange(len(gamma_one_experiment)), np.array(gamma_one_experiment), 'r', label='gamma')
 axs[3].set_ylabel("gamma")
 axs[3].set_xlabel("episodes")
 axs[3].legend(loc=1)
@@ -686,10 +694,10 @@ axs[3].axis([0, None, None, None])
 
 fig.tight_layout()
 fig.show()
-fig.savefig("{}/flagcollection_errorbar_and_epsilon_changing.png".format(output_dir), dpi=600, facecolor='w', edgecolor='w',
+fig.savefig("{}/flagcollection_errorbar_and_epsilon_changing.png".format(output_dir), dpi=600, facecolor='w',
+            edgecolor='w',
             orientation='portrait', format=None,
             transparent=False, bbox_inches=None, pad_inches=0.1)
-
 
 # ## Flags Collected
 # plt.figure(2)
@@ -733,4 +741,3 @@ fig.savefig("{}/flagcollection_errorbar_and_epsilon_changing.png".format(output_
 # # plt.savefig("{}/SimulationTime.png".format(output_dir), dpi=1200, facecolor='w', edgecolor='w',
 # #             orientation='portrait', papertype=None, format=None,
 # #             transparent=False, bbox_inches=None, pad_inches=0.1)
-

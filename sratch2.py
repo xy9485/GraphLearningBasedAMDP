@@ -82,3 +82,7 @@ print(np.argwhere(list2==3))
 # yerr = np.linspace(0.05, 0.2, 10)
 # print(np.random.choice([0,1,2,3],p=np.array([0,0,0.5,0.5])))
 # # print(scipy.special.softmax([1,2,3,4,-4]))
+print("===")
+a = 1
+if a:
+    print(0%2)
