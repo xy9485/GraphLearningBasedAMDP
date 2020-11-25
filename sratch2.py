@@ -6,6 +6,8 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib
 import sys
+import gym
+
 # matplotlib.use('tkagg')
 # print(matplotlib.get_backend())
 # #
@@ -36,6 +38,7 @@ list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
 #         i[a] = i[a]+1
 # print(list1)
 # list2 = np.array(list1)
+pass
 # print(np.power([[1,2,3],[2,4]],2))
 # from sympy.core.symbol import symbols
 # from sympy.solvers.solveset import nonlinsolve
@@ -69,20 +72,72 @@ list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
 # print(embedding)
 import scipy
 
-list1 = [[0, 1, 5], [3, 5, 6], [4, 0, 1]]
-print("jiji",str(list1))
-print(np.argwhere(list1==3))
-# print(np.sum(list1[0]))
-list2 = np.array(list1)
-print(list2)
-print(np.argwhere(list2==3))
+# list1 = [[0, 1, 5], [3, 5, 6], [4, 0, 1]]
+# print(np.cumsum(list1, axis=1))
+# print("jiji",str(list1))
+# print(np.argwhere(list1==3))
+# # print(np.sum(list1[0]))
+# list2 = np.array(list1)
+# print(list2)
+# print(np.argwhere(list2==3))
 # list3 = np.array(list2)
 # print(list3[1].shape)
 #
 # yerr = np.linspace(0.05, 0.2, 10)
 # print(np.random.choice([0,1,2,3],p=np.array([0,0,0.5,0.5])))
 # # print(scipy.special.softmax([1,2,3,4,-4]))
-print("===")
-a = 1
-if a:
-    print(0%2)
+#
+
+# list1 = np.random.randint(100,size=(3,4,3))
+# print(list1)
+# print(list1.flatten())
+
+import pyglet
+import gym
+# import gym_puddle # Don't forget this extra line!
+from gympuddleworld import gym_puddleworld
+
+# gym.envs.register(
+#     id='PuddleWorld-v0',
+#     entry_point='gym_puddle.envs:PuddleEnv',
+#     max_episode_steps=250,
+#
+# )
+# env = gym.make('PuddleWorld-v0')
+# print(env.action_space)
+# env.reset()
+# env.render()
+# actions = [np.zeros(2) for i in range(5)]
+# for i in range(4):
+#     actions[i][i//2] = 0.05 * (i%2 * 2 - 1)
+# print(actions)
+
+# sales = { 'apple': 2, 'orange': 3, 'grapes': 4 }
+# for k, i in sales.items():
+#     print(k,i)
+
+fig, ax = plt.subplots()
+pd1 = pd.Series(np.array([1, 3, 4, 6, 9, 23, 30])) *10
+pd2 = pd.Series(np.array([2, 5, 7, 9, 15, 34, 50])) *10
+
+pd1 = pd.Series.rolling(pd1, window=3, center=False).mean()
+pd2 = pd.Series.rolling(pd2, window=3, center=False).mean()
+print(pd1)
+print(pd2)
+# pd1 = pd1.dropna()
+# print(pd1[4:])
+
+# pd3=(pd1+pd2)/2
+# print(pd3)
+# ax.plot(pd1, pd2)
+# # print(pd1)
+# # ax.fill_between(np.arange(4),pd1,pd2, alpha=0.25)
+# # big = 0
+# # ax.set_title(f"{'big' if big==1 else 'small'}")
+# fig.show()
+
+a = [1,3,4]
+b =[i*10 for i in a]
+y=True
+if y == 1:
+    print("keyi")

@@ -19,13 +19,13 @@ class GensimOperator:
         self.length_corpus = 0
         print("GensimOperator oh yeah!")
 
-    def get_clusterlayout_from_paths(self, size, window, clusters, min_count=5, workers=30, package='nltk'):
+    def get_clusterlayout_from_paths(self, size, window, clusters, skip_gram=1, min_count=5, workers=30, package='sklearn'):
         print("start gensim Word2Vec model training...")
         if len(self.sentences) == self.length_corpus:
             model = self.model
         else:
             model = gensim.models.Word2Vec(sentences=self.sentences, min_count=min_count, size=size, workers=workers,
-                                           window=window, sg=1)
+                                           window=window, sg=skip_gram)
         self.wv = model.wv
         embeddings = []
         words = []

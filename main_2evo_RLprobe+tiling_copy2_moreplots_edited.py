@@ -22,10 +22,10 @@ from gensim_operations.gensim_operation_online_new import GensimOperator
 
 # abstraction_mode = [None, ((5,5),(4,4))]   # 可修改
 # abstraction_mode = [None,((19,19),(16,16))]  # 可修改
-abstraction_mode = [None,((15,15),(12,12))]  # 可修改
+abstraction_mode = [None,((16,16),(13,13))]  # 可修改
 # abstraction_mode = [None,((21,21),(16,16))]  # 可修改
 
-env = Maze(maze='low_connectivity', big=1)  # initialize env 可修改
+env = Maze(maze='low_connectivity', big=0)  # initialize env 可修改
 print("env.name:", env.maze_name)
 print("env.big:",env.big)
 print("env.flags:", env.flags, env.room_layout[env.flags[0][0],env.flags[0][1]], env.room_layout[env.flags[1][0],env.flags[1][1]], env.room_layout[env.flags[2][0],env.flags[2][1]])
@@ -48,9 +48,9 @@ second_evolution = num_randomwalk_episodes + 1000
 # fourth_evolution = 500 + 1500
 num_saved_from_p1 = 1
 # num_saved_from_p2 = 1500
-num_of_episodes = num_randomwalk_episodes + 2000        # 可修改
-num_of_repetitions = 4 # 可修改
-max_move_count = 2000
+num_of_episodes = num_randomwalk_episodes + 2001        # 可修改
+num_of_repetitions = 2 # 可修改
+max_move_count = 500
 num_overflowed_eps = 0
 min_length_to_save_as_path = 400
 length_of_phase1 = second_evolution-num_randomwalk_episodes
@@ -79,8 +79,8 @@ config = {
     'rp': num_of_repetitions,
     'max_move_count': max_move_count,
     'min_length_to_save': min_length_to_save_as_path,
-    'representation_size': 400,
-    'window': 100,
+    'representation_size': 300,
+    'window': 50,
     'kmeans_clusters': [16, 25, 30],
     'package': 'sklearn',
     'word2vec': 'SG'
@@ -90,7 +90,7 @@ print("config:",config)
 #                         f"_c1_{num_randomwalk_episodes}" \
 #                         f"_c2_{second_evolution}({num_saved_from_p1})_rw q updated and epsilon1.0--1.0--" \
 
-folder_cluster_layout = f"/home/xue/projects/masterthesis/cluster_layout/{config['maze']}" \
+folder_cluster_layout = f"/home/yuan/projects/master_thesis2/cluster_layout/{config['maze']}" \
                         f"/{config['mode']}/k{str(config['kmeans_clusters'][:2])}/rp{config['rp']}_ep{config['ep']}_mm{max_move_count}" \
                         f"_evo1_{num_randomwalk_episodes}(q_update)" \
                         f"_evo2_{second_evolution}({num_saved_from_p1})_eps(1.0--0.1)x2_lr0.1_gamma0.999_fr10000_gr1000*flags_nr-1" \
@@ -119,6 +119,7 @@ for rep in range(0, num_of_repetitions):
     solve_amdp_time_experiments = []
     simulation_time_experiments = []
     reward_list_episodes_experiments = []
+    reward_list_steps_experiments = []
     flags_list_episodes_experiments = []
     move_count_episodes_experiments = []
     path_episodes_experiments = []
@@ -682,7 +683,7 @@ std_by_rep_move_count = np.std(move_count_episodes_experiments_repetitions, axis
 print("mean_by_rep_move_count.shape:", mean_by_rep_move_count.shape)
 print("std_by_rep_move_count.shape:", std_by_rep_move_count.shape)
 plot_errors = std_by_rep_move_count / np.sqrt(10)
-print("plot_errors 500-1000:", plot_errors[:, 400:800])
+# print("plot_errors 500-1000:", plot_errors[:, 400:800])
 plt.rcParams['agg.path.chunksize'] = 10000
 for i in range(0, len(mean_by_rep_move_count)):
     d = pd.Series(mean_by_rep_move_count[i])
@@ -709,32 +710,55 @@ axs[2].axvspan(num_randomwalk_episodes,second_evolution, facecolor='blue', alpha
 axs[2].axis([0, None, None, None])
 
 
-## epsilon changing
-axs[3].plot(np.arange(len(epsilons_one_experiment)),np.array(epsilons_one_experiment), 'k', label='epsilon')
-axs[3].plot(np.arange(len(lr_one_experiment)),np.array(lr_one_experiment), 'r', label='lr')
-axs[3].set_ylabel("epsilon/lr")
-axs[3].set_xlabel("episodes")
-axs[3].legend(loc=1)
-axs[3].set_title("agent.epsilon and lr changing")
+### reward against time steps
+mean_by_rep_reward = np.mean(reward_list_episodes_experiments_repetitions, axis=0)
+std_by_rep_reward = np.std(reward_list_episodes_experiments_repetitions, axis=0)
+mean_by_rep_move_count = np.mean(move_count_episodes_experiments_repetitions, axis=0)
+mean_by_rep_move_count = np.cumsum(mean_by_rep_move_count, axis=1)
+# max_mean_by_rep_move_count = np.amax(mean_by_rep_move_count)
+# print("max_mean_by_rep_move_count:",max_mean_by_rep_move_count)
+print("mean_by_rep_reward.shape:", mean_by_rep_reward.shape)
+print("std_by_rep_reward.shape:", std_by_rep_reward.shape)
+print("mean_by_rep_move_count:", mean_by_rep_move_count.shape)
+plot_errors = std_by_rep_reward / np.sqrt(10)
+plt.rcParams['agg.path.chunksize'] = 10000
+max_steps = 0
+for i in range(0, len(mean_by_rep_reward)):
+    d = pd.Series(mean_by_rep_reward[i])
+    p = pd.Series(mean_by_rep_move_count[i])
+    s = pd.Series(plot_errors[i])
+    rolled_d = pd.Series.rolling(d, window=int(num_of_episodes / 30), center=False).mean()
+    rolled_p = pd.Series.rolling(p, window=int(num_of_episodes / 30), center=False).mean()
+    if rolled_p.max() > max_steps:
+        max_steps = rolled_p.max()
+    l, caps, c = axs[3].errorbar(rolled_p, rolled_d, yerr=plot_errors[i], label=labs[i], capsize=5,
+                                 errorevery=int(num_of_episodes / 30))
+    for cap in caps:
+        cap.set_marker("_")
+axs[3].set_ylabel("reward")
+axs[3].set_xlabel("steps")
+axs[3].legend(loc=4)
 axs[3].grid(True)
-axs[3].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
-axs[3].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
-# axs[2].set(xlim=(0, num_of_episodes))
-axs[3].axis([0, None, 0, None])
+axs[3].set_title(f"reward against steps over {env.maze_name}/big:{env.big}")
+# axs[3].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
+# axs[3].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
+# axs[1].set(xlim=(0, num_of_episodes))
+axs[3].axis([0, max_steps, None, None])
 
-# gamma changingabel='epsilon')
-axs[4].plot(np.arange(len(gamma_one_experiment)),np.array(gamma_one_experiment), 'r', label='gamma')
-axs[4].set_ylabel("gamma")
+## epsilon and lr changing
+axs[4].plot(np.arange(len(epsilons_one_experiment)),np.array(epsilons_one_experiment), 'k', label='epsilon')
+axs[4].plot(np.arange(len(lr_one_experiment)),np.array(lr_one_experiment), 'r', label='lr')
+axs[4].set_ylabel("epsilon/lr")
 axs[4].set_xlabel("episodes")
 axs[4].legend(loc=1)
-axs[4].set_title("agent.gamma changing")
+axs[4].set_title("agent.epsilon and lr changing")
 axs[4].grid(True)
 axs[4].text(0.5, 0.75, f'flags:{str(env.flags)}', horizontalalignment='center', verticalalignment='center', transform=axs[4].transAxes, fontsize=13)
 axs[4].text(0.5, 0.6, f'goal:{str(env.goal)}', horizontalalignment='center', verticalalignment='center', transform=axs[4].transAxes, fontsize=13)
 axs[4].axvspan(0, num_randomwalk_episodes, facecolor='green', alpha=0.5)
 axs[4].axvspan(num_randomwalk_episodes, second_evolution, facecolor='blue', alpha=0.5)
-# axs[3].set(xlim=(0, num_of_episodes))
-axs[4].axis([0, None, None, None])
+# axs[4].set(xlim=(0, num_of_episodes))
+axs[4].axis([0, None, 0, None])
 
 plt.tight_layout()
 fig.show()
