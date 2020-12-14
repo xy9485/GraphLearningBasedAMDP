@@ -4,10 +4,11 @@ import random
 from sklearn import preprocessing  # to normalise existing X
 import os
 import matplotlib.pyplot as plt
-import matplotlib
+# import matplotlib
 import sys
 import gym
-
+import matplotlib.pyplot
+plt.subplots()
 # matplotlib.use('tkagg')
 # print(matplotlib.get_backend())
 # #
@@ -32,13 +33,6 @@ import gym
 # print(m.shape)
 # print(np.mean(m,axis=0))
 
-list1 = [[0, 1, 5], [3, 5], [4, 0, 1, 5]]
-# for i in list1:
-#     for a,b in enumerate(i):
-#         i[a] = i[a]+1
-# print(list1)
-# list2 = np.array(list1)
-pass
 # print(np.power([[1,2,3],[2,4]],2))
 # from sympy.core.symbol import symbols
 # from sympy.solvers.solveset import nonlinsolve
@@ -115,29 +109,28 @@ from gympuddleworld import gym_puddleworld
 # sales = { 'apple': 2, 'orange': 3, 'grapes': 4 }
 # for k, i in sales.items():
 #     print(k,i)
+# import numpy as np
+# import logging
+# import scipy.spatial
+# from sklearn.metrics.pairwise import cosine_similarity
+# from scipy import sparse
+# from sklearn import metrics
+# from sklearn import preprocessing
+# from sklearn.metrics.pairwise import euclidean_distances
+# test_array = np.random.rand(3,100)
+# X_normalized = preprocessing.normalize(test_array)
+# euclidean_dist = euclidean_distances(X_normalized)
+# print(euclidean_dist)
+# squared_euclidean = np.square(euclidean_dist)
+# print(squared_euclidean)
+# adjusted_cosine_distance = 2 - 2*cosine_similarity(X_normalized)
+# print(adjusted_cosine_distance)
+i = {'set'}
+print(i)
+for i in range(4):
+    print(i)
+for i,j in enumerate(['a','b','c']):
+    print(i,j)
 
-fig, ax = plt.subplots()
-pd1 = pd.Series(np.array([1, 3, 4, 6, 9, 23, 30])) *10
-pd2 = pd.Series(np.array([2, 5, 7, 9, 15, 34, 50])) *10
-
-pd1 = pd.Series.rolling(pd1, window=3, center=False).mean()
-pd2 = pd.Series.rolling(pd2, window=3, center=False).mean()
-print(pd1)
-print(pd2)
-# pd1 = pd1.dropna()
-# print(pd1[4:])
-
-# pd3=(pd1+pd2)/2
-# print(pd3)
-# ax.plot(pd1, pd2)
-# # print(pd1)
-# # ax.fill_between(np.arange(4),pd1,pd2, alpha=0.25)
-# # big = 0
-# # ax.set_title(f"{'big' if big==1 else 'small'}")
-# fig.show()
-
-a = [1,3,4]
-b =[i*10 for i in a]
-y=True
-if y == 1:
-    print("keyi")
+o = np.array([['a','b','c'],['b','c','v']])
+print(np.argwhere(o=='b'))

@@ -4,6 +4,7 @@ import os
 from envs.maze_env_general import Maze
 from sklearn.cluster import KMeans
 from sklearn import preprocessing  # to normalise existing X
+from sklearn.metrics import pairwise_distances_argmin_min
 import copy
 from nltk.cluster import KMeansClusterer
 import nltk
@@ -39,8 +40,16 @@ class GensimOperator:
         print("start clustering...")
         if package == 'sklearn':
             norm_embeddings = preprocessing.normalize(embeddings)
-            kmeans_labels = KMeans(n_clusters=clusters, init='k-means++').fit_predict(np.array(norm_embeddings))
+            # estimator = KMeans(n_clusters=clusters, init='k-means++', n_init=10, max_iter=300, tol=0.00001, ).fit(
+            #     np.array(norm_embeddings))
+            # kmeans_labels = estimator.labels_
+            # kmeans_centers = estimator.cluster_centers_
+            # print("kmeans_centers:",kmeans_centers)
+            kmeans_labels = KMeans(n_clusters=clusters, init='k-means++', n_init=10, max_iter=300, tol=0.00001,).fit_predict(np.array(norm_embeddings))
             self.cluster_labels = kmeans_labels
+            # closests, _ = pairwise_distances_argmin_min(kmeans_centers, np.array(norm_embeddings))
+            # print("len(kmeans_centers),len(closests):", len(kmeans_centers), len(closests))
+            # self.closest_coords_centers = [[eval(words[i]),str(kmeans_labels[i])] for i in closests]
             # print(kmeans_labels)
             # print("len(kmeans_labels): ", len(kmeans_labels))
             roomlayout_prime = copy.deepcopy(self.env.getRoomLayout()).tolist()
@@ -51,8 +60,9 @@ class GensimOperator:
                 roomlayout_prime[coord[0]][coord[1]] = label
             self.cluster_layout = roomlayout_prime
         if package == 'nltk':
-            embeddings = preprocessing.normalize(embeddings)
-            kclusterer = KMeansClusterer(clusters, distance=nltk.cluster.util.cosine_distance, repeats=25)
+            # embeddings = preprocessing.normalize(embeddings)
+            kclusterer = KMeansClusterer(clusters, distance=nltk.cluster.util.cosine_distance, repeats=10,
+                                         normalise=True, avoid_empty_clusters=True)
             embeddings = [np.array(f) for f in embeddings]
             assigned_clusters = kclusterer.cluster(embeddings, assign_clusters=True)
             self.cluster_labels = assigned_clusters
@@ -86,16 +96,24 @@ class GensimOperator:
             if str(i) not in visited_node_coords:
                 print("not visited: ", i)
 
-    def write_cluster_layout(self,fpath_cluster_layout):
-        if not os.path.isfile(fpath_cluster_layout):
+    def write_cluster_layout(self,fpath_cluster_layout, check=0):
+        if check == 1:
+            if not os.path.isfile(fpath_cluster_layout):
+                with open(fpath_cluster_layout, "w") as f:
+                    for row in self.cluster_layout:
+                        for item in row:
+                            f.write(item + '\t')
+                        f.write('\n')
+                print("file: " + fpath_cluster_layout + " is saved")
+            else:
+                print("file: " + fpath_cluster_layout + " is all ready there")
+        else:
             with open(fpath_cluster_layout, "w") as f:
                 for row in self.cluster_layout:
                     for item in row:
                         f.write(item + '\t')
                     f.write('\n')
             print("file: " + fpath_cluster_layout + " is saved")
-        else:
-            print("file: " + fpath_cluster_layout + " is all ready there")
 
 
 # =====================================

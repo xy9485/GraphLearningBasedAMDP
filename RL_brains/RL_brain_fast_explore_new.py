@@ -117,7 +117,7 @@ class WatkinsQLambda():
         ran = np.random.randint(100)
         if ran < self.epsilon * 100:
             action = np.random.choice(actions)
-            self.state_actions_long_life[state[0], state[1], action] -= 1
+            # self.state_actions_long_life[state[0], state[1], action] -= 1
             return action
         # sum = np.sum([np.exp(self.state_actions_long_life[state[0], state[1], a]) for a in actions])
         Probs = scipy.special.softmax([self.state_actions_long_life[state[0], state[1], a] for a in actions])
@@ -126,15 +126,19 @@ class WatkinsQLambda():
         #     Probs.append(p)
         # print(Probs)
         action = np.random.choice(actions, p=Probs)
-        self.state_actions_long_life[state[0], state[1], action] -= 1
+        # self.state_actions_long_life[state[0], state[1], action] -= 1
         return action
 
     def policy_explore_rl(self, state, actions):
         ran = np.random.randint(100)
         if ran < self.epsilon * 100:
+            #classic
             action = np.random.choice(actions)
+            # softmax
+            # Probs = scipy.special.softmax([self.state_actions_long_life[state[0], state[1], a] for a in actions])
+            # action = np.random.choice(actions, p=Probs)
             return action
-        if self.q2_init:
+        elif self.q2_init:
             action = actions[np.argmax([self.q_table2[state[0], state[1], a] for a in actions])]
             return action
         else:
@@ -150,6 +154,20 @@ class WatkinsQLambda():
             q_values = np.array([self.q_table2[state[0], state[1], a] for a in actions])
             action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
             return action
+
+    def policy_explore_rl_sm(self, state, actions):
+        ran = np.random.randint(100)
+        if ran < self.epsilon * 100:
+            action = np.random.choice(actions)
+            return action
+        Probs = scipy.special.softmax([self.q_table2[state[0], state[1], a] for a in actions])
+        action = np.random.choice(actions, p=Probs)
+        return action
+
+    def policyNoRand_explore_rl_sm(self, state, actions):
+        Probs = scipy.special.softmax([self.q_table2[state[0], state[1], a] for a in actions])
+        action = np.random.choice(actions, p=Probs)
+        return action
 
     # def learn(self, s, a, s_, a_, a_star, reward):
     #     ## Update the eligible states according to Watkins Q-lambda
@@ -271,3 +289,80 @@ class WatkinsQLambda():
             if v > 0.01:
                 newE.append((s, a, v))
         self.e_table2 = newE
+
+    def learn_explore_sarsa(self, state1, action1, state2, action2, action_star, reward):   #可替换
+        ## Update the eligible states according to Watkins Q-lambda
+        # print("self.q_table.max():",self.q_table.max())
+
+        # found = False
+        # for x in range(0, len(self.e_table2)):
+        #     if self.e_table2[x][0] == state1 and self.e_table2[x][1] == action1:
+        #         self.e_table2[x] = (self.e_table2[x][0], self.e_table2[x][1], 1)
+        #         found = True
+        # if not found:
+        #     self.e_table2.append((state1, action1, 1))
+
+        maxValue = self.q_table2[state2[0], state2[1], action2]
+        delta = reward + (self.gamma * maxValue) - self.q_table2[state1[0], state1[1], action1]
+
+        # maxValue = self.q_table[state2[0], state2[1], state2[2], state2[3], state2[4], action_star]
+        # delta = reward + (self.gamma * maxValue) - self.q_table[
+        #     state1[0], state1[1], state1[2], state1[3], state1[4], action1]
+        self.q_table2[state1[0],state1[1],action1] = self.q_table2[state1[0],state1[1],action1] + self.lr * delta
+        # newE = []  ## remove eligibility traces that are too low by rebuilding
+        # for x in range(0, len(self.e_table2)):
+        #     s, a, v = self.e_table2[x][0], self.e_table2[x][1], self.e_table2[x][2]
+        #     self.q_table2[s[0], s[1], a] = self.q_table2[s[0], s[1], a] + self.lr * v * delta
+        #     if action2 == action_star:
+        #         self.e_table2[x] = (self.e_table2[x][0], self.e_table2[x][1], self.e_table2[x][2] * self.lam * self.gamma)
+        #     else:
+        #         self.e_table2[x] = (self.e_table2[x][0], self.e_table2[x][1], 0)
+        #
+        #     s, a, v = self.e_table2[x]
+        #     if v > 0.01:
+        #         newE.append((s, a, v))
+        # self.e_table2 = newE
+
+    def learn_explore_boltz(self, state1, action1, state2, action2, action_star, reward, actions, episode):  #actions of state2
+        ## Update the eligible states according to Watkins Q-lambda
+        # print("self.q_table.max():",self.q_table.max())
+
+        found = False
+        for x in range(0, len(self.e_table2)):
+            if self.e_table2[x][0] == state1 and self.e_table2[x][1] == action1:
+                self.e_table2[x] = (self.e_table2[x][0], self.e_table2[x][1], 1)
+                found = True
+        if not found:
+            self.e_table2.append((state1, action1, 1))
+
+        # if (state2[0], state2[1]) != self.env.goal:
+        #     maxValue = self.q_table2[state2[0], state2[1], action_star]
+        #     delta = reward + (self.gamma * maxValue) - self.q_table2[state1[0], state1[1], action1]
+        #     # print("delta:",delta)
+        # else:
+        #     delta = reward - self.q_table2[state1[0], state1[1], action1]
+        beta = episode ** 2
+        vs = beta * np.array([self.q_table2[state2[0], state2[1], a] for a in actions])
+        Probs = scipy.special.softmax(vs)
+
+        boltz_Value = sum([vs[i]*Probs[i] for i in range(len(vs))])
+        delta = reward + (self.gamma * boltz_Value) - self.q_table2[state1[0], state1[1], action1]
+
+        # maxValue = self.q_table[state2[0], state2[1], state2[2], state2[3], state2[4], action_star]
+        # delta = reward + (self.gamma * maxValue) - self.q_table[
+        #     state1[0], state1[1], state1[2], state1[3], state1[4], action1]
+
+        newE = []  ## remove eligibility traces that are too low by rebuilding
+        for x in range(0, len(self.e_table2)):
+            s, a, v = self.e_table2[x][0], self.e_table2[x][1], self.e_table2[x][2]
+            self.q_table2[s[0], s[1], a] = self.q_table2[s[0], s[1], a] + self.lr * v * delta
+            if action2 == action_star:
+                self.e_table2[x] = (self.e_table2[x][0], self.e_table2[x][1], self.e_table2[x][2] * self.lam * self.gamma)
+            else:
+                self.e_table2[x] = (self.e_table2[x][0], self.e_table2[x][1], 0)
+
+            s, a, v = self.e_table2[x]
+            if v > 0.01:
+                newE.append((s, a, v))
+        self.e_table2 = newE
+
