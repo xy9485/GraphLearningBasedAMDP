@@ -7,6 +7,7 @@ from sklearn import preprocessing  # to normalise existing X
 import copy
 from nltk.cluster import KMeansClusterer
 import nltk
+import time
 
 
 class GensimOperator:
@@ -19,14 +20,17 @@ class GensimOperator:
         self.length_corpus = 0
         print("GensimOperator building!")
 
-    def get_clusterlabels_from_paths(self, size, window, clusters, min_count=5, workers=30, package='sklearn'):
+    def get_clusterlabels_from_paths(self, size, window, clusters, skip_gram=1, min_count=5, workers=32, negative=5, package='sklearn'):
         self.num_clusters = clusters
         print("start gensim Word2Vec model training...")
         if len(self.sentences) == self.length_corpus:
             model = self.model
         else:
+            start = time.time()
             model = gensim.models.Word2Vec(sentences=self.sentences, min_count=min_count, size=size, workers=workers,
-                                           window=window, sg=1)
+                                           window=window, sg=skip_gram, negative=negative)
+            end = time.time()
+            print(f"internal w2v training time: {end-start}")
         self.wv = model.wv
         embeddings = []
         words = []
@@ -41,6 +45,7 @@ class GensimOperator:
         self.check_unvisited_nodes(self.words)
 
         print("start clustering...")
+        start = time.time()
         if package == 'sklearn':
             norm_embeddings = preprocessing.normalize(self.embeddings)
             kmeans_labels = KMeans(n_clusters=clusters, init='k-means++').fit_predict(np.array(norm_embeddings))
@@ -68,6 +73,8 @@ class GensimOperator:
             #     roomlayout_prime[coord[0]][coord[1]] = label
             # self.cluster_layout = roomlayout_prime
         # print(self.cluster_layout)
+        end = time.time()
+        print(f"internal k-means time: {end-start}")
         self.model = model
         self.length_corpus = len(self.sentences)
 
@@ -93,19 +100,27 @@ class GensimOperator:
             if str(i) not in visited_states:
                 print("not visited: ", i)
 
-    def write_cluster_layout(self,fpath_cluster_layout):
-        if not os.path.isfile(fpath_cluster_layout):
+    def write_cluster_layout(self,fpath_cluster_layout, check=0):
+        if check == 1:
+            if not os.path.isfile(fpath_cluster_layout):
+                with open(fpath_cluster_layout, "w") as f:
+                    for row in self.cluster_layout:
+                        for item in row:
+                            f.write(item + '\t')
+                        f.write('\n')
+                print("file: " + fpath_cluster_layout + " is saved")
+            else:
+                print("file: " + fpath_cluster_layout + " is all ready there")
+        else:
             with open(fpath_cluster_layout, "w") as f:
                 for row in self.cluster_layout:
                     for item in row:
                         f.write(item + '\t')
                     f.write('\n')
             print("file: " + fpath_cluster_layout + " is saved")
-        else:
-            print("file: " + fpath_cluster_layout + " is all ready there")
 
 
-# ===========================================================================================================
+# =====================================
 
 
 if __name__ == "__main__":

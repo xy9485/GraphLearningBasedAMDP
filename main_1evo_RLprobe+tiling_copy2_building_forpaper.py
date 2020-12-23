@@ -15,7 +15,7 @@ import numpy as np
 import os
 # from PIL import Image
 import time
-from abstractions.abstraction_new import AMDP
+from abstractions.abstraction_new_building import AMDP
 from envs.maze_env_general_new_plus_stable import Maze
 from RL_brains.RL_brain_fast_explore_new import WatkinsQLambda
 from gensim_operations.gensim_operation_online_new import GensimOperator
@@ -293,15 +293,20 @@ def function1(maze, big, e_mode, e_start, e_eps, subsample_factor, q_eps, repeti
                         #             orientation='portrait', format=None,
                         #             transparent=False, bbox_inches=None, pad_inches=0.1)
 
-                        amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=gensim_opt.cluster_layout)
+                        amdp = AMDP(env=env, tiling_mode=None, dw_clt_layout=None, gensim_opt=gensim_opt)
+                        start_amdp = time.time()
+                        amdp.solve_amdp()
+                        end_amdp = time.time()
+                        solve_amdp_time = end_amdp - start_amdp
+                        print("solve_amdp_time:", solve_amdp_time)
                     else:
                         solve_wor2vec_time = 0
-                        amdp = AMDP(env=env, tiling_mode=abstraction_mode[e], dw_clt_layout=None)
-                    start_amdp = time.time()
-                    amdp.solveAbstraction()
-                    end_amdp = time.time()
-                    solve_amdp_time = end_amdp - start_amdp
-                    print("solve_amdp_time:",solve_amdp_time)
+                        amdp = AMDP(env=env, tiling_mode=abstraction_mode[e], dw_clt_layout=None, gensim_opt=None)
+                        start_amdp = time.time()
+                        amdp.solveAbstraction()
+                        end_amdp = time.time()
+                        solve_amdp_time = end_amdp - start_amdp
+                        print("solve_amdp_time:",solve_amdp_time)
                     start_q_learning = time.time()
 
                 # =========Here to modify epsilon value:====================
@@ -437,14 +442,14 @@ def function1(maze, big, e_mode, e_start, e_eps, subsample_factor, q_eps, repeti
                             # agent.learn_explore(env.state, a, new_state, a_prime, a_star, r)
                             agent.learn_explore_sarsa(env.state, a, new_state, a_prime, a_star, r)
                             # agent.learn_explore_boltz(env.state, a, new_state, a_prime, a_star, r, env.actions(new_state), ep)
-                            path.append(str((new_state[0], new_state[1])))
+                            path.append(str(new_state))
                             env.flags_collected = 0
                         if e_mode == 'SM':
                             # ===softmax exploration policy===
                             new_state = env.step(env.state, a)
                             # agent.states_long_life[new_state[0], new_state[1]] += 1
                             a_prime = agent.policy_explore2(new_state, env.actions(new_state))
-                            path.append(str((new_state[0], new_state[1])))
+                            path.append(str(new_state))
                             env.flags_collected = 0
                     else:
                         ##Select action using policy
@@ -964,25 +969,26 @@ def function1(maze, big, e_mode, e_start, e_eps, subsample_factor, q_eps, repeti
     if output_file == 1:
         sys.stdout.close()
 
+
 if __name__ == "__main__":
-    maze = 'basic'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic
-    big = 0
+    maze = 'low_connectivity2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic
+    big = 1
     e_mode = 'RL'   # 'RL' or 'SM'
     e_start = 'last'   # 'random' or 'last' or 'mix'
-    e_eps = 1000
+    e_eps = 5000
     mm = 100
     subsample_factor = 0.5
 
-    q_eps = 500
-    repetitions = 2
-    rep_size = 128
+    q_eps = 1000
+    repetitions = 5
+    rep_size = 64
     win_size = 40
     w2v = 'SG'  # 'SG' or 'CBOW'
     # clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
     clusters = [9]  # number of abstract states for Uniform will be matched with the number of clusters
     k_means_pkg = 'sklearn'    # 'sklearn' or 'nltk'
     interpreter = 'R'     # L or R
-    output_file = 0
+    output_file = 1
 
     for i in range(len(clusters)):
         function1(maze=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, subsample_factor=subsample_factor,

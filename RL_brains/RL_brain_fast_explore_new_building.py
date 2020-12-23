@@ -273,3 +273,9 @@ class WatkinsQLambda():
             if v > 0.01:
                 newE.append((s, a, v))
         self.e_table2 = newE
+
+    def learn_explore_sarsa(self, state1, action1, state2, action2, action_star, reward):   #可替换
+        maxValue = self.q_table2[state2[0], state2[1], state2[2], state2[3], state2[4], action2]
+        delta = reward + (self.gamma * maxValue) - self.q_table2[state1[0], state1[1], state2[2], state2[3], state2[4], action1]
+        self.q_table2[state1[0],state1[1],state2[2], state2[3], state2[4], action1] = self.q_table2[state1[0],state1[1]
+        ,state2[2], state2[3], state2[4], action1] + self.lr * delta

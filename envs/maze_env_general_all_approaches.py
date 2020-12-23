@@ -3,20 +3,31 @@ import time
 import sys
 
 
-class Maze():
+class Maze:
 
     def __init__(self, maze='basic', big=0):
         print("env oh yeah!!!!!")
         self.maze_name = maze
         self.big = big
-        self.room_layout = self.getRoomLayout() # return a nparray
+        self.num_of_actions = 4
+        self.room_layout = self.get_room_layout() # return a nparray
         self.size = (len(self.room_layout), len(self.room_layout[0]))
         print("maze.size:", self.size)
         self.reset()
         self.valid_nodes = self.get_valid_nodes()
         print("len(env.valid_nodes)", len(self.valid_nodes))
+        self.print_maze_info()
 
-    def getRoomLayout(self):
+
+    def print_maze_info(self):
+        print("env.name:", self.maze_name)
+        print("env.big:", self.big)
+        print("env.flags:", self.flags, self.room_layout[self.flags[0][0], self.flags[0][1]],
+              self.room_layout[self.flags[1][0], self.flags[1][1]], self.room_layout[self.flags[2][0], self.flags[2][1]])
+        print("env.goal:", self.goal, self.room_layout[self.goal[0], self.goal[1]])
+        print("env.state:", self.state)
+
+    def get_room_layout(self):
 
         A = "a"
         B = "b"
