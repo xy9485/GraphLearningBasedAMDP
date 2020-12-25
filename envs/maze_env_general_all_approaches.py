@@ -14,8 +14,9 @@ class Maze:
         self.size = (len(self.room_layout), len(self.room_layout[0]))
         print("maze.size:", self.size)
         self.reset()
-        self.valid_nodes = self.get_valid_nodes()
-        print("len(env.valid_nodes)", len(self.valid_nodes))
+        self.valid_coords, self.valid_states = self.get_valid_coords_and_states()
+        print("len(env.valid_coords)", len(self.valid_coords))
+        print("len(env.valid_states)", len(self.valid_states))
         self.print_maze_info()
 
 
@@ -386,17 +387,29 @@ class Maze:
                 flags_big.append(item_prime)
             self.flags = flags_big
 
-    def get_valid_nodes(self):
-        valid_node_coords = []
+    def get_valid_coords_and_states(self):
+        valid_coords = []
+        valid_states = []
         template = self.room_layout
         templateX = len(template[0])  # num of columns
         templateY = len(template)  # num of rows
         for i in range(templateY):
             for j in range(templateX):
                 if template[i, j] != "w":
-                    current = (i, j)
-                    valid_node_coords.append(current)
-        return valid_node_coords
+                    current_coord = (i, j)
+                    valid_coords.append(current_coord)
+                else:
+                    continue
+                for k in range(2):
+                    for l in range(2):
+                        for m in range(2):
+                            current_state = [i, j, k, l, m]
+                            if current_coord in self.flags:
+                                index = self.flags.index(current_coord)
+                                current_state[2+index] = 1
+                            valid_states.append(tuple(current_state))
+
+        return valid_coords, valid_states
 
     def isMovable(self, state):
         # check if wall is in the way or already out of the bounds

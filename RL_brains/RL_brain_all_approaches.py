@@ -22,9 +22,10 @@ class ExploreStateBrain:
         self.env = env
         self.state_size = env.size
         self.action_size = env.num_of_actions
-        self.explore_config = explore_config
+        # self.explore_config = explore_config
         self.epsilon = explore_config['epsilon_e']
         self.lr = explore_config['lr']
+        self.gamma = explore_config['gamma']
         self.e_mode = explore_config['e_mode']
 
         if self.e_mode == 'sarsa':      # only support sarsa so far
@@ -33,6 +34,9 @@ class ExploreStateBrain:
             self.q2_init = 1
             self.states_long_life = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2))
             self.states_episodic = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2))
+        elif self.e_mode == 'softmax':
+            self.state_actions_long_life = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
+            self.state_actions_episodic = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
         else:
             raise Exception("invalid e_mode")
 
@@ -40,6 +44,8 @@ class ExploreStateBrain:
         # self.state_actions_episodic = np.zeros((self.state_size[0], self.state_size[1], self.action_size))
         if self.e_mode == 'sarsa':
             self.states_episodic = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2))
+        elif self.e_mode == 'softmax':
+            self.state_actions_episodic = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
         else:
             raise Exception("invalid e_mode")
 
@@ -65,12 +71,26 @@ class ExploreStateBrain:
             action = actions[np.random.choice(np.flatnonzero(q_values == q_values.max()))]
             return action
 
-    def learn_explore_sarsa(self, state1, action1, state2, action2, action_star, reward):
-        maxValue = self.q_table2[state2[0], state2[1], state2[2], state2[3], state2[4], action2]
+    def learn_explore_sarsa(self, state1, action1, state2, action2, reward):
+        max_value = self.q_table2[state2[0], state2[1], state2[2], state2[3], state2[4], action2]
 
-        delta = reward + (self.gamma * maxValue) - self.q_table2[state1[0], state1[1], state2[2], state2[3], state2[4], action1]
+        delta = reward + (self.gamma * max_value) - self.q_table2[state1[0], state1[1], state1[2], state1[3], state1[4], action1]
 
-        self.q_table2[state1[0],state1[1],state2[2], state2[3], state2[4], action1] += self.lr * delta
+        self.q_table2[state1[0], state1[1], state1[2], state1[3], state1[4], action1] += self.lr * delta
+
+    def policy_explore_softmax(self, state, actions):
+        ##epsilon greedy policy
+        ran = np.random.randint(100)
+        if ran < self.epsilon * 100:
+            action = np.random.choice(actions)
+            # self.state_actions_long_life[state[0], state[1], action] -= 1
+            return action
+        # sum = np.sum([np.exp(self.state_actions_long_life[state[0], state[1], a]) for a in actions])
+        probs = scipy.special.softmax([self.state_actions_long_life[state[0], state[1], state[2], state[3], state[4], a]
+                                       for a in actions])
+        action = np.random.choice(actions, p=probs)
+        # self.state_actions_long_life[state[0], state[1], action] -= 1
+        return action
 
 class ExploreCoordBrain:
     def __init__(self, env, explore_config: dict):
@@ -144,8 +164,8 @@ class ExploreCoordBrain:
             # self.state_actions_long_life[state[0], state[1], action] -= 1
             return action
         # sum = np.sum([np.exp(self.state_actions_long_life[state[0], state[1], a]) for a in actions])
-        Probs = scipy.special.softmax([self.state_actions_long_life[state[0], state[1], a] for a in actions])
-        action = np.random.choice(actions, p=Probs)
+        probs = scipy.special.softmax([self.state_actions_long_life[state[0], state[1], a] for a in actions])
+        action = np.random.choice(actions, p=probs)
         # self.state_actions_long_life[state[0], state[1], action] -= 1
         return action
 

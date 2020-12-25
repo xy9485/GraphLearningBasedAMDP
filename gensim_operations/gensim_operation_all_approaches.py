@@ -22,7 +22,7 @@ class GensimOperator_Topology:
         self.num_of_sentences_last_time = 0
         print("GensimOperator initialized!")
 
-    def get_cluster_layout_from_paths(self, sentences, size, window, clusters, skip_gram=1, min_count=5, workers=32, negative=5,
+    def get_cluster_layout(self, sentences, size, window, clusters, skip_gram=1, min_count=5, workers=32, negative=5,
                                      package='sklearn'):
         print("start gensim Word2Vec model training...")
         # self.sentences = sentences
@@ -154,6 +154,7 @@ class GensimOperator_General:
             words.append(word)
             embeddings.append(self.wv[word])
         self.words = words
+        print("gensim_opt.words", self.words[:10])
         self.embeddings = embeddings
         print("GensimOperator_General self.words:", self.words[:20])
         # print(words[0],type(words[0]))
@@ -166,6 +167,7 @@ class GensimOperator_General:
             norm_embeddings = preprocessing.normalize(self.embeddings)
             kmeans_labels = KMeans(n_clusters=clusters, init='k-means++').fit_predict(np.array(norm_embeddings))
             self.cluster_labels = kmeans_labels
+            print("gensim_opt.cluster_labels:", self.cluster_labels[:10])
 
         if package == 'nltk':
             embeddings = preprocessing.normalize(self.embeddings)
@@ -199,7 +201,7 @@ class GensimOperator_General:
         #         print("not visited: ", i)
         for i in valid_states:
             if str(i) not in visited_states:
-                print("not visited: ", i)
+                print("not visited: ", str(i))
 
 
 

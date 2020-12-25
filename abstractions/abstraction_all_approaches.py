@@ -7,8 +7,8 @@ np.set_printoptions(linewidth=400, threshold=sys.maxsize)
 
 class AMDP_Topology_Uniform:
     def __init__(self, env=None, uniform_mode=None, gensim_opt=None,):
-        assert not env == None, "env can't be None!"
-        assert uniform_mode==None or gensim_opt == None, "only one of uniform or gensim_opt can be assigned"
+        assert env != None, "env can't be None!"
+        assert (uniform_mode==None) != (gensim_opt == None), "only one of uniform or gensim_opt can be assigned"
         self.manuel_room_layout = env.room_layout  # np array
         self.goal = env.goal
         self.flags = env.flags
@@ -330,11 +330,11 @@ class AMDP_Topology_Uniform:
 
 class AMDP_General:
     def __init__(self, env=None, gensim_opt=None):  # tiling_mode is same with tiling_size
-        assert not env==None and not gensim_opt==None, "env and gensim_opt need to be assigned"
+        assert (env!=None) and (gensim_opt!=None), "env and gensim_opt need to be assigned"
 
-        self.manuel_layout = env.room_layout     #np array
+        # self.manuel_layout = env.room_layout     # np array
         self.goal = env.goal
-        self.flags = env.flags
+        # self.flags = env.flags
 
         self.gensim_opt: GensimOperator_General = gensim_opt
         print("self.gensim_opt.sentences[:5]:", self.gensim_opt.sentences[:5])
@@ -351,8 +351,7 @@ class AMDP_General:
 
 
     def get_abstract_state(self,state):
-        assert isinstance(state, str), "state needs to be str"
-        index = self.list_of_ground_states.index(state)
+        index = self.list_of_ground_states.index(str(state))
         cluster_label = self.cluster_labels_of_all_ground_states[index]
         return cluster_label
 
