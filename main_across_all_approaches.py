@@ -34,7 +34,7 @@ class PlotMaker:
         self.std_factor = std_factor
         self.max_steps = 0  # for plotting curve of mean performance: reward against move_count
 
-        self.fig_time_consumption, self.ax_time_consumption = plt.subplots(figsize=(5, 4))
+        self.fig_time_consumption, self.ax_time_consumption = plt.subplots()
         self.fig_time_consumption.set_tight_layout(True)
         self.current_approach_time_consumption = self.num_approaches
         self.highest_bar_height = 0
@@ -49,7 +49,7 @@ class PlotMaker:
         im = self.axs_each_rep[rep, 4].imshow(agent_e.states_long_life, cmap='hot')
         self.fig_each_rep.colorbar(im, ax=self.axs_each_rep[rep, 4])
         self.axs_each_rep[rep, 4].set_title(ax_title)
-        self.fig_each_rep.show()
+        # self.fig_each_rep.show()
 
     def plot_each_cluster_layout(self, gensim_opt, num_clusters, rep, ax_title, plot_label=1):
         copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
@@ -73,7 +73,7 @@ class PlotMaker:
                                  fontsize=13, fontweight='semibold')
 
         self.axs_each_rep[rep, 3].set_title(ax_title)
-        self.fig_each_rep.show()
+        # self.fig_each_rep.show()
 
     def plot_each_flag_reward_movecount(self, flags_episodes, reward_episodes, move_count_episodes, rep, plot_label):
         rolling_window_size = int(len(flags_episodes)/30)
@@ -83,7 +83,7 @@ class PlotMaker:
         rolled_d = pd.Series.rolling(d1, window=rolling_window_size, center=False).mean()
         print('type of movAv:', type(rolled_d))
 
-        self.axs_each_rep[rep, 0].plot(np.arange(len(rolled_d)), rolled_d, label=f"learning_rolled_{plot_label}")
+        self.axs_each_rep[rep, 0].plot(np.arange(len(rolled_d)), rolled_d, label=f"{plot_label}")
         self.axs_each_rep[rep, 0].set_ylabel("Number of Flags")
         self.axs_each_rep[rep, 0].set_xlabel("Episode No.")
         self.axs_each_rep[rep, 0].set_title(f"flag curve of rep{rep}")
@@ -95,7 +95,7 @@ class PlotMaker:
 
         d1 = pd.Series(reward_episodes)
         rolled_d1 = pd.Series.rolling(d1, window=rolling_window_size, center=False).mean()
-        self.axs_each_rep[rep, 1].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, label=f"learning_rolled_{plot_label}")
+        self.axs_each_rep[rep, 1].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, label=f"{plot_label}")
         self.axs_each_rep[rep, 1].set_ylabel("reward")
         self.axs_each_rep[rep, 1].set_xlabel("Episode No.")
         self.axs_each_rep[rep, 1].set_title(f"reward curve of rep{rep}")
@@ -107,7 +107,7 @@ class PlotMaker:
 
         d1 = pd.Series(move_count_episodes)
         rolled_d1 = pd.Series.rolling(d1, window=rolling_window_size, center=False).mean()
-        self.axs_each_rep[rep, 2].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, label=f"learning_rolled_{plot_label}")
+        self.axs_each_rep[rep, 2].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, label=f"{plot_label}")
         self.axs_each_rep[rep, 2].set_ylabel("move_count")
         self.axs_each_rep[rep, 2].set_xlabel("Episode No.")
         self.axs_each_rep[rep, 2].set_title(f"move_count curve of rep{rep}")
@@ -117,7 +117,7 @@ class PlotMaker:
         # axs[rep, 2].axvspan(num_explore_episodes, second_evolution, facecolor='blue', alpha=0.5/num_of_repetitions)
         self.axs_each_rep[rep, 2].axis([0, None, None, None])
 
-        self.fig_each_rep.show()
+        # self.fig_each_rep.show()
 
     def plot_mean_performance_across_reps(self, flags_episodes_repetitions, reward_episodes_repetitions,
                                           move_count_episodes_repetitions,
@@ -212,7 +212,7 @@ class PlotMaker:
     def plot_mean_time_comparison(self, experiment_time_repetitions, solve_amdp_time_repetitions,
                                   ground_learning_time_repetitions, exploration_time_repetitions=[0],
                                   solve_word2vec_time_repetitions=[0], bar_label=None):
-        def autolabel(rects):
+        def autolabel(rects, fontsize):
             """Attach a text label above each bar in *rects*, displaying its height."""
             for rect in rects:
                 height = rect.get_height()
@@ -220,7 +220,7 @@ class PlotMaker:
                              xy=(rect.get_x() + rect.get_width() / 2, height),
                              xytext=(0, 3),  # 3 points vertical offset
                              textcoords="offset points",
-                             ha='center', va='bottom')
+                             ha='center', va='bottom', fontsize=fontsize, fontweight='semibold')
 
         mean_by_rep_experiment_time = np.mean(experiment_time_repetitions)
         mean_by_rep_exploration_time = np.mean(exploration_time_repetitions)
@@ -233,11 +233,12 @@ class PlotMaker:
                 mean_by_rep_word2vec_time,
                 mean_by_rep_amdp_time,
                 mean_by_rep_q_time]
-        data = [round(item) for item in data]
+        data = [round(item, 1) for item in data]
         print("data:", data)
-        width = 0.35
         x = np.arange(len(data))
         if self.num_approaches == 3:
+            width = 0.25
+            fontsize = 8
             if self.current_approach_time_consumption == 3:
                 rects = self.ax_time_consumption.bar(x - width, data, width, label=bar_label)
             elif self.current_approach_time_consumption == 2:
@@ -245,14 +246,18 @@ class PlotMaker:
             elif self.current_approach_time_consumption == 1:
                 rects = self.ax_time_consumption.bar(x + width, data, width, label=bar_label)
         elif self.num_approaches == 2:
+            width = 0.3
+            fontsize = 9
             if self.current_approach_time_consumption == 2:
                 rects = self.ax_time_consumption.bar(x - width/2, data, width, label=bar_label)
             elif self.current_approach_time_consumption == 1:
                 rects = self.ax_time_consumption.bar(x + width / 2, data, width, label=bar_label)
         elif self.num_approaches == 1:
+            width = 0.35
+            fontsize = 10
             rects = self.ax_time_consumption.bar(x, data, width, label=bar_label)
 
-        autolabel(rects)
+        autolabel(rects, fontsize)
         if data[0] > self.highest_bar_height:
             self.highest_bar_height = data[0]
         self.current_approach_time_consumption -= 1
@@ -263,8 +268,6 @@ class PlotMaker:
             self.ax_time_consumption.set_ylabel("time taken in sec")
             self.ax_time_consumption.legend(loc=9)
             self.ax_time_consumption.set_ylim(top=self.highest_bar_height * 1.1)
-
-        self.fig_time_consumption.show()
 
 class ExperimentMaker:
 
@@ -333,7 +336,7 @@ class ExperimentMaker:
                      orientation='portrait', format=None,
                      transparent=False, bbox_inches=None, pad_inches=0.1)
 
-    def _build_and_solve_amdp(self, tiling_size: tuple = None, gensim_opt: GensimOperator_Topology = None, general=0):
+    def _build_and_solve_amdp(self, tiling_size: tuple = None, gensim_opt = None, general=0):
         print("-----Begin build and solve amdp-----")
         assert (tiling_size == None) != (gensim_opt == None), "tiling_size and gensim_opt can't be both None"
         if tiling_size:
@@ -414,68 +417,7 @@ class ExperimentMaker:
 
         print("-----Finish Ground Learning-----")
 
-    def _results_upload(self):
-        print("============upload experiments details to google sheets============")
-        import gspread
-        from oauth2client.service_account import ServiceAccountCredentials
-
-        scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
-                 "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
-
-        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
-        client = gspread.authorize(creds)
-        # sheet = client.open("experiments_result").sheet1  # Open the spreadhseet
-        sheet = client.open("experiments_result").worksheet("Sheet1")
-        # gspread api to get worksheet
-        ### worksheet = sh.get_worksheet(0)
-        ### worksheet = sh.worksheet("January")
-
-        mean_by_rep_experiment_time = np.mean(self.experiment_time_repetitions)
-        if isinstance(self, UniformExpMaker):
-            mean_by_rep_exploration_time = 0
-            mean_by_rep_word2vec_time = 0
-        else:
-            mean_by_rep_exploration_time = np.mean(self.exploration_time_repetitions)
-            mean_by_rep_word2vec_time = np.mean(self.solve_word2vec_time_repetitions)
-        mean_by_rep_amdp_time = np.mean(self.solve_amdp_time_repetitions)
-        mean_by_rep_q_time = np.mean(self.ground_learning_time_repetitions)
-        data = [mean_by_rep_experiment_time,
-                mean_by_rep_exploration_time,
-                mean_by_rep_word2vec_time,
-                mean_by_rep_amdp_time,
-                mean_by_rep_q_time]
-        data = [round(item, 1) for item in data]
-
-        rolling_window_size = int(self.ground_learning_config['q_eps'] / 50)
-        final_reward = statistics.mean(np.mean(self.reward_episodes_repetitions, axis=0)[-rolling_window_size:])
-        total_steps = np.cumsum(np.mean(self.move_count_episodes_repetitions, axis=0))[-1]
-
-        if isinstance(self, UniformExpMaker):
-            abstraction_mode = 'uniform'
-            insert_row = [self.env.maze_name, big, abstraction_mode, '--', '--', '--', '--', '--', data[1],
-                          '--', '--',
-                          '--', '--', '--', '--', data[2], '--', '--',
-                          data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
-                          round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
-                          self.ground_learning_config['lambda'], self.ground_learning_config['omega'], '--',
-                          "1-0.1", self.plot_maker.std_factor, self.path_results]
-        else:
-            w2v = 'SG' if self.w2v_config['sg'] == 1 else 'CBOW'
-            negative = 5
-            if isinstance(self, TopologyExpMaker):
-                abstraction_mode = 'topology'
-            elif isinstance(self, GeneralExpMaker):
-                abstraction_mode = 'general'
-            insert_row = [self.env.maze_name, big, abstraction_mode, e_mode, e_start, e_eps, mm,self.explore_config['ds_factor'], data[1],
-                          round(np.mean(self.longlife_exploration_mean_repetitions), 2),round(np.mean(self.longlife_exploration_std_repetitions), 2),
-                          self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], self.k_means_pkg, self.num_clusters,
-                          data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
-                          round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
-                          self.ground_learning_config['lambda'], self.ground_learning_config['omega'], self.explore_config['epsilon_e'],
-                          "1-0.1", self.plot_maker.std_factor, self.path_results]
-        sheet.append_row(insert_row)
-        print("uploaded to google sheet")
-        print(" FINISHED!")
+        return agent_q
 
 class TopologyExpMaker(ExperimentMaker):
     def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
@@ -627,11 +569,15 @@ class TopologyExpMaker(ExperimentMaker):
         print("longlife_exploration_sum:", np.sum(agent_e.states_long_life[agent_e.states_long_life > 0]))
         print("len of self.sentences_period:", len(self.sentences_period))
 
+        self.sentences_collected.extend(self.sentences_period)
+        self.sentences_period = []
+
         print("-----Finish Exploration-----")
         return agent_e
 
     def _w2v_and_kmeans(self, rep):
         print("-----Begin w2v and k-means-----")
+        random.shuffle(self.sentences_collected)
         gensim_opt = GensimOperator_Topology(self.env)
         start_word2vec = time.time()
         gensim_opt.get_cluster_layout(sentences=self.sentences_collected,
@@ -665,12 +611,55 @@ class TopologyExpMaker(ExperimentMaker):
     #     print("-----Finish build and solve amdp-----")
     #     return amdp
 
+    def _results_upload(self):
+        print("============upload experiments details to google sheets============")
+        import gspread
+        from oauth2client.service_account import ServiceAccountCredentials
+
+        scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+                 "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+
+        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+        client = gspread.authorize(creds)
+        # sheet = client.open("experiments_result").sheet1  # Open the spreadhseet
+        sheet = client.open("experiments_result").worksheet("OOP")
+        # gspread api to get worksheet
+        ### worksheet = sh.get_worksheet(0)
+        ### worksheet = sh.worksheet("January")
+
+        mean_by_rep_experiment_time = np.mean(self.experiment_time_repetitions)
+        mean_by_rep_exploration_time = np.mean(self.exploration_time_repetitions)
+        mean_by_rep_word2vec_time = np.mean(self.solve_word2vec_time_repetitions)
+        mean_by_rep_amdp_time = np.mean(self.solve_amdp_time_repetitions)
+        mean_by_rep_q_time = np.mean(self.ground_learning_time_repetitions)
+        data = [mean_by_rep_experiment_time,
+                mean_by_rep_exploration_time,
+                mean_by_rep_word2vec_time,
+                mean_by_rep_amdp_time,
+                mean_by_rep_q_time]
+        data = [round(item, 1) for item in data]
+
+        rolling_window_size = int(self.ground_learning_config['q_eps'] / 50)
+        final_reward = statistics.mean(np.mean(self.reward_episodes_repetitions, axis=0)[-rolling_window_size:])
+
+        total_steps = np.cumsum(np.mean(self.move_count_episodes_repetitions, axis=0)[self.explore_config['e_eps']:])[-1]
+        w2v = 'SG' if self.w2v_config['sg'] == 1 else 'CBOW'
+        negative = 5
+        abstraction_mode = 'topology'
+        insert_row = [self.env.maze_name, big, abstraction_mode, e_mode, e_start, e_eps, mm,self.explore_config['ds_factor'], data[1],
+                      round(np.mean(self.longlife_exploration_mean_repetitions), 2),round(np.mean(self.longlife_exploration_std_repetitions), 2),
+                      self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], self.k_means_pkg, self.num_clusters,
+                      data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
+                      round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
+                      self.ground_learning_config['lambda'], self.ground_learning_config['omega'], self.explore_config['epsilon_e'],
+                      "1-0.1", self.plot_maker.std_factor, self.path_results]
+        sheet.append_row(insert_row)
+        print("topology approach uploaded to google sheet")
+        print(" FINISHED!")
+
     def run(self):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
-        if self.print_to_file == 1:
-            sys.stdout = open(f"{self.path_results}/output.txt", 'w')
-            sys.stderr = sys.stdout
 
         self._print_before_start()
 
@@ -703,14 +692,11 @@ class TopologyExpMaker(ExperimentMaker):
             self.plot_maker.plot_each_heatmap(agent_e, rep, ax_title)
 
             # solve w2v and k-means to get clusters and save cluster file
-            self.sentences_collected.extend(self.sentences_period)
-            self.sentences_period = []
-            random.shuffle(self.sentences_collected)
             gensim_opt = self._w2v_and_kmeans(rep)
 
             # plot cluster layout
             ax_title = f"clusters{self.num_clusters}mm{self.explore_config['max_move_count']}s" \
-                       f"{self.w2v_config['rep_size']}w{self.w2v_config['win_size']}_sg{self.w2v_config['sg']}"
+                       f"{self.w2v_config['rep_size']}w{self.w2v_config['win_size']}sg{self.w2v_config['sg']}"
             self.plot_maker.plot_each_cluster_layout(gensim_opt, self.num_clusters, rep, ax_title, plot_label=1)
 
             # build and solve amdp
@@ -748,8 +734,6 @@ class TopologyExpMaker(ExperimentMaker):
                                              self.solve_word2vec_time_repetitions, bar_label='topology')
 
         self._results_upload()
-        if self.print_to_file == 1:
-            sys.stdout.close()
 
 class UniformExpMaker(ExperimentMaker):
     def __init__(self, env_name: str, big: int, tiling_size: tuple, q_eps: int, repetitions: int, interpreter: str,
@@ -793,12 +777,54 @@ class UniformExpMaker(ExperimentMaker):
     #     print("-----Finish build and solve amdp-----")
     #     return amdp
 
+    def _results_upload(self):
+        print("============upload experiments details to google sheets============")
+        import gspread
+        from oauth2client.service_account import ServiceAccountCredentials
+
+        scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+                 "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+
+        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+        client = gspread.authorize(creds)
+        # sheet = client.open("experiments_result").sheet1  # Open the spreadhseet
+        sheet = client.open("experiments_result").worksheet("OOP")
+        # gspread api to get worksheet
+        ### worksheet = sh.get_worksheet(0)
+        ### worksheet = sh.worksheet("January")
+
+        mean_by_rep_experiment_time = np.mean(self.experiment_time_repetitions)
+        mean_by_rep_exploration_time = 0
+        mean_by_rep_word2vec_time = 0
+        mean_by_rep_amdp_time = np.mean(self.solve_amdp_time_repetitions)
+        mean_by_rep_q_time = np.mean(self.ground_learning_time_repetitions)
+        data = [mean_by_rep_experiment_time,
+                mean_by_rep_exploration_time,
+                mean_by_rep_word2vec_time,
+                mean_by_rep_amdp_time,
+                mean_by_rep_q_time]
+        data = [round(item, 1) for item in data]
+
+        rolling_window_size = int(self.ground_learning_config['q_eps'] / 50)
+        final_reward = statistics.mean(np.mean(self.reward_episodes_repetitions, axis=0)[-rolling_window_size:])
+
+        total_steps = np.cumsum(np.mean(self.move_count_episodes_repetitions, axis=0))[-1]
+        abstraction_mode = 'uniform'
+        insert_row = [self.env.maze_name, big, abstraction_mode, '--', '--', '--', '--', '--', data[1],
+                      '--', '--',
+                      '--', '--', '--', '--', data[2], '--', '--',
+                      data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
+                      round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
+                      self.ground_learning_config['lambda'], self.ground_learning_config['omega'], '--',
+                      "1-0.1", self.plot_maker.std_factor, self.path_results]
+
+        sheet.append_row(insert_row)
+        print("uniform approach uploaded to google sheet")
+        print(" FINISHED!")
+
     def run(self):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
-        if self.print_to_file == 1:
-            sys.stdout = open(f"{self.path_results}/output.txt", 'w')
-            sys.stderr = sys.stdout
         self._print_before_start()
 
         for rep in range(self.repetitions):
@@ -851,8 +877,6 @@ class UniformExpMaker(ExperimentMaker):
                                              self.ground_learning_time_repetitions, bar_label='uniform')
 
         self._results_upload()
-        if self.print_to_file == 1:
-            sys.stdout.close()
 
 class GeneralExpMaker(ExperimentMaker):
     def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
@@ -1005,11 +1029,15 @@ class GeneralExpMaker(ExperimentMaker):
         print("longlife_exploration_sum:", np.sum(agent_e.states_long_life[agent_e.states_long_life > 0]))
         print("len of self.sentences_period:", len(self.sentences_period))
 
+        self.sentences_collected.extend(self.sentences_period)
+        self.sentences_period = []
+
         print("-----Finish Exploration-----")
         return agent_e
 
     def _w2v_and_kmeans(self):
         print("-----Begin w2v and k-means-----")
+        random.shuffle(self.sentences_collected)
         gensim_opt = GensimOperator_General(self.env)
         start_word2vec = time.time()
         gensim_opt.get_cluster_labels(sentences=self.sentences_collected,
@@ -1039,12 +1067,133 @@ class GeneralExpMaker(ExperimentMaker):
     #     print("-----Finish build and solve amdp-----")
     #     return amdp
 
-    def run(self):
+    def _ground_learning_evo(self, amdp, evo, ds_factor):
+        print("-----Begin Ground Learning EVO-----")
+        start_ground_learning = time.time()
+        agent_q = QLambdaBrain(env=self.env, ground_learning_config=self.ground_learning_config)
+        env = self.env
+        for evo_ in range(evo):
+            print(f"---start evo {evo_}----")
+            for ep in range(self.ground_learning_config['q_eps']):
+                if (ep + 1) % 100 == 0:
+                    print(f"episode_100: {ep} | avg_move_count: {int(np.mean(self.move_count_episodes[-100:]))} | "
+                          f"avd_reward: {int(np.mean(self.reward_episodes[-100:]))} | "
+                          f"env.state: {env.state} | "
+                          f"env.flagcollected: {env.flags_collected} | "
+                          f"agent.epsilon: {agent_q.epsilon} | "
+                          f"agent.lr: {agent_q.lr}")
+                # set epsilon
+                epsilon_q_max = self.ground_learning_config['epsilon_q_max']
+                temp_epsilon = epsilon_q_max/(evo_+1) - (epsilon_q_max/(evo_+1) / self.ground_learning_config['q_eps']) * ep
+                if temp_epsilon > 0.1:
+                    agent_q.epsilon = round(temp_epsilon, 5)
+
+                env.reset()
+                agent_q.reset_eligibility()
+                episode_reward = 0
+                move_count = 0
+                track = [str((env.state[0], env.state[1]))]
+                a = agent_q.policy(env.state, env.actions(env.state))
+                while not env.isTerminal(env.state):
+                    abstract_state = amdp.get_abstract_state(env.state)
+                    new_state = env.step(env.state, a)
+                    move_count += 1
+                    track.append(str((new_state[0], new_state[1])))
+                    new_abstract_state = amdp.get_abstract_state(new_state)
+                    a_prime = agent_q.policy(new_state, env.actions(new_state))  ##Greedy next-action selected
+                    a_star = agent_q.policyNoRand(new_state, env.actions(new_state))
+                    r = env.reward(env.state, a, new_state)  ## ground level reward
+                    episode_reward += r
+
+                    value_new_abstract_state = amdp.get_value(new_abstract_state)
+                    value_abstract_state = amdp.get_value(abstract_state)
+                    shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
+                              self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
+                    # shaping = 0
+                    agent_q.learn(env.state, a, new_state, a_prime, a_star, r + shaping)
+
+                    env.state = new_state
+                    a = a_prime
+
+                self.reward_episodes.append(episode_reward)
+                self.flags_episodes.append(env.flags_collected)
+                self.move_count_episodes.append(move_count)
+                self.flags_found_order_episodes.append(env.flags_found_order)
+
+                self.epsilons_episodes.append(agent_q.epsilon)
+                self.gamma_episodes.append(agent_q.gamma)
+                self.lr_episodes.append(agent_q.lr)
+
+                if ds_factor == 1:
+                    self.sentences_period.append(track)
+                else:
+                    down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
+                                    math.floor(len(track) * self.explore_config['ds_factor'])))]
+                    self.sentences_period.append(down_sampled)
+
+            self.sentences_collected.extend(self.sentences_period)
+            self.sentences_period = []
+            if evo_ == evo-1:
+                gensim_opt = self._w2v_and_kmeans()
+                amdp = self._build_and_solve_amdp(gensim_opt=gensim_opt, general=1)
+
+        end_ground_learning = time.time()
+        ground_learning_time = end_ground_learning - start_ground_learning
+        print("ground_learning_time:", ground_learning_time)
+        self.ground_learning_time_repetitions.append(ground_learning_time)
+
+        print("-----Finish Ground Learning-----")
+
+        return agent_q
+
+    def _results_upload(self):
+        print("============upload experiments details to google sheets============")
+        import gspread
+        from oauth2client.service_account import ServiceAccountCredentials
+
+        scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+                 "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+
+        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+        client = gspread.authorize(creds)
+        # sheet = client.open("experiments_result").sheet1  # Open the spreadhseet
+        sheet = client.open("experiments_result").worksheet("OOP")
+        # gspread api to get worksheet
+        ### worksheet = sh.get_worksheet(0)
+        ### worksheet = sh.worksheet("January")
+
+        mean_by_rep_experiment_time = np.mean(self.experiment_time_repetitions)
+        mean_by_rep_exploration_time = np.mean(self.exploration_time_repetitions)
+        mean_by_rep_word2vec_time = np.mean(self.solve_word2vec_time_repetitions)
+        mean_by_rep_amdp_time = np.mean(self.solve_amdp_time_repetitions)
+        mean_by_rep_q_time = np.mean(self.ground_learning_time_repetitions)
+        data = [mean_by_rep_experiment_time,
+                mean_by_rep_exploration_time,
+                mean_by_rep_word2vec_time,
+                mean_by_rep_amdp_time,
+                mean_by_rep_q_time]
+        data = [round(item, 1) for item in data]
+
+        rolling_window_size = int(self.ground_learning_config['q_eps'] / 50)
+        final_reward = statistics.mean(np.mean(self.reward_episodes_repetitions, axis=0)[-rolling_window_size:])
+        total_steps = np.cumsum(np.mean(self.move_count_episodes_repetitions, axis=0)[self.explore_config['e_eps']:])[-1]
+        w2v = 'SG' if self.w2v_config['sg'] == 1 else 'CBOW'
+        negative = 5
+        abstraction_mode = 'general'
+        insert_row = [self.env.maze_name, big, abstraction_mode, e_mode, e_start, e_eps, mm,self.explore_config['ds_factor'], data[1],
+                      round(np.mean(self.longlife_exploration_mean_repetitions), 2),round(np.mean(self.longlife_exploration_std_repetitions), 2),
+                      self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], self.k_means_pkg, self.num_clusters,
+                      data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
+                      round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
+                      self.ground_learning_config['lambda'], self.ground_learning_config['omega'], self.explore_config['epsilon_e'],
+                      "1-0.1", self.plot_maker.std_factor, self.path_results]
+        sheet.append_row(insert_row)
+        print("general approach uploaded to google sheet")
+        print(" FINISHED!")
+
+    def run(self, evo=0):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
-        if self.print_to_file == 1:
-            sys.stdout = open(f"{self.path_results}/output.txt", 'w')
-            sys.stderr = sys.stdout
 
         self._print_before_start()
 
@@ -1073,16 +1222,16 @@ class GeneralExpMaker(ExperimentMaker):
             agent_e = self._explore()
 
             # solve w2v and k-means to get clusters and save cluster file
-            self.sentences_collected.extend(self.sentences_period)
-            self.sentences_period = []
-            random.shuffle(self.sentences_collected)
             gensim_opt = self._w2v_and_kmeans()
 
             # build and solve amdp
             amdp = self._build_and_solve_amdp(gensim_opt=gensim_opt, general=1)
 
             # ground learning
-            self._ground_learning(amdp)
+            if evo == 0:
+                self._ground_learning(amdp)
+            elif evo > 0:
+                self._ground_learning_evo(amdp, evo, 0.5)
 
             # experiment timing ends and saved
             end_experiment = time.time()
@@ -1113,38 +1262,44 @@ class GeneralExpMaker(ExperimentMaker):
                                              self.solve_word2vec_time_repetitions, bar_label='general')
 
         self._results_upload()
-        if self.print_to_file == 1:
-            sys.stdout.close()
 
 
 if __name__ == "__main__":
-    maze = 'low_connectivity2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic
-    big = 0
+    maze = 'low_connectivity2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space
+    big = 1
     e_mode = 'sarsa'   # 'sarsa' or 'softmax'
     e_start = 'last'   # 'random' or 'last' or 'mix'
-    e_eps = 2000
+    e_eps = 5000
     mm = 100
     ds_factor = 0.5
 
     q_eps = 500
-    repetitions = 2
+    repetitions = 10
     rep_size = 128
     win_size = 40
     sg = 1  # 'SG' or 'CBOW'
-    # clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
+    numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
+    # numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
+
     k_means_pkg = 'sklearn'    # 'sklearn' or 'nltk'
     interpreter = 'R'     # L or R
-    print_to_file = 0
-
     std_factor = 1 / np.sqrt(10)
 
+    print_to_file = 1
+    show = 0
+    save = 1
     for i in range(len(numbers_of_clusters)):
-        plot_maker = PlotMaker(repetitions, std_factor, 3)
         # set directory to store imgs and files
         path_results =f"./cluster_layout/{maze}_big={big}" \
-                      f"/topology{numbers_of_clusters} test/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
+                      f"/topology-vs-uniform{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
+        if not os.path.isdir(path_results):
+            makedirs(path_results)
+        if print_to_file == 1:
+            sys.stdout = open(f"{path_results}/output.txt", 'w')
+            sys.stderr = sys.stdout
+
+        plot_maker = PlotMaker(repetitions, std_factor, 2)   # third argument should match num of approaches below
 
         # ===topology approach===
         topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
@@ -1153,7 +1308,7 @@ if __name__ == "__main__":
         topology_maker.run()
 
         # ===uniform approach===
-        # match number of abstract state same with the one in topology approach, in order to be fair.
+        # ---match number of abstract state same with the one in topology approach, in order to be fair.
         a = math.ceil(topology_maker.env.size[0] / np.sqrt(numbers_of_clusters[i]))
         b = math.ceil(topology_maker.env.size[1] / np.sqrt(numbers_of_clusters[i]))
         print("(a,b): ", (a,b))
@@ -1163,18 +1318,35 @@ if __name__ == "__main__":
         uniform_maker.run()
 
         # ===general approach===
-        general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps*2), mm=mm, ds_factor=ds_factor,
-                     rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8+1), k_means_pkg=k_means_pkg, q_eps=q_eps,
-                     repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
-        general_maker.run()
+        # general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps), mm=mm, ds_factor=ds_factor,
+        #              rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
+        #              repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
+        # general_maker.run()
 
-        # ===plot and save mean performance===
+        # ===plot and save summary===
         print("saving fig_each_rep ...")
-        plot_maker.fig_each_rep.savefig(f"{path_results}/plots_of_each_rep.png", dpi=600, facecolor='w', edgecolor='w',
-                    orientation='portrait', format=None,
-                    transparent=False, bbox_inches=None, pad_inches=0.1)
+        if show:
+            plot_maker.fig_each_rep.show()
+        if save:
+            plot_maker.fig_each_rep.savefig(f"{path_results}/plots_of_each_rep.png", dpi=600, facecolor='w', edgecolor='w',
+                                            orientation='portrait', format=None,
+                                            transparent=False, bbox_inches=None, pad_inches=0.1)
 
-        plot_maker.fig_mean_performance.show()
-        # plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results_errorbar_yerror*{plot_maker.std_factor}.png",
-        #                                         dpi=600, facecolor='w', edgecolor='w', orientation='portrait',
-        #                                         format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
+        print("saving fig_mean_performance ...")
+        if show:
+            plot_maker.fig_mean_performance.show()
+        if save:
+            plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results_errorbar_yerror*{plot_maker.std_factor}.png",
+                                                    dpi=600, facecolor='w', edgecolor='w', orientation='portrait',
+                                                    format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
+
+        print("saving fig_time_consumption ...")
+        if show:
+            plot_maker.fig_time_consumption.show()
+        if save:
+            plot_maker.fig_time_consumption.savefig(f"{path_results}/time_consumption.png",
+                                                    dpi=600, facecolor='w', edgecolor='w', orientation='portrait',
+                                                    format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
+
+        if print_to_file == 1:
+            sys.stdout.close()

@@ -965,21 +965,21 @@ def function1(maze, big, e_mode, e_start, e_eps, subsample_factor, q_eps, repeti
         sys.stdout.close()
 
 if __name__ == "__main__":
-    maze = 'basic'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic
-    big = 0
+    maze = 'low_connectivity2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic
+    big = 1
     e_mode = 'RL'   # 'RL' or 'SM'
     e_start = 'last'   # 'random' or 'last' or 'mix'
-    e_eps = 1000
+    e_eps = 5000
     mm = 100
     subsample_factor = 0.5
 
     q_eps = 500
-    repetitions = 2
+    repetitions = 3
     rep_size = 128
     win_size = 40
     w2v = 'SG'  # 'SG' or 'CBOW'
     # clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    clusters = [9]  # number of abstract states for Uniform will be matched with the number of clusters
+    clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
     k_means_pkg = 'sklearn'    # 'sklearn' or 'nltk'
     interpreter = 'R'     # L or R
     output_file = 0

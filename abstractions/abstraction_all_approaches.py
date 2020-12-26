@@ -36,7 +36,9 @@ class AMDP_Topology_Uniform:
 
         self.list_of_abstract_states = self.get_list_of_abstract_state()
         self.adjacencies, self.adjacencies_for_each_astate = self.get_ajacencies_v2()
-        self.transition_table, self.rewards_table = self.get_transitions_and_rewards()
+        # self.transition_table, self.rewards_table = self.get_transitions_and_rewards()
+        self.transition_table, self.rewards_table = self.get_transitions_and_rewards_streamlined()
+
         # # self.solveAbstraction()
 
     def do_tiling_v2(self, tiling_size: tuple, ignorewalls=True):
@@ -201,34 +203,34 @@ class AMDP_Topology_Uniform:
         return transition, rewards
 
 
-    def solve_amdp(self):
-        print('length of self.list_of_abstract_states:', len(self.list_of_abstract_states))
-        print('self.list_of_abstract_states:', self.list_of_abstract_states)
-        values = np.zeros(len(self.list_of_abstract_states))
-        print("len(values):", len(values))
-        # print("self.transition_table:",np.argwhere(self.transition_table))
-        # print("self.rewards_table:",np.argwhere(self.rewards_table))
-        delta = 0.2
-        theta = 0.1
-        print("Value Iteration delta values:")
-        while delta > theta:
-            delta = 0
-            for i in range(0, len(values)):
-                v = values[i]
-                list_of_values = []
-                for a in range(len(self.list_of_abstract_states) + 4):
-                    value = 0
-                    for j in range(len(values)):
-                        value += self.transition_table[a, i, j] * (self.rewards_table[a, i, j] + 0.99 * values[j])
-                    list_of_values.append(value)
-                values[i] = max(list_of_values)
-                delta = max(delta, abs(v - values[i]))
-            print("delta:", delta)
-        # print(V)
-        values -= min(values[:-1])
-        self.values_of_abstract_states = values
-        print("self.values_of_abstract_states:")
-        print(self.values_of_abstract_states)
+    # def solve_amdp(self):
+    #     print('length of self.list_of_abstract_states:', len(self.list_of_abstract_states))
+    #     print('self.list_of_abstract_states:', self.list_of_abstract_states)
+    #     values = np.zeros(len(self.list_of_abstract_states))
+    #     print("len(values):", len(values))
+    #     # print("self.transition_table:",np.argwhere(self.transition_table))
+    #     # print("self.rewards_table:",np.argwhere(self.rewards_table))
+    #     delta = 0.2
+    #     theta = 0.1
+    #     print("Value Iteration delta values:")
+    #     while delta > theta:
+    #         delta = 0
+    #         for i in range(0, len(values)):
+    #             v = values[i]
+    #             list_of_values = []
+    #             for a in range(len(self.list_of_abstract_states) + 4):
+    #                 value = 0
+    #                 for j in range(len(values)):
+    #                     value += self.transition_table[a, i, j] * (self.rewards_table[a, i, j] + 0.99 * values[j])
+    #                 list_of_values.append(value)
+    #             values[i] = max(list_of_values)
+    #             delta = max(delta, abs(v - values[i]))
+    #         print("delta:", delta)
+    #     # print(V)
+    #     values -= min(values[:-1])
+    #     self.values_of_abstract_states = values
+    #     print("self.values_of_abstract_states:")
+    #     print(self.values_of_abstract_states)
 
     def get_transitions_and_rewards_streamlined(self):
         self.list_of_abstract_states.append("bin")
@@ -275,7 +277,7 @@ class AMDP_Topology_Uniform:
         # set rewards
         for i in range(num_of_abstract_state):
             if not self.list_of_abstract_states[i]=="bin" and sum(self.list_of_abstract_states[i][1:])==3:    #可修改
-                ajacency_of_i = self.getAbstractActions(self.list_of_abstract_states[i])
+                ajacency_of_i = self.get_abstract_actions(self.list_of_abstract_states[i])
                 for g in range(len(self.goal_abstractions)):
                     action_g = "G" + self.goal_abstractions[g]
                     if action_g in ajacency_of_i:
@@ -289,7 +291,7 @@ class AMDP_Topology_Uniform:
         # self.rewards[-1,-1,-1]=1
         return transition, rewards
 
-    def solve_amdp_streamline(self):
+    def solve_amdp(self):   # streamlined solve_amdp
         print('length of self.list_of_abstract_states:', len(self.list_of_abstract_states))
         print('self.list_of_abstract_states:', self.list_of_abstract_states)
         values = np.zeros(len(self.list_of_abstract_states))
@@ -385,7 +387,7 @@ class AMDP_General:
 
     def solve_amdp(self):
         values = np.zeros(self.num_abstract_states)
-        print("len(V):", len(values))
+        print("len(values):", len(values))
         delta = 0.2
         theta = 0.1
         print("Value Iteration delta values:")
@@ -404,9 +406,9 @@ class AMDP_General:
                 delta = max(delta, abs(v - values[i]))
             print("delta:", delta)
         # print(V)
-        # V -= min(V[:-1])
+        values -= min(values[:-1])
         self.values_of_abstract_states = values
-        print("self.values_of_abstract_states")
+        print("self.values_of_abstract_states:")
         print(self.values_of_abstract_states)
 
     def get_value(self, astate):
