@@ -347,6 +347,7 @@ class ExperimentMaker:
             amdp = AMDP_General(env=self.env, gensim_opt=gensim_opt)
         else:
             raise Exception("wrong parameters")
+        print("start solving amdp...")
         start_amdp = time.time()
         amdp.solve_amdp()
         end_amdp = time.time()
@@ -592,9 +593,9 @@ class TopologyExpMaker(ExperimentMaker):
         print(f"solve_wor2vec_time: {solve_wor2vec_time}")
         self.solve_word2vec_time_repetitions.append(solve_wor2vec_time)
 
-        fpath_cluster_layout = self.path_results + f"/rep{rep}_s{self.w2v_config['rep_size']}_w{self.w2v_config['win_size']}" \
-                                                   f"_kmeans{self.num_clusters}_{self.k_means_pkg}.cluster"
-        gensim_opt.write_cluster_layout(fpath_cluster_layout)
+        # fpath_cluster_layout = self.path_results + f"/rep{rep}_s{self.w2v_config['rep_size']}_w{self.w2v_config['win_size']}" \
+        #                                            f"_kmeans{self.num_clusters}_{self.k_means_pkg}.cluster"
+        # gensim_opt.write_cluster_layout(fpath_cluster_layout)
 
         print("-----Finish w2v and k-means-----")
         return gensim_opt
@@ -755,7 +756,7 @@ class UniformExpMaker(ExperimentMaker):
 
 
     def _print_before_start(self):
-        print("+++++++++++start TopologyExpMaker.run()+++++++++++")
+        print("+++++++++++start UniformExpMaker.run()+++++++++++")
         print("PID: ", os.getpid())
         print("=path_results=:", self.path_results)
         print(f"maze:{self.env_name} | big:{self.big} | repetitions:{self.repetitions} | interpreter:{self.interpreter} |"
@@ -919,7 +920,7 @@ class GeneralExpMaker(ExperimentMaker):
         self.longlife_exploration_mean_repetitions = []
 
     def _print_before_start(self):
-        print("+++++++++++start TopologyExpMaker.run()+++++++++++")
+        print("+++++++++++start GeneralExpMaker.run()+++++++++++")
         print("PID: ", os.getpid())
         print("=path_results=:", self.path_results)
         print(f"maze:{self.env_name} | big:{self.big} | repetitions:{self.repetitions} | interpreter:{self.interpreter} |"
@@ -1270,23 +1271,23 @@ if __name__ == "__main__":
     e_mode = 'sarsa'   # 'sarsa' or 'softmax'
     e_start = 'last'   # 'random' or 'last' or 'mix'
     e_eps = 5000
-    mm = 100
+    mm = 200
     ds_factor = 0.5
 
     q_eps = 500
-    repetitions = 10
+    repetitions = 2
     rep_size = 128
     win_size = 40
     sg = 1  # 'SG' or 'CBOW'
-    numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    # numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
+    # numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
+    numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
 
     k_means_pkg = 'sklearn'    # 'sklearn' or 'nltk'
     interpreter = 'R'     # L or R
     std_factor = 1 / np.sqrt(10)
 
-    print_to_file = 1
-    show = 0
+    print_to_file = 0
+    show = 1
     save = 1
     for i in range(len(numbers_of_clusters)):
         # set directory to store imgs and files
@@ -1299,36 +1300,36 @@ if __name__ == "__main__":
             sys.stdout = open(f"{path_results}/output.txt", 'w')
             sys.stderr = sys.stdout
 
-        plot_maker = PlotMaker(repetitions, std_factor, 2)   # third argument should match num of approaches below
+        plot_maker = PlotMaker(repetitions, std_factor, 1)   # third argument should match num of approaches below
 
         # ===topology approach===
-        topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
-                     rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
-                     repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
-        topology_maker.run()
+        # topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
+        #              rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
+        #              repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
+        # topology_maker.run()
 
         # ===uniform approach===
         # ---match number of abstract state same with the one in topology approach, in order to be fair.
-        a = math.ceil(topology_maker.env.size[0] / np.sqrt(numbers_of_clusters[i]))
-        b = math.ceil(topology_maker.env.size[1] / np.sqrt(numbers_of_clusters[i]))
-        print("(a,b): ", (a,b))
-        uniform_maker = UniformExpMaker(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
-                                        interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
-                                        path_results=path_results)
-        uniform_maker.run()
+        # a = math.ceil(topology_maker.env.size[0] / np.sqrt(numbers_of_clusters[i]))
+        # b = math.ceil(topology_maker.env.size[1] / np.sqrt(numbers_of_clusters[i]))
+        # print("(a,b): ", (a,b))
+        # uniform_maker = UniformExpMaker(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
+        #                                 interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
+        #                                 path_results=path_results)
+        # uniform_maker.run()
 
         # ===general approach===
-        # general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps), mm=mm, ds_factor=ds_factor,
-        #              rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
-        #              repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
-        # general_maker.run()
+        general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps), mm=mm, ds_factor=ds_factor,
+                     rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
+                     repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
+        general_maker.run()
 
         # ===plot and save summary===
         print("saving fig_each_rep ...")
         if show:
             plot_maker.fig_each_rep.show()
         if save:
-            plot_maker.fig_each_rep.savefig(f"{path_results}/plots_of_each_rep.png", dpi=600, facecolor='w', edgecolor='w',
+            plot_maker.fig_each_rep.savefig(f"{path_results}/plots_of_each_rep.png", dpi=100, facecolor='w', edgecolor='w',
                                             orientation='portrait', format=None,
                                             transparent=False, bbox_inches=None, pad_inches=0.1)
 
@@ -1336,8 +1337,8 @@ if __name__ == "__main__":
         if show:
             plot_maker.fig_mean_performance.show()
         if save:
-            plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results_errorbar_yerror*{plot_maker.std_factor}.png",
-                                                    dpi=600, facecolor='w', edgecolor='w', orientation='portrait',
+            plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results_errorbar_yerror{round(plot_maker.std_factor,3)}.png",
+                                                    dpi=100, facecolor='w', edgecolor='w', orientation='portrait',
                                                     format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
         print("saving fig_time_consumption ...")
@@ -1345,7 +1346,7 @@ if __name__ == "__main__":
             plot_maker.fig_time_consumption.show()
         if save:
             plot_maker.fig_time_consumption.savefig(f"{path_results}/time_consumption.png",
-                                                    dpi=600, facecolor='w', edgecolor='w', orientation='portrait',
+                                                    dpi=300, facecolor='w', edgecolor='w', orientation='portrait',
                                                     format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
         if print_to_file == 1:

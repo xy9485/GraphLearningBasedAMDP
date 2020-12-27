@@ -341,21 +341,18 @@ class AMDP_General:
         self.gensim_opt: GensimOperator_General = gensim_opt
         print("self.gensim_opt.sentences[:5]:", self.gensim_opt.sentences[:5])
 
-        self.list_of_abstract_states:list = np.arange(self.gensim_opt.num_clusters).tolist()      # list
-        print("self.list_of_abstract_states[:10]:", self.list_of_abstract_states[:10])
-        print("len(self.list_of_abstract_states):", len(self.list_of_abstract_states))
+        self.list_of_abstract_states = np.arange(self.gensim_opt.num_clusters).tolist()
 
-        self.list_of_ground_states: list = self.gensim_opt.words       # list containing str
-        self.cluster_labels_of_all_ground_states: list = self.gensim_opt.cluster_labels.tolist()  # list
-        print("len(self.cluster_labels_matching_words), len(self.list_of_ground_states):", len(self.cluster_labels_of_all_ground_states), len(self.list_of_ground_states))
+        self.dict_gstates_astates = dict(zip(self.gensim_opt.words, self.gensim_opt.cluster_labels.tolist()))
+        print("len(gensim_opt.words), len(gensim_opt.cluster_labels):", len(self.gensim_opt.words), len(self.gensim_opt.cluster_labels.tolist()))
 
+        print("start setting amdp transition and reward...")
         self.set_transition_and_rewards()
 
-
-    def get_abstract_state(self,state):
-        index = self.list_of_ground_states.index(str(state))
-        cluster_label = self.cluster_labels_of_all_ground_states[index]
-        return cluster_label
+    def get_abstract_state(self, state):
+        if not isinstance(state, str):
+            state = str(state)
+        return self.dict_gstates_astates[state]
 
     def set_transition_and_rewards(self):
         num_abstract_states = len(self.list_of_abstract_states) + 1     #+1 for absorbing abstract state
