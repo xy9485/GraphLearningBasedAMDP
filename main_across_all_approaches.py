@@ -150,7 +150,6 @@ class PlotMaker:
             # axs[0].axvspan(num_explore_episodes,second_evolution, facecolor='blue', alpha=0.5)
             self.axs_mean_performance[0].axis([0, None, 0, 3.5])
 
-
         print("============Reward plotting============")
         mean_by_rep_reward = np.mean(reward_episodes_repetitions, axis=0)
         std_by_rep_reward = np.std(reward_episodes_repetitions, axis=0)
@@ -211,7 +210,7 @@ class PlotMaker:
 
     def plot_mean_time_comparison(self, experiment_time_repetitions, solve_amdp_time_repetitions,
                                   ground_learning_time_repetitions, exploration_time_repetitions=[0],
-                                  solve_word2vec_time_repetitions=[0], bar_label=None):
+                                  solve_word2vec_time_repetitions=[0], solve_kmeans_time_repetitions=[0], bar_label=None):
         def autolabel(rects, fontsize):
             """Attach a text label above each bar in *rects*, displaying its height."""
             for rect in rects:
@@ -220,25 +219,27 @@ class PlotMaker:
                              xy=(rect.get_x() + rect.get_width() / 2, height),
                              xytext=(0, 3),  # 3 points vertical offset
                              textcoords="offset points",
-                             ha='center', va='bottom', fontsize=fontsize, fontweight='semibold')
+                             ha='center', va='bottom', fontsize=fontsize, fontweight=400)
 
         mean_by_rep_experiment_time = np.mean(experiment_time_repetitions)
         mean_by_rep_exploration_time = np.mean(exploration_time_repetitions)
         mean_by_rep_word2vec_time = np.mean(solve_word2vec_time_repetitions)
+        mean_by_rep_kmeans_time = np.mean(solve_kmeans_time_repetitions)
         mean_by_rep_amdp_time = np.mean(solve_amdp_time_repetitions)
         mean_by_rep_q_time = np.mean(ground_learning_time_repetitions)
-        labels = ['Total', 'Exploration', 'Word2vec', 'AMDP', 'Q-learning']
+        labels = ['Total', 'Exploration', 'Word2vec', 'K-means', 'AMDP', 'Q-learning']
         data = [mean_by_rep_experiment_time,
                 mean_by_rep_exploration_time,
                 mean_by_rep_word2vec_time,
+                mean_by_rep_kmeans_time,
                 mean_by_rep_amdp_time,
                 mean_by_rep_q_time]
         data = [round(item, 1) for item in data]
         print("data:", data)
         x = np.arange(len(data))
         if self.num_approaches == 3:
-            width = 0.25
-            fontsize = 8
+            width = 0.3
+            fontsize = 7
             if self.current_approach_time_consumption == 3:
                 rects = self.ax_time_consumption.bar(x - width, data, width, label=bar_label)
             elif self.current_approach_time_consumption == 2:
@@ -246,14 +247,14 @@ class PlotMaker:
             elif self.current_approach_time_consumption == 1:
                 rects = self.ax_time_consumption.bar(x + width, data, width, label=bar_label)
         elif self.num_approaches == 2:
-            width = 0.3
-            fontsize = 9
+            width = 0.4
+            fontsize = 8
             if self.current_approach_time_consumption == 2:
                 rects = self.ax_time_consumption.bar(x - width/2, data, width, label=bar_label)
             elif self.current_approach_time_consumption == 1:
                 rects = self.ax_time_consumption.bar(x + width / 2, data, width, label=bar_label)
         elif self.num_approaches == 1:
-            width = 0.35
+            width = 0.5
             fontsize = 10
             rects = self.ax_time_consumption.bar(x, data, width, label=bar_label)
 
@@ -455,7 +456,7 @@ class TopologyExpMaker(ExperimentMaker):
         # self.experiment_time_repetitions = []
         self.exploration_time_repetitions = []
         self.solve_word2vec_time_repetitions = []
-
+        self.solve_kmeans_time_repetitions = []
 
         self.longlife_exploration_std_repetitions = []
         self.longlife_exploration_mean_repetitions = []
@@ -592,18 +593,15 @@ class TopologyExpMaker(ExperimentMaker):
         print("-----Begin w2v and k-means-----")
         random.shuffle(self.sentences_collected)
         gensim_opt = GensimOperator_Topology(self.env)
-        start_word2vec = time.time()
-        gensim_opt.get_cluster_layout(sentences=self.sentences_collected,
+        solve_wor2vec_time, solve_kmeans_time = gensim_opt.get_cluster_layout(sentences=self.sentences_collected,
                                       size=self.w2v_config['rep_size'],
                                       window=self.w2v_config['win_size'],
                                       clusters=self.num_clusters,
                                       skip_gram=self.w2v_config['sg'],
                                       workers=self.w2v_config['workers'],
                                       package=self.k_means_pkg)
-        end_word2vec = time.time()
-        solve_wor2vec_time = end_word2vec - start_word2vec
-        print(f"solve_wor2vec_time: {solve_wor2vec_time}")
         self.solve_word2vec_time_repetitions.append(solve_wor2vec_time)
+        self.solve_kmeans_time_repetitions.append(solve_kmeans_time)
 
         # fpath_cluster_layout = self.path_results + f"/rep{rep}_s{self.w2v_config['rep_size']}_w{self.w2v_config['win_size']}" \
         #                                            f"_kmeans{self.num_clusters}_{self.k_means_pkg}.cluster"
@@ -631,11 +629,13 @@ class TopologyExpMaker(ExperimentMaker):
         mean_by_rep_experiment_time = np.mean(self.experiment_time_repetitions)
         mean_by_rep_exploration_time = np.mean(self.exploration_time_repetitions)
         mean_by_rep_word2vec_time = np.mean(self.solve_word2vec_time_repetitions)
+        mean_by_rep_kmeans_time = np.mean(self.solve_kmeans_time_repetitions)
         mean_by_rep_amdp_time = np.mean(self.solve_amdp_time_repetitions)
         mean_by_rep_q_time = np.mean(self.ground_learning_time_repetitions)
         data = [mean_by_rep_experiment_time,
                 mean_by_rep_exploration_time,
                 mean_by_rep_word2vec_time,
+                mean_by_rep_kmeans_time,
                 mean_by_rep_amdp_time,
                 mean_by_rep_q_time]
         data = [round(item, 1) for item in data]
@@ -648,9 +648,9 @@ class TopologyExpMaker(ExperimentMaker):
         negative = 5
         abstraction_mode = 'topology'
         insert_row = [self.env.maze_name, big, abstraction_mode, e_mode, e_start, e_eps, mm,self.explore_config['ds_factor'], data[1],
-                      round(np.mean(self.longlife_exploration_mean_repetitions), 2),round(np.mean(self.longlife_exploration_std_repetitions), 2),
-                      self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], self.k_means_pkg, self.num_clusters,
-                      data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
+                      round(statistics.mean(self.longlife_exploration_mean_repetitions), 2), round(statistics.mean(self.longlife_exploration_std_repetitions), 2),
+                      self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], f"{data[3]}-{self.k_means_pkg}", self.num_clusters,
+                      data[4], self.ground_learning_config['q_eps'], data[5], self.repetitions, self.interpreter, data[0],
                       round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
                       self.ground_learning_config['lambda'], self.ground_learning_config['omega'], self.explore_config['epsilon_e'],
                       "1-0.1", self.plot_maker.std_factor, self.path_results]
@@ -732,7 +732,7 @@ class TopologyExpMaker(ExperimentMaker):
 
         plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
                                              self.ground_learning_time_repetitions, self.exploration_time_repetitions,
-                                             self.solve_word2vec_time_repetitions, bar_label='topology')
+                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions, bar_label='topology')
 
         self._results_upload()
 
@@ -753,7 +753,6 @@ class UniformExpMaker(ExperimentMaker):
         # self.solve_word2vec_time_repetitions = []
         # self.solve_amdp_time_repetitions = []
         # self.ground_learning_time_repetitions = []
-
 
     def _print_before_start(self):
         print("+++++++++++start UniformExpMaker.run()+++++++++++")
@@ -784,11 +783,13 @@ class UniformExpMaker(ExperimentMaker):
         mean_by_rep_experiment_time = np.mean(self.experiment_time_repetitions)
         mean_by_rep_exploration_time = 0
         mean_by_rep_word2vec_time = 0
+        mean_by_rep_kmeans_time = 0
         mean_by_rep_amdp_time = np.mean(self.solve_amdp_time_repetitions)
         mean_by_rep_q_time = np.mean(self.ground_learning_time_repetitions)
         data = [mean_by_rep_experiment_time,
                 mean_by_rep_exploration_time,
                 mean_by_rep_word2vec_time,
+                mean_by_rep_kmeans_time,
                 mean_by_rep_amdp_time,
                 mean_by_rep_q_time]
         data = [round(item, 1) for item in data]
@@ -801,7 +802,7 @@ class UniformExpMaker(ExperimentMaker):
         insert_row = [self.env.maze_name, big, abstraction_mode, '--', '--', '--', '--', '--', data[1],
                       '--', '--',
                       '--', '--', '--', '--', data[2], '--', '--',
-                      data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
+                      data[4], self.ground_learning_config['q_eps'], data[5], self.repetitions, self.interpreter, data[0],
                       round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
                       self.ground_learning_config['lambda'], self.ground_learning_config['omega'], '--',
                       "1-0.1", self.plot_maker.std_factor, self.path_results]
@@ -830,7 +831,6 @@ class UniformExpMaker(ExperimentMaker):
 
             self.sentences_collected = []
             self.sentences_period = []
-
 
             # build and solve amdp
             amdp = self._build_and_solve_amdp(tiling_size=self.tiling_size)
@@ -891,7 +891,6 @@ class GeneralExpMaker(ExperimentMaker):
             'workers': 32
         }
 
-
         self.num_clusters = num_clusters
         self.k_means_pkg = k_means_pkg
         self.repetitions = repetitions
@@ -902,6 +901,7 @@ class GeneralExpMaker(ExperimentMaker):
         # self.experiment_time_repetitions = []
         self.exploration_time_repetitions = []
         self.solve_word2vec_time_repetitions = []
+        self.solve_kmeans_time_repetitions = []
 
         self.longlife_exploration_std_repetitions = []
         self.longlife_exploration_mean_repetitions = []
@@ -916,7 +916,6 @@ class GeneralExpMaker(ExperimentMaker):
         print(f"=w2v_config=: {self.w2v_config}")
         print(f"=ground_learning_config=: {self.ground_learning_config}")
         print(f"num_clusters: {self.num_clusters} | k_means_pkg: {self.k_means_pkg}")
-
 
     def _explore(self):
         print("-----Begin Exploration-----")
@@ -1039,19 +1038,15 @@ class GeneralExpMaker(ExperimentMaker):
         print("-----Begin w2v and k-means-----")
         random.shuffle(self.sentences_collected)
         gensim_opt = GensimOperator_General(self.env)
-        start_word2vec = time.time()
-        gensim_opt.get_cluster_labels(sentences=self.sentences_collected,
+        solve_wor2vec_time, solve_kmeans_time = gensim_opt.get_cluster_labels(sentences=self.sentences_collected,
                                                  size=self.w2v_config['rep_size'],
                                                  window=self.w2v_config['win_size'],
                                                  clusters=self.num_clusters,
                                                  skip_gram=self.w2v_config['sg'],
                                                  workers=self.w2v_config['workers'],
                                                  package=self.k_means_pkg)
-        end_word2vec = time.time()
-        solve_wor2vec_time = end_word2vec - start_word2vec
-        print(f"solve_wor2vec_time: {solve_wor2vec_time}")
         self.solve_word2vec_time_repetitions.append(solve_wor2vec_time)
-
+        self.solve_kmeans_time_repetitions.append(solve_kmeans_time)
         print("-----Finish w2v and k-means-----")
         return gensim_opt
 
@@ -1153,11 +1148,13 @@ class GeneralExpMaker(ExperimentMaker):
         mean_by_rep_experiment_time = np.mean(self.experiment_time_repetitions)
         mean_by_rep_exploration_time = np.mean(self.exploration_time_repetitions)
         mean_by_rep_word2vec_time = np.mean(self.solve_word2vec_time_repetitions)
+        mean_by_rep_kmeans_time = np.mean(self.solve_kmeans_time_repetitions)
         mean_by_rep_amdp_time = np.mean(self.solve_amdp_time_repetitions)
         mean_by_rep_q_time = np.mean(self.ground_learning_time_repetitions)
         data = [mean_by_rep_experiment_time,
                 mean_by_rep_exploration_time,
                 mean_by_rep_word2vec_time,
+                mean_by_rep_kmeans_time,
                 mean_by_rep_amdp_time,
                 mean_by_rep_q_time]
         data = [round(item, 1) for item in data]
@@ -1169,9 +1166,9 @@ class GeneralExpMaker(ExperimentMaker):
         negative = 5
         abstraction_mode = 'general'
         insert_row = [self.env.maze_name, big, abstraction_mode, e_mode, e_start, e_eps, mm,self.explore_config['ds_factor'], data[1],
-                      round(np.mean(self.longlife_exploration_mean_repetitions), 2),round(np.mean(self.longlife_exploration_std_repetitions), 2),
-                      self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], self.k_means_pkg, self.num_clusters,
-                      data[3], self.ground_learning_config['q_eps'], data[4], self.repetitions, self.interpreter, data[0],
+                      round(statistics.mean(self.longlife_exploration_mean_repetitions), 2), round(statistics.mean(self.longlife_exploration_std_repetitions), 2),
+                      self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], f"{data[3]}-{self.k_means_pkg}", self.num_clusters,
+                      data[4], self.ground_learning_config['q_eps'], data[5], self.repetitions, self.interpreter, data[0],
                       round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
                       self.ground_learning_config['lambda'], self.ground_learning_config['omega'], self.explore_config['epsilon_e'],
                       "1-0.1", self.plot_maker.std_factor, self.path_results]
@@ -1247,10 +1244,9 @@ class GeneralExpMaker(ExperimentMaker):
 
         plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
                                              self.ground_learning_time_repetitions, self.exploration_time_repetitions,
-                                             self.solve_word2vec_time_repetitions, bar_label='general')
+                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions, bar_label='general')
 
         self._results_upload()
-
 
 if __name__ == "__main__":
     maze = 'low_connectivity2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space
@@ -1258,7 +1254,7 @@ if __name__ == "__main__":
     e_mode = 'sarsa'   # 'sarsa' or 'softmax'
     e_start = 'last'   # 'random' or 'last' or 'mix'
     e_eps = 5000
-    mm = 200
+    mm = 100
     ds_factor = 0.5
 
     q_eps = 500
@@ -1287,13 +1283,13 @@ if __name__ == "__main__":
             sys.stdout = open(f"{path_results}/output.txt", 'w')
             sys.stderr = sys.stdout
 
-        plot_maker = PlotMaker(repetitions, std_factor, 1)   # third argument should match num of approaches below
+        plot_maker = PlotMaker(repetitions, std_factor, 2)   # third argument should match num of approaches below
 
         # ===topology approach===
-        # topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
-        #              rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
-        #              repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
-        # topology_maker.run()
+        topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
+                     rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
+                     repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
+        topology_maker.run()
 
         # ===uniform approach===
         # ---match number of abstract state same with the one in topology approach, in order to be fair.
@@ -1306,7 +1302,7 @@ if __name__ == "__main__":
         # uniform_maker.run()
 
         # ===general approach===
-        general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps), mm=mm, ds_factor=ds_factor,
+        general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps*4), mm=mm, ds_factor=ds_factor,
                      rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
                      repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
         general_maker.run()
@@ -1324,8 +1320,8 @@ if __name__ == "__main__":
         if show:
             plot_maker.fig_mean_performance.show()
         if save:
-            plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results_errorbar_yerror{round(plot_maker.std_factor,3)}.png",
-                                                    dpi=100, facecolor='w', edgecolor='w', orientation='portrait',
+            plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results_errorbar_yerror{round(plot_maker.std_factor,4)}.png",
+                                                    dpi=200, facecolor='w', edgecolor='w', orientation='portrait',
                                                     format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
         print("saving fig_time_consumption ...")
@@ -1333,7 +1329,7 @@ if __name__ == "__main__":
             plot_maker.fig_time_consumption.show()
         if save:
             plot_maker.fig_time_consumption.savefig(f"{path_results}/time_consumption.png",
-                                                    dpi=300, facecolor='w', edgecolor='w', orientation='portrait',
+                                                    dpi=500, facecolor='w', edgecolor='w', orientation='portrait',
                                                     format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
         if print_to_file == 1:
