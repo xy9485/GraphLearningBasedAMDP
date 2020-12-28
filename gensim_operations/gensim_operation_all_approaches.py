@@ -33,21 +33,22 @@ class GensimOperator_Topology:
             model = gensim.models.Word2Vec(sentences=sentences, min_count=min_count, size=size, workers=workers,
                                            window=window, sg=skip_gram, negative=negative)
             end = time.time()
-            print(f"internal w2v training time: {end-start}")
+            w2v_time = end - start
+            print(f"internal w2v training time: {w2v_time}")
         self.wv = model.wv
-        embeddings = []
-        words = []
+        self.embeddings = []
+        self.words = []
         for i, word in enumerate(self.wv.vocab):
-            words.append(word)
-            embeddings.append(self.wv[word])
-        # print(words[0],type(words[0]))
+            self.words.append(word)
+            self.embeddings.append(self.wv[word])
+
         print("start check unvisited nodes...")
-        self.check_unvisited_nodes(words)
+        self.check_unvisited_nodes()
 
         print("start clustering...")
         start = time.time()
         if package == 'sklearn':
-            norm_embeddings = preprocessing.normalize(embeddings)
+            norm_embeddings = preprocessing.normalize(self.embeddings)
             # estimator = KMeans(n_clusters=clusters, init='k-means++', n_init=10, max_iter=300, tol=0.00001, ).fit(
             #     np.array(norm_embeddings))
             # kmeans_labels = estimator.labels_
@@ -63,7 +64,7 @@ class GensimOperator_Topology:
             roomlayout_prime = copy.deepcopy(self.env.room_layout).tolist()
             # print(roomlayout_prime)
             for i in range(len(kmeans_labels)):
-                coord = eval(words[i])
+                coord = eval(self.words[i])
                 label = str(kmeans_labels[i])
                 roomlayout_prime[coord[0]][coord[1]] = label
             self.cluster_layout = roomlayout_prime
@@ -71,37 +72,29 @@ class GensimOperator_Topology:
             # embeddings = preprocessing.normalize(embeddings)
             kclusterer = KMeansClusterer(clusters, distance=nltk.cluster.util.cosine_distance, repeats=10,
                                          normalise=True, avoid_empty_clusters=True)
-            embeddings = [np.array(f) for f in embeddings]
+            embeddings = [np.array(f) for f in self.embeddings]
             assigned_clusters = kclusterer.cluster(embeddings, assign_clusters=True)
             self.cluster_labels = assigned_clusters
             roomlayout_prime = copy.deepcopy(self.env.room_layout).tolist()
             # print(roomlayout_prime)
             for i in range(len(embeddings)):
-                coord = eval(words[i])
+                coord = eval(self.words[i])
                 label = str(assigned_clusters[i])
                 roomlayout_prime[coord[0]][coord[1]] = label
             self.cluster_layout = roomlayout_prime
         # print(self.cluster_layout)
         end = time.time()
-        print(f"internal k-means time: {end-start}")
+        kmeans_time = end - start
+        print(f"internal k-means time: {kmeans_time}")
         self.model = model
         self.num_of_sentences_last_time = len(sentences)
 
-    def check_unvisited_nodes(self, words):
-        valid_node_coords = []
-        template = self.env.room_layout
-        templateX = len(template[0])  # num of columns
-        templateY = len(template)  # num of rows
-        for i in range(templateY):
-            for j in range(templateX):
-                if template[i, j] != "w":
-                    current = (i, j)
-                    valid_node_coords.append(current)
-        visited_node_coords = words
+        return w2v_time, kmeans_time
+
+    def check_unvisited_nodes(self):
+        valid_node_coords = set(self.env.valid_coords)  # contain tuple
+        visited_node_coords = set(self.words)  # contain str
         print("len(valid_node_coords), len(visited_node_coords):", len(valid_node_coords), len(visited_node_coords))
-        # for i in valid_node_coords:
-        #     if str(i).replace(' ', '') not in visited_node_coords:
-        #         print("not visited: ", i)
         for i in valid_node_coords:
             if str(i) not in visited_node_coords:
                 print("not visited: ", i)
@@ -146,20 +139,17 @@ class GensimOperator_General:
             model = gensim.models.Word2Vec(sentences=sentences, min_count=min_count, size=size, workers=workers,
                                            window=window, sg=skip_gram, negative=negative)
             end = time.time()
-            print(f"internal w2v training time: {end-start}")
+            w2v_time = end - start
+            print(f"internal w2v training time: {w2v_time}")
         self.wv = model.wv
-        embeddings = []
-        words = []
+        self.embeddings = []
+        self.words = []
         for i, word in enumerate(self.wv.vocab):
-            words.append(word)
-            embeddings.append(self.wv[word])
-        self.words = words
-        print("gensim_opt.words", self.words[:10])
-        self.embeddings = embeddings
-        print("GensimOperator_General self.words:", self.words[:20])
-        # print(words[0],type(words[0]))
+            self.words.append(word)
+            self.embeddings.append(self.wv[word])
+
         print("start check unvisited nodes...")
-        self.check_unvisited_nodes(self.words)
+        self.check_unvisited_states()
 
         print("start clustering...")
         start = time.time()
@@ -177,31 +167,20 @@ class GensimOperator_General:
             self.cluster_labels = assigned_clusters
 
         end = time.time()
-        print(f"internal k-means time: {end-start}")
+        kmeans_time = end - start
+        print(f"internal k-means time: {kmeans_time}")
         self.model = model
         self.num_of_sentences_last_time = len(sentences)
 
-    def check_unvisited_nodes(self, words):
-        valid_states = []
-        template = self.env.room_layout
-        templateX = len(template[0])  # num of columns
-        templateY = len(template)  # num of rows
-        for k in range(2):
-            for l in range(2):
-                for m in range(2):
-                    for i in range(templateY):
-                        for j in range(templateX):
-                            if template[i, j] != "w":
-                                current = (i, j, k, l, m)
-                                valid_states.append(current)
-        visited_states = words
-        print("len(valid_node_coords), len(visited_node_coords):", len(valid_states), len(visited_states))
-        # for i in valid_node_coords:
-        #     if str(i).replace(' ', '') not in visited_node_coords:
-        #         print("not visited: ", i)
+        return w2v_time, kmeans_time
+
+    def check_unvisited_states(self):
+        valid_states = set(self.env.valid_states)   # contain tuple
+        visited_states = set(self.words)    # contain str
+        print("len(valid_states), len(visited_states):", len(valid_states), len(visited_states))
         for i in valid_states:
             if str(i) not in visited_states:
-                print("not visited: ", str(i))
+                print("not visited: ", i)
 
 
 

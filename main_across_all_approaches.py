@@ -568,7 +568,19 @@ class TopologyExpMaker(ExperimentMaker):
         self.longlife_exploration_mean_repetitions.append(np.mean(agent_e.states_long_life[agent_e.states_long_life > 0]))
         print("longlife_exploration_mean:", self.longlife_exploration_mean_repetitions)
         print("longlife_exploration_sum:", np.sum(agent_e.states_long_life[agent_e.states_long_life > 0]))
+
+        # check sentences_period
+        from itertools import chain
+        from collections import Counter
         print("len of self.sentences_period:", len(self.sentences_period))
+        flatten_list = list(chain.from_iterable(self.sentences_period))
+        counter_dict = Counter(flatten_list)
+        print("min counter value:", min(counter_dict.values()))
+        under5 = [k for k, v in counter_dict.items() if v < 5]
+        print("under5:", under5)
+        print("under5 length:", len(under5))
+        print("len(flatten_list):", len(flatten_list))
+        print("unique len(flatten_list)", len(set(flatten_list)))
 
         self.sentences_collected.extend(self.sentences_period)
         self.sentences_period = []
@@ -599,18 +611,6 @@ class TopologyExpMaker(ExperimentMaker):
 
         print("-----Finish w2v and k-means-----")
         return gensim_opt
-
-    # def _build_and_solve_amdp(self, gensim_opt: GensimOperator_Topology):
-    #     print("-----Begin build and solve amdp-----")
-    #     amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=None, gensim_opt=gensim_opt)
-    #     start_amdp = time.time()
-    #     amdp.solve_amdp()
-    #     end_amdp = time.time()
-    #     solve_amdp_time = end_amdp - start_amdp
-    #     print("solve_amdp_time:", solve_amdp_time)
-    #     self.solve_amdp_time_repetitions.append(solve_amdp_time)
-    #     print("-----Finish build and solve amdp-----")
-    #     return amdp
 
     def _results_upload(self):
         print("============upload experiments details to google sheets============")
@@ -764,19 +764,6 @@ class UniformExpMaker(ExperimentMaker):
         print(f"=explore_config=: Nothing to show")
         print(f"=w2v_config=: Nothing to show")
         print(f"=ground_learning_config=: {self.ground_learning_config}")
-
-
-    # def _build_and_solve_amdp(self, tiling_size: tuple):
-    #     print("-----Begin build and solve amdp-----")
-    #     amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=tiling_size, gensim_opt=None)
-    #     start_amdp = time.time()
-    #     amdp.solve_amdp()
-    #     end_amdp = time.time()
-    #     solve_amdp_time = end_amdp - start_amdp
-    #     print("solve_amdp_time:", solve_amdp_time)
-    #     self.solve_amdp_time_repetitions.append(solve_amdp_time)
-    #     print("-----Finish build and solve amdp-----")
-    #     return amdp
 
     def _results_upload(self):
         print("============upload experiments details to google sheets============")
@@ -1028,7 +1015,19 @@ class GeneralExpMaker(ExperimentMaker):
         self.longlife_exploration_mean_repetitions.append(np.mean(agent_e.states_long_life[agent_e.states_long_life > 0]))
         print("longlife_exploration_mean:", self.longlife_exploration_mean_repetitions)
         print("longlife_exploration_sum:", np.sum(agent_e.states_long_life[agent_e.states_long_life > 0]))
+
+        # check sentences_period
+        from itertools import chain
+        from collections import Counter
         print("len of self.sentences_period:", len(self.sentences_period))
+        flatten_list = list(chain.from_iterable(self.sentences_period))
+        counter_dict = Counter(flatten_list)
+        print("min counter value:", min(counter_dict.values()))
+        under5 = [k for k, v in counter_dict.items() if v < 5]
+        print("under5:", under5)
+        print("under5 length:", len(under5))
+        print("len(flatten_list):", len(flatten_list))
+        print("unique len(flatten_list)", len(set(flatten_list)))
 
         self.sentences_collected.extend(self.sentences_period)
         self.sentences_period = []
@@ -1055,18 +1054,6 @@ class GeneralExpMaker(ExperimentMaker):
 
         print("-----Finish w2v and k-means-----")
         return gensim_opt
-
-    # def _build_and_solve_amdp(self, gensim_opt: GensimOperator_Topology):
-    #     print("-----Begin build and solve amdp-----")
-    #     amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=None, gensim_opt=gensim_opt)
-    #     start_amdp = time.time()
-    #     amdp.solve_amdp()
-    #     end_amdp = time.time()
-    #     solve_amdp_time = end_amdp - start_amdp
-    #     print("solve_amdp_time:", solve_amdp_time)
-    #     self.solve_amdp_time_repetitions.append(solve_amdp_time)
-    #     print("-----Finish build and solve amdp-----")
-    #     return amdp
 
     def _ground_learning_evo(self, amdp, evo, ds_factor):
         print("-----Begin Ground Learning EVO-----")

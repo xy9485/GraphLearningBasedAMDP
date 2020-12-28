@@ -409,7 +409,8 @@ class Maze:
                                 current_state[2+index] = 1
                             valid_states.append(tuple(current_state))
 
-        return valid_coords, valid_states
+        # return valid_coords, valid_states
+        return list(set(valid_coords)), list(set(valid_states))
 
     def isMovable(self, state):
         # check if wall is in the way or already out of the bounds
