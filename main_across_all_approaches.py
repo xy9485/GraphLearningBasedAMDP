@@ -237,7 +237,18 @@ class PlotMaker:
         data = [round(item, 1) for item in data]
         print("data:", data)
         x = np.arange(len(data))
-        if self.num_approaches == 3:
+        if self.num_approaches == 4:
+            width = 0.2
+            fontsize = 6
+            if self.current_approach_time_consumption == 4:
+                rects = self.ax_time_consumption.bar(x - width*3/2, data, width, label=bar_label)
+            elif self.current_approach_time_consumption == 3:
+                rects = self.ax_time_consumption.bar(x - width/2, data, width, label=bar_label)
+            elif self.current_approach_time_consumption == 2:
+                rects = self.ax_time_consumption.bar(x + width/2, data, width, label=bar_label)
+            elif self.current_approach_time_consumption == 1:
+                rects = self.ax_time_consumption.bar(x + width*3/2, data, width, label=bar_label)
+        elif self.num_approaches == 3:
             width = 0.3
             fontsize = 7
             if self.current_approach_time_consumption == 3:
@@ -647,8 +658,10 @@ class TopologyExpMaker(ExperimentMaker):
         w2v = 'SG' if self.w2v_config['sg'] == 1 else 'CBOW'
         negative = 5
         abstraction_mode = 'topology'
-        insert_row = [self.env.maze_name, big, abstraction_mode, e_mode, e_start, e_eps, mm,self.explore_config['ds_factor'], data[1],
-                      round(statistics.mean(self.longlife_exploration_mean_repetitions), 2), round(statistics.mean(self.longlife_exploration_std_repetitions), 2),
+        insert_row = [self.env.maze_name, self.big, abstraction_mode, self.explore_config['e_mode'], self.explore_config['e_start'],
+                      self.explore_config['e_eps'], self.explore_config['max_move_count'], self.explore_config['ds_factor'], data[1],
+                      round(statistics.mean(self.longlife_exploration_mean_repetitions), 2),
+                      round(statistics.mean(self.longlife_exploration_std_repetitions), 2),
                       self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], f"{data[3]}-{self.k_means_pkg}", self.num_clusters,
                       data[4], self.ground_learning_config['q_eps'], data[5], self.repetitions, self.interpreter, data[0],
                       round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
@@ -715,7 +728,7 @@ class TopologyExpMaker(ExperimentMaker):
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes[self.explore_config['e_eps']:],
                                                             self.reward_episodes[self.explore_config['e_eps']:],
                                                             self.move_count_episodes[self.explore_config['e_eps']:],
-                                                            rep, 'topology')
+                                                            rep, f"topology-{self.num_clusters}")
 
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
@@ -728,11 +741,12 @@ class TopologyExpMaker(ExperimentMaker):
         sliced_f_ep_rep = np.array(self.flags_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_r_ep_rep = np.array(self.reward_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_m_ep_rep = np.array(self.move_count_episodes_repetitions)[:, self.explore_config['e_eps']:]
-        plot_maker.plot_mean_performance_across_reps(sliced_f_ep_rep, sliced_r_ep_rep, sliced_m_ep_rep, curve_label)
+        self.plot_maker.plot_mean_performance_across_reps(sliced_f_ep_rep, sliced_r_ep_rep, sliced_m_ep_rep, curve_label)
 
-        plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
+        self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
                                              self.ground_learning_time_repetitions, self.exploration_time_repetitions,
-                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions, bar_label='topology')
+                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
+                                             bar_label=f"topology-{self.num_clusters}")
 
         self._results_upload()
 
@@ -799,7 +813,7 @@ class UniformExpMaker(ExperimentMaker):
 
         total_steps = np.cumsum(np.mean(self.move_count_episodes_repetitions, axis=0))[-1]
         abstraction_mode = 'uniform'
-        insert_row = [self.env.maze_name, big, abstraction_mode, '--', '--', '--', '--', '--', data[1],
+        insert_row = [self.env.maze_name, self.big, abstraction_mode, '--', '--', '--', '--', '--', data[1],
                       '--', '--',
                       '--', '--', '--', '--', data[2], '--', '--',
                       data[4], self.ground_learning_config['q_eps'], data[5], self.repetitions, self.interpreter, data[0],
@@ -847,7 +861,7 @@ class UniformExpMaker(ExperimentMaker):
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes,
                                                             self.reward_episodes,
                                                             self.move_count_episodes,
-                                                            rep, 'uniform')
+                                                            rep, f"uniform-{self.tiling_size[0]}x{self.tiling_size[1]}")
 
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
@@ -857,12 +871,12 @@ class UniformExpMaker(ExperimentMaker):
         # plot mean performance among all reps
         # ax_title = f"flags collection in {'big' if self.big == 1 else 'small'} {self.env.maze_name}"
         curve_label = f"uniform-{self.tiling_size[0]}x{self.tiling_size[1]}"
-        plot_maker.plot_mean_performance_across_reps(self.flags_episodes_repetitions,
+        self.plot_maker.plot_mean_performance_across_reps(self.flags_episodes_repetitions,
                                                      self.reward_episodes_repetitions,
                                                      self.move_count_episodes_repetitions, curve_label)
 
-        plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
-                                             self.ground_learning_time_repetitions, bar_label='uniform')
+        self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
+                                             self.ground_learning_time_repetitions, bar_label=f"uniform-{self.tiling_size[0]}x{self.tiling_size[1]}")
 
         self._results_upload()
 
@@ -1165,8 +1179,10 @@ class GeneralExpMaker(ExperimentMaker):
         w2v = 'SG' if self.w2v_config['sg'] == 1 else 'CBOW'
         negative = 5
         abstraction_mode = 'general'
-        insert_row = [self.env.maze_name, big, abstraction_mode, e_mode, e_start, e_eps, mm,self.explore_config['ds_factor'], data[1],
-                      round(statistics.mean(self.longlife_exploration_mean_repetitions), 2), round(statistics.mean(self.longlife_exploration_std_repetitions), 2),
+        insert_row = [self.env.maze_name, self.big, abstraction_mode, self.explore_config['e_mode'], self.explore_config['e_start'],
+                      self.explore_config['e_eps'], self.explore_config['max_move_count'], self.explore_config['ds_factor'], data[1],
+                      round(statistics.mean(self.longlife_exploration_mean_repetitions), 2),
+                      round(statistics.mean(self.longlife_exploration_std_repetitions), 2),
                       self.w2v_config['rep_size'], self.w2v_config['win_size'], w2v, negative, data[2], f"{data[3]}-{self.k_means_pkg}", self.num_clusters,
                       data[4], self.ground_learning_config['q_eps'], data[5], self.repetitions, self.interpreter, data[0],
                       round(final_reward, 2), total_steps, self.ground_learning_config['lr'], self.ground_learning_config['gamma'],
@@ -1227,7 +1243,7 @@ class GeneralExpMaker(ExperimentMaker):
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes[self.explore_config['e_eps']:],
                                                             self.reward_episodes[self.explore_config['e_eps']:],
                                                             self.move_count_episodes[self.explore_config['e_eps']:],
-                                                            rep, 'general')
+                                                            rep, f"general-{self.num_clusters}")
 
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
@@ -1240,30 +1256,31 @@ class GeneralExpMaker(ExperimentMaker):
         sliced_f_ep_rep = np.array(self.flags_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_r_ep_rep = np.array(self.reward_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_m_ep_rep = np.array(self.move_count_episodes_repetitions)[:, self.explore_config['e_eps']:]
-        plot_maker.plot_mean_performance_across_reps(sliced_f_ep_rep, sliced_r_ep_rep, sliced_m_ep_rep, curve_label)
+        self.plot_maker.plot_mean_performance_across_reps(sliced_f_ep_rep, sliced_r_ep_rep, sliced_m_ep_rep, curve_label)
 
-        plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
+        self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
                                              self.ground_learning_time_repetitions, self.exploration_time_repetitions,
-                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions, bar_label='general')
+                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
+                                             bar_label=f"general-{self.num_clusters}")
 
         self._results_upload()
 
 if __name__ == "__main__":
-    maze = 'low_connectivity2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space
+    maze = 'strips2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space
     big = 1
-    e_mode = 'sarsa'   # 'sarsa' or 'softmax'
+    e_mode = 'sarsa'   # 'sarsa' or 'softmax'pwd
     e_start = 'last'   # 'random' or 'last' or 'mix'
     e_eps = 5000
     mm = 100
     ds_factor = 0.5
 
     q_eps = 500
-    repetitions = 2
+    repetitions = 10
     rep_size = 128
-    win_size = 40
+    win_size = 50
     sg = 1  # 'SG' or 'CBOW'
     # numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
+    numbers_of_clusters = [36]  # number of abstract states for Uniform will be matched with the number of clusters
 
     k_means_pkg = 'sklearn'    # 'sklearn' or 'nltk'
     interpreter = 'R'     # L or R
@@ -1275,7 +1292,7 @@ if __name__ == "__main__":
     for i in range(len(numbers_of_clusters)):
         # set directory to store imgs and files
         path_results =f"./cluster_layout/{maze}_big={big}" \
-                      f"/topology-vs-uniform{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
+                      f"/topology-vs-general{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
         if not os.path.isdir(path_results):
             makedirs(path_results)
@@ -1283,7 +1300,7 @@ if __name__ == "__main__":
             sys.stdout = open(f"{path_results}/output.txt", 'w')
             sys.stderr = sys.stdout
 
-        plot_maker = PlotMaker(repetitions, std_factor, 2)   # third argument should match num of approaches below
+        plot_maker = PlotMaker(repetitions, std_factor, 1)   # third argument should match num of approaches below
 
         # ===topology approach===
         topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
@@ -1302,10 +1319,10 @@ if __name__ == "__main__":
         # uniform_maker.run()
 
         # ===general approach===
-        general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps*4), mm=mm, ds_factor=ds_factor,
-                     rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
-                     repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
-        general_maker.run()
+        # general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps*6), mm=mm, ds_factor=ds_factor,
+        #              rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
+        #              repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
+        # general_maker.run()
 
         # ===plot and save summary===
         print("saving fig_each_rep ...")
