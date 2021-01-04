@@ -172,6 +172,7 @@ class GensimOperator_General:
         self.model = model
         self.num_of_sentences_last_time = len(sentences)
 
+        self.dict_gstates_astates = dict(zip(self.words, self.cluster_labels.tolist()))
         return w2v_time, kmeans_time
 
     def check_unvisited_states(self):

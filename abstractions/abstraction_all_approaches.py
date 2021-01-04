@@ -342,8 +342,8 @@ class AMDP_General:
         print("self.gensim_opt.sentences[:5]:", self.gensim_opt.sentences[:5])
 
         self.list_of_abstract_states = np.arange(self.gensim_opt.num_clusters).tolist()
-
-        self.dict_gstates_astates = dict(zip(self.gensim_opt.words, self.gensim_opt.cluster_labels.tolist()))
+        self.dict_gstates_astates = self.gensim_opt.dict_gstates_astates
+        # self.dict_gstates_astates = dict(zip(self.gensim_opt.words, self.gensim_opt.cluster_labels.tolist()))
         print("len(gensim_opt.words), len(gensim_opt.cluster_labels):", len(self.gensim_opt.words), len(self.gensim_opt.cluster_labels.tolist()))
 
         print("start setting amdp transition and reward...")
