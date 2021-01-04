@@ -75,15 +75,115 @@ class PlotMaker:
         self.axs_each_rep[rep, 3].set_title(ax_title)
         # self.fig_each_rep.show()
 
-    def plot_each_flag_reward_movecount(self, flags_episodes, reward_episodes, move_count_episodes, rep, plot_label):
+    def plot_each_cluster_layout_general(self, gensim_opt, num_clusters, env, path_results, rep, plot_label=1, save=1, show=1):
+        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        for k in range(2):
+            for l in range(2):
+                for m in range(2):
+                    print(f"k-l-m: {k}-{l}-{m}")
+                    plate = []
+                    for i in range(env.size[0]):
+                        row = []
+                        for j in range(env.size[1]):
+                            current_state = (i, j, k, l, m)
+                            if current_state in env.valid_states:
+                                row.append(gensim_opt.dict_gstates_astates[str(tuple(current_state))])
+                            elif str([i, j]) in env.walls:
+                                row.append('W')
+                            elif env.flags.index((i, j)) == 0 and k == 0:
+                                row.append('X')
+                            elif env.flags.index((i, j)) == 1 and l == 0:
+                                row.append('X')
+                            elif env.flags.index((i, j)) == 2 and m == 0:
+                                row.append('X')
+                        plate.append(row)
+                    list_of_lists = copy.deepcopy(plate)
+                    # ==to print==
+                    # for row in range(len(list_of_lists)):
+                    #     for col in range(len(list_of_lists[row])):
+                    #         if len(str(list_of_lists[row][col])) == 1:
+                    #             print('  ' + str(list_of_lists[row][col]), end=' ')
+                    #         elif len(str(list_of_lists[row][col])) == 2:
+                    #             print(' ' + str(list_of_lists[row][col]), end=' ')
+                    #         else:
+                    #             print(str(list_of_lists[row][col]), end=' ')
+                    #     print(' ')  # To change lines
+                    # ==to plot==
+                    for row in range(len(list_of_lists)):
+                        for col in range(len(list_of_lists[0])):
+                            if isinstance(list_of_lists[row][col], int):
+                                list_of_lists[row][col] += 10
+                            else:
+                                list_of_lists[row][col] = 0
+                    # vmax = num_clusters * 10
+                    vmin = -(num_clusters + 10) / 30
+                    if k == 0 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 11)          # gist_ncar; rainbow
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    elif k == 1 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 7)
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    elif k == 0 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 8)
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    elif k == 0 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 9)
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    elif k == 1 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 4)
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    elif k == 1 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 5)
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    elif k == 0 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 6)
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    elif k == 1 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 2)
+                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        # ax.set_title(f"{k}-{l}-{m}")
+                    if plot_label:
+                        np_cluster_layout = np.array(plate)
+                        c = 0
+                        for i in range(num_clusters):
+                            coords = np.argwhere(np_cluster_layout == str(i))
+                            if len(coords) > 0:
+                                mean = np.mean(coords, axis=0)
+                                c += 1
+                                # print("mean:", mean)
+                                ax.text(mean[1], mean[0], str(i), horizontalalignment='center', verticalalignment='center',
+                                        fontsize=13, fontweight='semibold', color='k')
+                        ax.set_title(f"{k}-{l}-{m}-c{c}", fontweight='semibold')
+        fig.set_tight_layout(True)
+        if show:
+            fig.show()
+        if save:
+            fig.savefig(f"{path_results}/building{rep}.png", dpi=200, facecolor='w', edgecolor='w',)
+                                        # orientation='portrait', format=None,
+                                        # transparent=False, bbox_inches=None, pad_inches=0.1)
+
+    def plot_each_flag_reward_movecount(self, flags_episodes, reward_episodes, move_count_episodes, rep, curve_label):
         rolling_window_size = int(len(flags_episodes)/30)
+        if curve_label.startswith('t'):
+            ls = '-'
+        elif curve_label.startswith('u'):
+            ls = '--'
+        elif curve_label.startswith('g'):
+            ls = '-'
 
         d1 = pd.Series(flags_episodes)
         print("flags_list_episodes.shape:", np.array(flags_episodes).shape)
         rolled_d = pd.Series.rolling(d1, window=rolling_window_size, center=False).mean()
         print('type of movAv:', type(rolled_d))
 
-        self.axs_each_rep[rep, 0].plot(np.arange(len(rolled_d)), rolled_d, label=f"{plot_label}")
+        self.axs_each_rep[rep, 0].plot(np.arange(len(rolled_d)), rolled_d, linestyle=ls, label=curve_label)
         self.axs_each_rep[rep, 0].set_ylabel("Number of Flags")
         self.axs_each_rep[rep, 0].set_xlabel("Episode No.")
         self.axs_each_rep[rep, 0].set_title(f"flag curve of rep{rep}")
@@ -95,7 +195,7 @@ class PlotMaker:
 
         d1 = pd.Series(reward_episodes)
         rolled_d1 = pd.Series.rolling(d1, window=rolling_window_size, center=False).mean()
-        self.axs_each_rep[rep, 1].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, label=f"{plot_label}")
+        self.axs_each_rep[rep, 1].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, linestyle=ls, label=curve_label)
         self.axs_each_rep[rep, 1].set_ylabel("reward")
         self.axs_each_rep[rep, 1].set_xlabel("Episode No.")
         self.axs_each_rep[rep, 1].set_title(f"reward curve of rep{rep}")
@@ -107,7 +207,7 @@ class PlotMaker:
 
         d1 = pd.Series(move_count_episodes)
         rolled_d1 = pd.Series.rolling(d1, window=rolling_window_size, center=False).mean()
-        self.axs_each_rep[rep, 2].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, label=f"{plot_label}")
+        self.axs_each_rep[rep, 2].plot(np.arange(len(rolled_d1)), rolled_d1, alpha=1, linestyle=ls, label=curve_label)
         self.axs_each_rep[rep, 2].set_ylabel("move_count")
         self.axs_each_rep[rep, 2].set_xlabel("Episode No.")
         self.axs_each_rep[rep, 2].set_title(f"move_count curve of rep{rep}")
@@ -124,6 +224,12 @@ class PlotMaker:
                                           curve_label, ax_title=None):
         self.current_approach_mean_performance -= 1
         rolling_window_size = int(len(flags_episodes_repetitions[0])/30)
+        if curve_label.startswith('t'):
+            ls = '-'
+        elif curve_label.startswith('u'):
+            ls = '-'
+        elif curve_label.startswith('g'):
+            ls = '-'
 
         print("============Flags plotting============")
         mean_by_rep_flags = np.mean(flags_episodes_repetitions, axis=0)
@@ -138,12 +244,12 @@ class PlotMaker:
         s = pd.Series(confidence_interval)
         rolled_d = pd.Series.rolling(d, window=rolling_window_size, center=False).mean()
         rolled_s = pd.Series.rolling(s, window=rolling_window_size, center=False).mean()
-        self.axs_mean_performance[0].plot(np.arange(len(rolled_d)), rolled_d, label=curve_label)
+        self.axs_mean_performance[0].plot(np.arange(len(rolled_d)), rolled_d, linestyle=ls, label=curve_label)
         self.axs_mean_performance[0].fill_between(np.arange(len(rolled_d)), rolled_d - rolled_s, rolled_d + rolled_s, alpha=0.25)
         if self.current_approach_mean_performance == 0:
             self.axs_mean_performance[0].set_ylabel("No. Of Flags Collected")
             self.axs_mean_performance[0].set_xlabel("Episode No.")
-            self.axs_mean_performance[0].legend(loc=4)
+            # self.axs_mean_performance[0].legend(loc=4)
             self.axs_mean_performance[0].grid(True)
             # self.axs_mean_performance[0].set_title(ax_title)
             # self.axs_mean_performance[0].axvspan(0, num_explore_episodes, facecolor='green', alpha=0.5)
@@ -161,12 +267,12 @@ class PlotMaker:
         s = pd.Series(confidence_interval)
         rolled_d = pd.Series.rolling(d, window=rolling_window_size, center=False).mean()
         rolled_s = pd.Series.rolling(s, window=rolling_window_size, center=False).mean()
-        self.axs_mean_performance[1].plot(np.arange(len(rolled_d)), rolled_d, label=curve_label)
+        self.axs_mean_performance[1].plot(np.arange(len(rolled_d)), rolled_d, linestyle=ls, label=curve_label)
         self.axs_mean_performance[1].fill_between(np.arange(len(rolled_d)), rolled_d - rolled_s, rolled_d + rolled_s, alpha=0.25)
         if self.current_approach_mean_performance == 0:
             self.axs_mean_performance[1].set_ylabel("reward")
             self.axs_mean_performance[1].set_xlabel("Episode No.")
-            self.axs_mean_performance[1].legend(loc=4)
+            # self.axs_mean_performance[1].legend(loc=4)
             self.axs_mean_performance[1].grid(True)
             # axs[0].set_title(ax_title)
             # axs[0].axvspan(0, num_explore_episodes, facecolor='green', alpha=0.5)
@@ -192,7 +298,7 @@ class PlotMaker:
         rolled_d = pd.Series.rolling(d, window=rolling_window_size, center=False).mean()
         rolled_p = pd.Series.rolling(p, window=rolling_window_size, center=False).mean()
         rolled_s = pd.Series.rolling(s, window=rolling_window_size, center=False).mean()
-        self.axs_mean_performance[2].plot(rolled_p, rolled_d, label=curve_label)
+        self.axs_mean_performance[2].plot(rolled_p, rolled_d, linestyle=ls, label=curve_label)
         self.axs_mean_performance[2].fill_between(rolled_p, rolled_d - rolled_s, rolled_d + rolled_s, alpha=0.25)
         if rolled_p.max() > self.max_steps:
             self.max_steps = rolled_p.max()
@@ -671,12 +777,11 @@ class TopologyExpMaker(ExperimentMaker):
         print("topology approach uploaded to google sheet")
         print(" FINISHED!")
 
-    def run(self):
+    def run(self, heatmap=1, cluster_layout=1):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
-
         self._print_before_start()
-
+        curve_label = f"t-{self.num_clusters}"
         for rep in range(self.repetitions):
             print(f"+++++++++ Begin repetition: {rep} +++++++++")
             # experiment timing start
@@ -702,16 +807,18 @@ class TopologyExpMaker(ExperimentMaker):
             agent_e = self._explore()
 
             # plot heatmap
-            ax_title = f"{self.env.maze_name}_big{self.env.big}/emode:{self.explore_config['e_mode']}/estart:{self.explore_config['e_start']}"
-            self.plot_maker.plot_each_heatmap(agent_e, rep, ax_title)
+            if heatmap:
+                ax_title = f"{self.env.maze_name}_big{self.env.big}/emode:{self.explore_config['e_mode']}/estart:{self.explore_config['e_start']}"
+                self.plot_maker.plot_each_heatmap(agent_e, rep, ax_title)
 
             # solve w2v and k-means to get clusters and save cluster file
             gensim_opt = self._w2v_and_kmeans(rep)
 
             # plot cluster layout
-            ax_title = f"clusters{self.num_clusters}mm{self.explore_config['max_move_count']}s" \
-                       f"{self.w2v_config['rep_size']}w{self.w2v_config['win_size']}sg{self.w2v_config['sg']}"
-            self.plot_maker.plot_each_cluster_layout(gensim_opt, self.num_clusters, rep, ax_title, plot_label=1)
+            if cluster_layout:
+                ax_title = f"clusters{self.num_clusters}mm{self.explore_config['max_move_count']}s" \
+                           f"{self.w2v_config['rep_size']}w{self.w2v_config['win_size']}sg{self.w2v_config['sg']}"
+                self.plot_maker.plot_each_cluster_layout(gensim_opt, self.num_clusters, rep, ax_title, plot_label=1)
 
             # build and solve amdp
             amdp = self._build_and_solve_amdp(gensim_opt=gensim_opt)
@@ -728,7 +835,7 @@ class TopologyExpMaker(ExperimentMaker):
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes[self.explore_config['e_eps']:],
                                                             self.reward_episodes[self.explore_config['e_eps']:],
                                                             self.move_count_episodes[self.explore_config['e_eps']:],
-                                                            rep, f"topology-{self.num_clusters}")
+                                                            rep, curve_label)
 
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
@@ -737,7 +844,7 @@ class TopologyExpMaker(ExperimentMaker):
 
         # plot mean performance among all reps
         ### ax_title = f"flags collection in {'big' if self.big==1 else 'small'} {self.env.maze_name}"
-        curve_label = f"topology-{self.num_clusters}"
+
         sliced_f_ep_rep = np.array(self.flags_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_r_ep_rep = np.array(self.reward_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_m_ep_rep = np.array(self.move_count_episodes_repetitions)[:, self.explore_config['e_eps']:]
@@ -746,7 +853,7 @@ class TopologyExpMaker(ExperimentMaker):
         self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
                                              self.ground_learning_time_repetitions, self.exploration_time_repetitions,
                                              self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
-                                             bar_label=f"topology-{self.num_clusters}")
+                                             bar_label=curve_label)
 
         self._results_upload()
 
@@ -829,7 +936,7 @@ class UniformExpMaker(ExperimentMaker):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
-
+        curve_label = f"u-{self.tiling_size[0]}x{self.tiling_size[1]}"
         for rep in range(self.repetitions):
             print(f"+++++++++ Begin repetition: {rep} +++++++++")
             # experiment timing start
@@ -861,7 +968,7 @@ class UniformExpMaker(ExperimentMaker):
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes,
                                                             self.reward_episodes,
                                                             self.move_count_episodes,
-                                                            rep, f"uniform-{self.tiling_size[0]}x{self.tiling_size[1]}")
+                                                            rep, curve_label)
 
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
@@ -870,13 +977,13 @@ class UniformExpMaker(ExperimentMaker):
 
         # plot mean performance among all reps
         # ax_title = f"flags collection in {'big' if self.big == 1 else 'small'} {self.env.maze_name}"
-        curve_label = f"uniform-{self.tiling_size[0]}x{self.tiling_size[1]}"
+
         self.plot_maker.plot_mean_performance_across_reps(self.flags_episodes_repetitions,
                                                      self.reward_episodes_repetitions,
                                                      self.move_count_episodes_repetitions, curve_label)
 
         self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
-                                             self.ground_learning_time_repetitions, bar_label=f"uniform-{self.tiling_size[0]}x{self.tiling_size[1]}")
+                                             self.ground_learning_time_repetitions, bar_label=curve_label)
 
         self._results_upload()
 
@@ -1192,12 +1299,11 @@ class GeneralExpMaker(ExperimentMaker):
         print("general approach uploaded to google sheet")
         print(" FINISHED!")
 
-    def run(self, evo=0):
+    def run(self, evo=0, cluster_layout=0):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
-
         self._print_before_start()
-
+        curve_label = f"g-{self.num_clusters}"
         for rep in range(self.repetitions):
             print(f"+++++++++ Begin repetition: {rep} +++++++++")
             # experiment timing start
@@ -1224,6 +1330,8 @@ class GeneralExpMaker(ExperimentMaker):
 
             # solve w2v and k-means to get clusters and save cluster file
             gensim_opt = self._w2v_and_kmeans()
+            if cluster_layout:
+                self.plot_maker.plot_each_cluster_layout_general(gensim_opt, self.num_clusters, self.env, self.path_results, rep, save=1, show=1)
 
             # build and solve amdp
             amdp = self._build_and_solve_amdp(gensim_opt=gensim_opt, general=1)
@@ -1243,7 +1351,7 @@ class GeneralExpMaker(ExperimentMaker):
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes[self.explore_config['e_eps']:],
                                                             self.reward_episodes[self.explore_config['e_eps']:],
                                                             self.move_count_episodes[self.explore_config['e_eps']:],
-                                                            rep, f"general-{self.num_clusters}")
+                                                            rep, curve_label)
 
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
@@ -1252,7 +1360,7 @@ class GeneralExpMaker(ExperimentMaker):
 
         # plot mean performance among all reps
         ### ax_title = f"flags collection in {'big' if self.big==1 else 'small'} {self.env.maze_name}"
-        curve_label = f"general-{self.num_clusters}"
+
         sliced_f_ep_rep = np.array(self.flags_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_r_ep_rep = np.array(self.reward_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_m_ep_rep = np.array(self.move_count_episodes_repetitions)[:, self.explore_config['e_eps']:]
@@ -1261,26 +1369,26 @@ class GeneralExpMaker(ExperimentMaker):
         self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
                                              self.ground_learning_time_repetitions, self.exploration_time_repetitions,
                                              self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
-                                             bar_label=f"general-{self.num_clusters}")
+                                             bar_label=curve_label)
 
         self._results_upload()
 
 if __name__ == "__main__":
-    maze = 'strips2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space
-    big = 1
+    maze = 'basic'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = 0
     e_mode = 'sarsa'   # 'sarsa' or 'softmax'pwd
     e_start = 'last'   # 'random' or 'last' or 'mix'
-    e_eps = 5000
+    e_eps = 1000
     mm = 100
     ds_factor = 0.5
 
     q_eps = 500
-    repetitions = 10
+    repetitions = 2
     rep_size = 128
     win_size = 50
     sg = 1  # 'SG' or 'CBOW'
     # numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    numbers_of_clusters = [36]  # number of abstract states for Uniform will be matched with the number of clusters
+    numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
 
     k_means_pkg = 'sklearn'    # 'sklearn' or 'nltk'
     interpreter = 'R'     # L or R
@@ -1288,11 +1396,11 @@ if __name__ == "__main__":
 
     print_to_file = 0
     show = 1
-    save = 1
+    save = 0
     for i in range(len(numbers_of_clusters)):
         # set directory to store imgs and files
         path_results =f"./cluster_layout/{maze}_big={big}" \
-                      f"/topology-vs-general{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
+                      f"/topology-vs-uniform{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
         if not os.path.isdir(path_results):
             makedirs(path_results)
@@ -1300,7 +1408,7 @@ if __name__ == "__main__":
             sys.stdout = open(f"{path_results}/output.txt", 'w')
             sys.stderr = sys.stdout
 
-        plot_maker = PlotMaker(repetitions, std_factor, 1)   # third argument should match num of approaches below
+        plot_maker = PlotMaker(repetitions, std_factor, 2)   # third argument should match num of approaches below
 
         # ===topology approach===
         topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
@@ -1310,13 +1418,13 @@ if __name__ == "__main__":
 
         # ===uniform approach===
         # ---match number of abstract state same with the one in topology approach, in order to be fair.
-        # a = math.ceil(topology_maker.env.size[0] / np.sqrt(numbers_of_clusters[i]))
-        # b = math.ceil(topology_maker.env.size[1] / np.sqrt(numbers_of_clusters[i]))
-        # print("(a,b): ", (a,b))
-        # uniform_maker = UniformExpMaker(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
-        #                                 interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
-        #                                 path_results=path_results)
-        # uniform_maker.run()
+        a = math.ceil(topology_maker.env.size[0] / np.sqrt(numbers_of_clusters[i]))
+        b = math.ceil(topology_maker.env.size[1] / np.sqrt(numbers_of_clusters[i]))
+        print("(a,b): ", (a,b))
+        uniform_maker = UniformExpMaker(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
+                                        interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
+                                        path_results=path_results)
+        uniform_maker.run()
 
         # ===general approach===
         # general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps*6), mm=mm, ds_factor=ds_factor,
@@ -1337,7 +1445,7 @@ if __name__ == "__main__":
         if show:
             plot_maker.fig_mean_performance.show()
         if save:
-            plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results_errorbar_yerror{round(plot_maker.std_factor,4)}.png",
+            plot_maker.fig_mean_performance.savefig(f"{path_results}/mean_results.png",
                                                     dpi=200, facecolor='w', edgecolor='w', orientation='portrait',
                                                     format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
