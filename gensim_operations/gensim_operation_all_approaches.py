@@ -92,7 +92,7 @@ class GensimOperator_Topology:
         return w2v_time, kmeans_time
 
     def check_unvisited_nodes(self):
-        valid_node_coords = set(self.env.valid_coords)  # contain tuple
+        valid_node_coords = self.env.valid_coords  # contain tuple
         visited_node_coords = set(self.words)  # contain str
         print("len(valid_node_coords), len(visited_node_coords):", len(valid_node_coords), len(visited_node_coords))
         for i in valid_node_coords:
@@ -176,7 +176,7 @@ class GensimOperator_General:
         return w2v_time, kmeans_time
 
     def check_unvisited_states(self):
-        valid_states = set(self.env.valid_states)   # contain tuple
+        valid_states = self.env.valid_states   # contain tuple
         visited_states = set(self.words)    # contain str
         print("len(valid_states), len(visited_states):", len(valid_states), len(visited_states))
         for i in valid_states:

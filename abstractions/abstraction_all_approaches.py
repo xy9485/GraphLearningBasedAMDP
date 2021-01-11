@@ -2,6 +2,7 @@
 import copy
 import numpy as np
 import sys
+from pprint import pprint
 from gensim_operations.gensim_operation_all_approaches import GensimOperator_Topology,GensimOperator_General
 np.set_printoptions(linewidth=400, threshold=sys.maxsize)
 
@@ -9,6 +10,7 @@ class AMDP_Topology_Uniform:
     def __init__(self, env=None, uniform_mode=None, gensim_opt=None,):
         assert env != None, "env can't be None!"
         assert (uniform_mode==None) != (gensim_opt == None), "only one of uniform or gensim_opt can be assigned"
+        self.env = env
         self.manuel_room_layout = env.room_layout  # np array
         self.goal = env.goal
         self.flags = env.flags
@@ -291,11 +293,13 @@ class AMDP_Topology_Uniform:
         # self.rewards[-1,-1,-1]=1
         return transition, rewards
 
-    def solve_amdp(self):   # streamlined solve_amdp
+    def solve_amdp(self, synchronous=0):   # streamlined solve_amdp
         print('length of self.list_of_abstract_states:', len(self.list_of_abstract_states))
         print('self.list_of_abstract_states:', self.list_of_abstract_states)
         values = np.zeros(len(self.list_of_abstract_states))
-        print("len(values):",len(values))
+        if synchronous:
+            values2 = copy.deepcopy(values)
+        print("len(values):", len(values))
         # print("self.transition_table:",np.argwhere(self.transition_table))
         # print("self.rewards_table:",np.argwhere(self.rewards_table))
         delta = 0.2
@@ -306,20 +310,127 @@ class AMDP_Topology_Uniform:
             for i in range(0, len(values)):
                 v = values[i]
                 list_of_values = []
-                for a in range(len(self.list_of_abstract_states)):
-                    # value = 0
-                    # for j in range(len(V)):
-                    #     value += self.transition_table[a, i, j] * (self.rewards_table[a, i, j] + 0.99 * V[j])
+                for a in range(len(values)):
                     value = self.transition_table[a, i, a] * (self.rewards_table[a, i, a] + 0.99 * values[a])
                     list_of_values.append(value)
-                values[i] = max(list_of_values)
-                delta = max(delta, abs(v - values[i]))
+                if synchronous:
+                    values2[i] = max(list_of_values)
+                    delta = max(delta, abs(v - values2[i]))
+                else:
+                    values[i] = max(list_of_values)
+                    delta = max(delta, abs(v - values[i]))
             print("delta:", delta)
+            if synchronous:
+                values = copy.deepcopy(values2)
+            # self.plot_current_values(self.env, values)           # plot current values
         # print(V)
         values -= min(values[:-1])
         self.values_of_abstract_states = values
-        print("self.values_of_abstract_states:")
-        print(self.values_of_abstract_states)
+        # print("self.values_of_abstract_states:")
+        # print(self.values_of_abstract_states)
+        # print(len(self.list_of_abstract_states), len(self.values_of_abstract_states))
+        self.dict_as_v = dict(zip((str(i) for i in self.list_of_abstract_states), self.values_of_abstract_states))
+        print("self.dict_as_v:")
+        pprint(self.dict_as_v)
+
+    def plot_current_values(self, env, values, plot_label=1):
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        my_cmap = copy.copy(plt.cm.get_cmap('hot'))
+        vmax = np.amax(values)
+        vmin = 1500
+        # vmin = 0
+        my_cmap.set_under('grey')
+        my_cmap.set_bad('lime')
+        my_cmap.set_over('dodgerblue')
+        asp = 'auto'
+        for k in range(2):
+            for l in range(2):
+                for m in range(2):
+                    plate = []
+                    plate2 = []
+                    for i in range(env.size[0]):
+                        row = []
+                        row2 = []
+                        for j in range(env.size[1]):
+                            current_coord = (i, j)
+                            current_state = (i, j, k, l, m)
+                            if current_state in env.valid_states:
+                                a_state = self.get_abstract_state(current_state)
+                                if current_state == env.start_state:
+                                    row.append(vmax)
+                                    row2.append(str(a_state))
+                                elif current_coord == env.goal:
+                                    row.append(vmax+1)
+                                    row2.append(str(a_state))
+                                else:
+                                    v = values[self.list_of_abstract_states.index(a_state)]
+                                    row.append(v)
+                                    row2.append(str(a_state))
+                            elif str([i, j]) in env.walls:
+                                row.append(vmin)
+                                row2.append('w')
+                            elif env.flags.index((i, j)) == 0 and k == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 1 and l == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 2 and m == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+
+                        plate.append(row)
+                        plate2.append(row2)
+                    if k == 0 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 11)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 7)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 8)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 9)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 4)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 5)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 6)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 2)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    if plot_label:
+                        np_cluster_layout = np.array(plate2)
+                        c = 0
+                        for a_state_ in self.list_of_abstract_states:
+                            coords = np.argwhere(np_cluster_layout == str(a_state_))
+                            if len(coords) > 0:
+                                if isinstance(a_state_, int):
+                                    a_state_head = a_state_
+                                elif isinstance(a_state_, list):
+                                    if a_state_[0].isdigit():
+                                        a_state_head = a_state_[0]
+                                    else:
+                                        a_state_head = f"{a_state_[0][1]}-{a_state_[0][4]}"
+                                mean = np.mean(coords, axis=0)
+                                c += 1
+                                v_ = round(values[self.list_of_abstract_states.index(a_state_)])
+                                ax.text(mean[1], mean[0], f"{str(a_state_head)}\n{str(v_)}", horizontalalignment='center', verticalalignment='center',
+                                        fontsize=10, fontweight='semibold', color='k')
+                                # ax.text(mean[1], mean[0], str(v_), horizontalalignment='center', verticalalignment='center',
+                                #         fontsize=10, fontweight='semibold', color='k')
+                    ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
+        # fig.subplots_adjust(right=0.85)
+        # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
+        # fig.colorbar(im, cax=cax)
+        fig.show()
 
     def get_value(self, astate):
         value = self.values_of_abstract_states[self.list_of_abstract_states.index(astate)]
@@ -331,9 +442,10 @@ class AMDP_Topology_Uniform:
 
 
 class AMDP_General:
-    def __init__(self, env=None, gensim_opt=None):  # tiling_mode is same with tiling_size
+    def __init__(self, sentences_period_complete, env=None, gensim_opt=None):  # tiling_mode is same with tiling_size
+        self.sentences_period_complete = sentences_period_complete
         assert (env!=None) and (gensim_opt!=None), "env and gensim_opt need to be assigned"
-
+        self.env = env
         # self.manuel_layout = env.room_layout     # np array
         self.goal = env.goal
         # self.flags = env.flags
@@ -355,10 +467,11 @@ class AMDP_General:
         return self.dict_gstates_astates[state]
 
     def set_transition_and_rewards(self):
-        num_abstract_states = len(self.list_of_abstract_states) + 1     #+1 for absorbing abstract state
+        self.list_of_abstract_states.append("bin")
+        num_abstract_states = len(self.list_of_abstract_states)    #+1 for absorbing abstract state
         transition = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
         rewards = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
-        for sentence in self.gensim_opt.sentences:
+        for sentence in self.sentences_period_complete:
             for i in range(len(sentence)):
                 if i < (len(sentence)-1):
                     # index1 = self.list_of_ground_states.index(sentence[i])
@@ -382,7 +495,43 @@ class AMDP_General:
         self.transition = transition
         self.rewards = rewards
 
-    def solve_amdp(self):
+    def solve_amdp(self, synchronous=0):
+        values = np.zeros(self.num_abstract_states)
+        if synchronous:
+            values2 = copy.deepcopy(values)
+        print("len(values):", len(values))
+        delta = 0.2
+        theta = 0.1
+        print("Value Iteration delta values:")
+        while delta > theta:
+            delta = 0
+            for i in range(0, len(values)):
+                v = values[i]
+                list_of_values = []
+                for a in range(len(values)):
+                    value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
+                    list_of_values.append(value)
+                if synchronous:
+                    values2[i] = max(list_of_values)
+                    delta = max(delta, abs(v - values2[i]))
+                else:
+                    values[i] = max(list_of_values)
+                    delta = max(delta, abs(v - values[i]))
+            print("delta:", delta)
+            if synchronous:
+                values = copy.deepcopy(values2)
+            # self.plot_current_values(self.env, values)            # plot current values
+        # print(V)
+        values -= min(values[:-1])
+        self.values_of_abstract_states = values
+        # print("self.values_of_abstract_states:")
+        # print(self.values_of_abstract_states)
+        # print(len(self.list_of_abstract_states), len(self.values_of_abstract_states))
+        self.dict_as_v = dict(zip((str(i) for i in self.list_of_abstract_states), self.values_of_abstract_states))
+        print("self.dict_as_v:")
+        pprint(self.dict_as_v)
+
+    def solve_amdp_asynchronous(self):
         values = np.zeros(self.num_abstract_states)
         print("len(values):", len(values))
         delta = 0.2
@@ -394,19 +543,150 @@ class AMDP_General:
                 v = values[i]
                 list_of_values = []
                 for a in range(len(values)):
-                    # value = 0
-                    # for j in range(len(V)):
-                    # value += self.transition[a, i, j] * (self.rewards[a, i, j] + 0.99 * V[j])
                     value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
                     list_of_values.append(value)
                 values[i] = max(list_of_values)
                 delta = max(delta, abs(v - values[i]))
             print("delta:", delta)
+            # self.plot_current_values(self.env, values)            # plot current values
         # print(V)
         values -= min(values[:-1])
         self.values_of_abstract_states = values
-        print("self.values_of_abstract_states:")
-        print(self.values_of_abstract_states)
+        # print("self.values_of_abstract_states:")
+        # print(self.values_of_abstract_states)
+        # print(len(self.list_of_abstract_states), len(self.values_of_abstract_states))
+        self.dict_as_v = dict(zip((str(i) for i in self.list_of_abstract_states), self.values_of_abstract_states))
+        print("self.dict_as_v:")
+        pprint(self.dict_as_v)
+
+    def solve_amdp_synchronous(self):
+        values = np.zeros(self.num_abstract_states)
+        values2 = copy.deepcopy(values)
+        print("len(values):", len(values))
+        delta = 0.2
+        theta = 0.1
+        print("Value Iteration delta values:")
+        while delta > theta:
+            delta = 0
+            for i in range(0, len(values)):
+                v = values[i]
+                list_of_values = []
+                for a in range(len(values)):
+                    value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
+                    list_of_values.append(value)
+                values2[i] = max(list_of_values)
+                delta = max(delta, abs(v - values2[i]))
+            print("delta:", delta)
+            values = copy.deepcopy(values2)
+            # self.plot_current_values(self.env, values)            # plot current values
+        # print(V)
+        values -= min(values[:-1])
+        self.values_of_abstract_states = values
+        # print("self.values_of_abstract_states:")
+        # print(self.values_of_abstract_states)
+        # print(len(self.list_of_abstract_states), len(self.values_of_abstract_states))
+        self.dict_as_v = dict(zip((str(i) for i in self.list_of_abstract_states), self.values_of_abstract_states))
+        print("self.dict_as_v:")
+        pprint(self.dict_as_v)
+
+    def plot_current_values(self, env, values, plot_label=1):
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        my_cmap = copy.copy(plt.cm.get_cmap('hot'))
+        vmax = np.amax(values)
+        vmin = 1500
+        # vmin = 0
+        my_cmap.set_under('grey')
+        my_cmap.set_bad('lime')
+        my_cmap.set_over('dodgerblue')
+        asp = 'auto'
+        for k in range(2):
+            for l in range(2):
+                for m in range(2):
+                    plate = []
+                    plate2 = []
+                    for i in range(env.size[0]):
+                        row = []
+                        row2 = []
+                        for j in range(env.size[1]):
+                            current_coord = (i, j)
+                            current_state = (i, j, k, l, m)
+                            if current_state in env.valid_states:
+                                a_state = self.get_abstract_state(current_state)
+                                if current_state == env.start_state:
+                                    row.append(vmax)
+                                    row2.append(str(a_state))
+                                elif current_coord == env.goal:
+                                    row.append(vmax+1)
+                                    row2.append(str(a_state))
+                                else:
+                                    v = values[a_state]
+                                    row.append(v)
+                                    row2.append(str(a_state))
+                            elif str([i, j]) in env.walls:
+                                row.append(vmin)
+                                row2.append('w')
+                            elif env.flags.index((i, j)) == 0 and k == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 1 and l == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 2 and m == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+
+                        plate.append(row)
+                        plate2.append(row2)
+                    if k == 0 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 11)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 7)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 8)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 9)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 4)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 5)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 6)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 2)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    if plot_label:
+                        np_cluster_layout = np.array(plate2)
+                        c = 0
+                        for a_state_ in self.list_of_abstract_states:
+                            coords = np.argwhere(np_cluster_layout == str(a_state_))
+                            if len(coords) > 0:
+                                if isinstance(a_state_, int):
+                                    a_state_head = a_state_
+                                elif isinstance(a_state_, list):
+                                    if a_state_[0].isdigit():
+                                        a_state_head = a_state_[0]
+                                    else:
+                                        a_state_head = f"{a_state_[0][1]}-{a_state_[0][4]}"
+                                mean = np.mean(coords, axis=0)
+                                c += 1
+                                v_ = round(values[a_state_])
+                                ax.text(mean[1], mean[0], f"{str(a_state_head)}\n{str(v_)}", horizontalalignment='center', verticalalignment='center',
+                                        fontsize=10, fontweight='semibold', color='k')
+                                # ax.text(mean[1], mean[0], str(v_), horizontalalignment='center', verticalalignment='center',
+                                #         fontsize=10, fontweight='semibold', color='k')
+                    ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
+        # fig.subplots_adjust(right=0.85)
+        # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
+        # fig.colorbar(im, cax=cax)
+        fig.show()
 
     def get_value(self, astate):
         assert isinstance(astate, int), "astate has to be int"

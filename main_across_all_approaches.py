@@ -43,23 +43,111 @@ class PlotMaker:
     #     self.fig_each_rep, self.axs_each_rep = plt.subplots(num_of_repetitions, 5,
     #                                                         figsize=(5 * 5, num_of_repetitions * 4))
     #     self.fig_each_rep.set_tight_layout(True)
+    @staticmethod
+    def plot_maze(env: Maze, show=1, save=1):
+        fontsize = 12 if env.big == 0 else 4.5
+        fontweight = 'semibold'
+        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red"])
+        maze_to_plot = np.where(env.room_layout == 'w', 0, 1)
+        maze_to_plot[env.start_state[0], env.start_state[1]] = 4
+        maze_to_plot[env.goal[0], env.goal[1]] = 3
+        w, h = figure.figaspect(maze_to_plot)
+        print("w, h:", w, h)
+        fig1, ax1 = plt.subplots(figsize=(w, h))
+        # fig, ax1 = plt.subplots()
+        ax1.text(env.start_state[1] + 0.5, env.start_state[0] + 0.55, 'S', ha="center", va="center", color="k", fontsize=fontsize,
+                 fontweight=fontweight)
+        ax1.text(env.goal[1] + 0.5, env.goal[0] + 0.55, 'G', ha="center", va="center", color="k", fontsize=fontsize,
+                 fontweight=fontweight)
+        for flag in env.flags:
+            # print(flag)
+            maze_to_plot[flag[0], flag[1]] = 2
+            ax1.text(flag[1] + 0.5, flag[0] + 0.55, 'F', ha="center", va="center", color="k", fontsize=fontsize,
+                     fontweight=fontweight)
+        # print(maze_to_plot)
+        ax1.pcolor(maze_to_plot, cmap=cmap, vmin=0, vmax=4, edgecolors='k', linewidth=1)
+        ax1.invert_yaxis()
+        ax1.axis('off')
+        fig1.tight_layout()
+        if show:
+            fig1.show()
+        if save:
+            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}.png", dpi=600, facecolor='w', edgecolor='w',
+                         orientation='portrait', format=None,
+                         transparent=False, bbox_inches=None, pad_inches=0.1)
 
     def plot_each_heatmap(self, agent_e, rep, ax_title):
         # plot heatmap
-        im = self.axs_each_rep[rep, 4].imshow(agent_e.states_long_life, cmap='hot')
+        im = self.axs_each_rep[rep, 4].imshow(agent_e.states_long_life, aspect='auto', cmap='hot')
         self.fig_each_rep.colorbar(im, ax=self.axs_each_rep[rep, 4])
         self.axs_each_rep[rep, 4].set_title(ax_title)
         # self.fig_each_rep.show()
 
+    def plot_each_heatmap_general(self, agent_e, rep, path_results, show=1, save=1):
+        # fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        vmin = np.amin(agent_e.states_long_life)
+        vmax = np.amax(agent_e.states_long_life)
+        my_cmap = 'hot'
+        asp = 'auto'
+        for k in range(2):
+            for l in range(2):
+                for m in range(2):
+                    hm = agent_e.states_long_life[:, :, k, l, m]
+                    print("hm.shape:", hm.shape)
+                    if k == 0 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 11)          # gist_ncar; rainbow
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 7)
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 8)
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 9)
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 4)
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 5)
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 6)
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 2)
+                        im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    ax.set_title(f"{k}-{l}-{m}", fontsize=15, fontweight='semibold')
+        # fig.set_tight_layout(False)
+        fig.subplots_adjust(right=0.85)
+        cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
+        fig.colorbar(im, cax=cax)
+        # fig.set_tight_layout(True)
+        if show:
+            fig.show()
+        if save:
+            fig.savefig(f"{path_results}/building_heatmap{rep}.png", dpi=100, facecolor='w', edgecolor='w',
+            orientation='portrait', format=None,
+            transparent=False, bbox_inches=None, pad_inches=0.1)
+
     def plot_each_cluster_layout(self, gensim_opt, num_clusters, rep, ax_title, plot_label=1):
         copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
+        # vmax = num_clusters + 10
+        # vmin = -(num_clusters + 10) / 30
+        vmax = num_clusters
+        vmin = -vmax * 0.16
         for row in copy_cluster_layout:
             for index, item in enumerate(row):
                 if row[index].isdigit():
-                    row[index] = (int(row[index]) + 1) * 10
+                    # row[index] = (int(row[index]) + 1) * 10
+                    # row[index] = int(row[index]) + 10
+                    row[index] = int(row[index])
                 else:
-                    row[index] = 0
-        self.axs_each_rep[rep, 3].imshow(np.array(copy_cluster_layout), aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                    row[index] = vmin/2
+        self.axs_each_rep[rep, 3].imshow(np.array(copy_cluster_layout), vmax=vmax, vmin=vmin,
+                                         aspect='auto', cmap="gist_ncar")
 
         if plot_label == 1:
             indice_center_clusters = []
@@ -77,6 +165,8 @@ class PlotMaker:
 
     def plot_each_cluster_layout_general(self, gensim_opt, num_clusters, env, path_results, rep, plot_label=1, save=1, show=1):
         fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        my_cmap = 'gist_ncar'
+        asp = 'auto'
         for k in range(2):
             for l in range(2):
                 for m in range(2):
@@ -87,7 +177,7 @@ class PlotMaker:
                         for j in range(env.size[1]):
                             current_state = (i, j, k, l, m)
                             if current_state in env.valid_states:
-                                row.append(gensim_opt.dict_gstates_astates[str(tuple(current_state))])
+                                row.append(gensim_opt.dict_gstates_astates[str(current_state)])
                             elif str([i, j]) in env.walls:
                                 row.append('W')
                             elif env.flags.index((i, j)) == 0 and k == 0:
@@ -115,39 +205,39 @@ class PlotMaker:
                                 list_of_lists[row][col] += 10
                             else:
                                 list_of_lists[row][col] = 0
-                    # vmax = num_clusters * 10
+                    vmax = num_clusters + 10
                     vmin = -(num_clusters + 10) / 30
                     if k == 0 and l == 0 and m == 0:
                         ax = fig.add_subplot(4, 3, 11)          # gist_ncar; rainbow
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     elif k == 1 and l == 0 and m == 0:
                         ax = fig.add_subplot(4, 3, 7)
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     elif k == 0 and l == 1 and m == 0:
                         ax = fig.add_subplot(4, 3, 8)
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     elif k == 0 and l == 0 and m == 1:
                         ax = fig.add_subplot(4, 3, 9)
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     elif k == 1 and l == 1 and m == 0:
                         ax = fig.add_subplot(4, 3, 4)
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     elif k == 1 and l == 0 and m == 1:
                         ax = fig.add_subplot(4, 3, 5)
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     elif k == 0 and l == 1 and m == 1:
                         ax = fig.add_subplot(4, 3, 6)
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     elif k == 1 and l == 1 and m == 1:
                         ax = fig.add_subplot(4, 3, 2)
-                        ax.imshow(np.array(list_of_lists), vmax=num_clusters + 10, vmin=vmin, aspect='auto', cmap=plt.get_cmap("gist_ncar"))
+                        ax.imshow(np.array(list_of_lists), vmax=vmax, vmin=vmin, aspect=asp, cmap=my_cmap)
                         # ax.set_title(f"{k}-{l}-{m}")
                     if plot_label:
                         np_cluster_layout = np.array(plate)
@@ -160,7 +250,7 @@ class PlotMaker:
                                 # print("mean:", mean)
                                 ax.text(mean[1], mean[0], str(i), horizontalalignment='center', verticalalignment='center',
                                         fontsize=13, fontweight='semibold', color='k')
-                        ax.set_title(f"{k}-{l}-{m}-c{c}", fontweight='semibold')
+                        ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
         fig.set_tight_layout(True)
         if show:
             fig.show()
@@ -168,6 +258,217 @@ class PlotMaker:
             fig.savefig(f"{path_results}/building{rep}.png", dpi=200, facecolor='w', edgecolor='w',)
                                         # orientation='portrait', format=None,
                                         # transparent=False, bbox_inches=None, pad_inches=0.1)
+
+    def plot_each_cluster_layout_t_u_g(self, env, amdp, rep, path_results, plot_label=1, show=1, save=1):
+        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        my_cmap = copy.copy(plt.cm.get_cmap('gist_ncar'))
+        # my_cmap.set_under('k')
+        # my_cmap.set_bad('lime')
+        # my_cmap.set_over('dodgerblue')
+        # my_cmap = 'gist_ncar'
+        asp = 'auto'
+        if isinstance(amdp.list_of_abstract_states[0], int):
+            approach = 'general'
+            vmax = len(amdp.list_of_abstract_states)-1
+            vmin = -vmax * 0.16
+        elif isinstance(amdp.list_of_abstract_states[0], list):
+            if amdp.list_of_abstract_states[0][0].isdigit():
+                approach = 'topology'
+                vmax = (len(amdp.list_of_abstract_states) - 1)/8
+                vmin = -vmax * 0.16
+            else:
+                approach = 'uniform'
+                sqrt_=np.sqrt((len(amdp.list_of_abstract_states) - 1) / 8)
+                vmax = sqrt_*10 + sqrt_
+                vmin = -vmax * 0.16
+
+        print("vmax, vmin:", vmax, vmin)
+        # vmin = -vmax*0.16
+        # vmin = 0
+        for k in range(2):
+            for l in range(2):
+                for m in range(2):
+                    plate = []
+                    plate2 = []
+                    for i in range(env.size[0]):
+                        row = []
+                        row2 = []
+                        for j in range(env.size[1]):
+                            current_state = (i, j, k, l, m)
+                            if current_state in env.valid_states:
+                                a_state = amdp.get_abstract_state(current_state)
+                                if approach == 'general':
+                                    row.append(a_state)
+                                elif approach == 'topology':
+                                    row.append(int(a_state[0]))
+                                elif approach == 'uniform':
+                                    # print(a_state, a_state[0][1], a_state[0][4], type(a_state), type(a_state[0][1]), type(a_state[0][3]))
+                                    row.append(int(a_state[0][1])*10+int(a_state[0][4]))
+                                row2.append(str(a_state))
+                            elif str([i, j]) in env.walls:
+                                row.append(vmin/2)
+                                row2.append('w')
+                            elif env.flags.index((i, j)) == 0 and k == 0:
+                                row.append(vmin/2)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 1 and l == 0:
+                                row.append(vmin/2)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 2 and m == 0:
+                                row.append(vmin/2)
+                                row2.append('f')
+                        plate.append(row)
+                        plate2.append(row2)
+
+                    if k == 0 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 11)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 7)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 8)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 9)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 4)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 5)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 6)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 2)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    if plot_label:
+                        np_cluster_layout = np.array(plate2)
+                        c = 0
+                        for a_state_ in amdp.list_of_abstract_states:
+                            coords = np.argwhere(np_cluster_layout == str(a_state_))
+                            if len(coords) > 0:
+                                if approach == 'general':
+                                    a_state_head = a_state_
+                                elif approach == 'topology':
+                                    a_state_head = a_state_[0]
+                                elif approach == 'uniform':
+                                    a_state_head = f"{a_state_[0][1]}-{a_state_[0][4]}"
+                                mean = np.mean(coords, axis=0)
+                                c += 1
+                                ax.text(mean[1], mean[0], f"{str(a_state_head)}", horizontalalignment='center', verticalalignment='center',
+                                        fontsize=13, fontweight='semibold', color='k')
+                    ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
+        # fig.subplots_adjust(right=0.85)
+        # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
+        # fig.colorbar(im, cax=cax)
+        if show:
+            fig.show()
+        if save:
+            fig.savefig(f"{path_results}/building_cluster_layout_rep{rep}.png", dpi=200, facecolor='w', edgecolor='w')
+
+    def plot_each_amdp_values_t_u_g(self, env, amdp, rep, path_results, plot_label=1, show=1, save=1):
+        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        my_cmap = copy.copy(plt.cm.get_cmap('hot'))
+        vmax = np.amax(amdp.values_of_abstract_states)
+        vmin = -0.1 * vmax
+        # vmin = 0
+        my_cmap.set_under('grey')
+        my_cmap.set_bad('lime')
+        my_cmap.set_over('dodgerblue')
+        asp = 'auto'
+        for k in range(2):
+            for l in range(2):
+                for m in range(2):
+                    plate = []
+                    plate2 = []
+                    for i in range(env.size[0]):
+                        row = []
+                        row2 = []
+                        for j in range(env.size[1]):
+                            current_coord = (i, j)
+                            current_state = (i, j, k, l, m)
+                            if current_state in env.valid_states:
+                                a_state = amdp.get_abstract_state(current_state)
+                                if current_state == env.start_state:
+                                    row.append(vmax)
+                                    row2.append(str(a_state))
+                                elif current_coord == env.goal:
+                                    row.append(vmax+1)
+                                    row2.append(str(a_state))
+                                else:
+                                    v = amdp.get_value(a_state)
+                                    row.append(v)
+                                    row2.append(str(a_state))
+                            elif str([i, j]) in env.walls:
+                                row.append(vmin)
+                                row2.append('w')
+                            elif env.flags.index((i, j)) == 0 and k == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 1 and l == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+                            elif env.flags.index((i, j)) == 2 and m == 0:
+                                row.append(np.nan)
+                                row2.append('f')
+
+                        plate.append(row)
+                        plate2.append(row2)
+                    if k == 0 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 11)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 0:
+                        ax = fig.add_subplot(4, 3, 7)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 8)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 9)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 0:
+                        ax = fig.add_subplot(4, 3, 4)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 0 and m == 1:
+                        ax = fig.add_subplot(4, 3, 5)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 0 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 6)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    elif k == 1 and l == 1 and m == 1:
+                        ax = fig.add_subplot(4, 3, 2)
+                        im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                    if plot_label:
+                        np_cluster_layout = np.array(plate2)
+                        c = 0
+                        for a_state_ in amdp.list_of_abstract_states:
+                            coords = np.argwhere(np_cluster_layout == str(a_state_))
+                            if len(coords) > 0:
+                                if isinstance(a_state_, int):
+                                    a_state_head = a_state_
+                                elif isinstance(a_state_, list):
+                                    if a_state_[0].isdigit():
+                                        a_state_head = a_state_[0]
+                                    else:
+                                        a_state_head = f"{a_state_[0][1]}-{a_state_[0][4]}"
+                                mean = np.mean(coords, axis=0)
+                                c += 1
+                                v_ = round(amdp.get_value(a_state_))
+                                ax.text(mean[1], mean[0], f"{str(a_state_head)}\n{str(v_)}", horizontalalignment='center', verticalalignment='center',
+                                        fontsize=10, fontweight='semibold', color='k')
+                                # ax.text(mean[1], mean[0], str(v_), horizontalalignment='center', verticalalignment='center',
+                                #         fontsize=10, fontweight='semibold', color='k')
+                    ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
+        # fig.subplots_adjust(right=0.85)
+        # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
+        # fig.colorbar(im, cax=cax)
+        if show:
+            fig.show()
+        if save:
+            fig.savefig(f"{path_results}/building_solved_values_rep{rep}.png", dpi=200, facecolor='w', edgecolor='w')
 
     def plot_each_flag_reward_movecount(self, flags_episodes, reward_episodes, move_count_episodes, rep, curve_label):
         rolling_window_size = int(len(flags_episodes)/30)
@@ -227,7 +528,7 @@ class PlotMaker:
         if curve_label.startswith('t'):
             ls = '-'
         elif curve_label.startswith('u'):
-            ls = '-'
+            ls = '--'
         elif curve_label.startswith('g'):
             ls = '-'
 
@@ -388,7 +689,6 @@ class PlotMaker:
             self.ax_time_consumption.set_ylim(top=self.highest_bar_height * 1.1)
 
 class ExperimentMaker:
-
     def __init__(self, env_name, big, q_eps, interpreter, print_to_file, plot_maker: PlotMaker):
         self.env_name = env_name
         self.big = big
@@ -474,6 +774,16 @@ class ExperimentMaker:
         self.solve_amdp_time_repetitions.append(solve_amdp_time)
         print("-----Finish build and solve amdp-----")
         return amdp
+
+    def _solve_amdp(self, amdp, syn=0):
+        print("-----Begin solving amdp-----")
+        start_amdp = time.time()
+        amdp.solve_amdp(synchronous=syn)
+        end_amdp = time.time()
+        solve_amdp_time = end_amdp - start_amdp
+        print("solve_amdp_time:", solve_amdp_time)
+        self.solve_amdp_time_repetitions.append(solve_amdp_time)
+        print("-----Finish solving amdp-----")
 
     def _ground_learning(self, amdp):
         print("-----Begin Ground Learning-----")
@@ -595,6 +905,7 @@ class TopologyExpMaker(ExperimentMaker):
         start_exploration = time.time()
         agent_e = ExploreCoordBrain(env=self.env, explore_config=self.explore_config)
         env = self.env
+        valid_coords_ = tuple(env.valid_coords)
         for ep in range(self.explore_config['e_eps']):
             if (ep + 1) % 100 == 0:
                 print(f"episode_100: {ep} | avg_move_count: {int(np.mean(self.move_count_episodes[-100:]))} | "
@@ -610,7 +921,7 @@ class TopologyExpMaker(ExperimentMaker):
 
             if self.explore_config['e_start'] == 'random':
                 env.reset()
-                start_coord = random.choice(env.valid_coords)
+                start_coord = random.choice(valid_coords_)
                 start_state = (start_coord[0], start_coord[1], 0, 0, 0)
                 env.state = start_state
             elif self.explore_config['e_start'] == 'last':
@@ -641,7 +952,7 @@ class TopologyExpMaker(ExperimentMaker):
                     r = r1
                     r *= 10
                     a_prime = agent_e.policy_explore_rl(new_state, env.actions(new_state))
-                    a_star = agent_e.policyNoRand_explore_rl(new_state, env.actions(new_state))
+                    # a_star = agent_e.policyNoRand_explore_rl(new_state, env.actions(new_state))
                     agent_e.learn_explore_sarsa(env.state, a, new_state, a_prime, r)
                     env.state = new_state
                     a = a_prime
@@ -777,7 +1088,7 @@ class TopologyExpMaker(ExperimentMaker):
         print("topology approach uploaded to google sheet")
         print(" FINISHED!")
 
-    def run(self, heatmap=1, cluster_layout=1):
+    def run(self, heatmap=1, cluster_layout=1, time_comparison=0):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
@@ -821,7 +1132,10 @@ class TopologyExpMaker(ExperimentMaker):
                 self.plot_maker.plot_each_cluster_layout(gensim_opt, self.num_clusters, rep, ax_title, plot_label=1)
 
             # build and solve amdp
-            amdp = self._build_and_solve_amdp(gensim_opt=gensim_opt)
+            amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=None, gensim_opt=gensim_opt)
+            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            self._solve_amdp(amdp)
+            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
 
             # ground learning
             self._ground_learning(amdp)
@@ -850,10 +1164,11 @@ class TopologyExpMaker(ExperimentMaker):
         sliced_m_ep_rep = np.array(self.move_count_episodes_repetitions)[:, self.explore_config['e_eps']:]
         self.plot_maker.plot_mean_performance_across_reps(sliced_f_ep_rep, sliced_r_ep_rep, sliced_m_ep_rep, curve_label)
 
-        self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
-                                             self.ground_learning_time_repetitions, self.exploration_time_repetitions,
-                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
-                                             bar_label=curve_label)
+        if time_comparison:
+            self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
+                                                      self.ground_learning_time_repetitions, self.exploration_time_repetitions,
+                                                      self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
+                                                      bar_label=curve_label)
 
         self._results_upload()
 
@@ -932,11 +1247,12 @@ class UniformExpMaker(ExperimentMaker):
         print("uniform approach uploaded to google sheet")
         print(" FINISHED!")
 
-    def run(self):
+    def run(self, time_comparison=0):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
-        curve_label = f"u-{self.tiling_size[0]}x{self.tiling_size[1]}"
+        # curve_label = f"u-{self.tiling_size[0]}x{self.tiling_size[1]}"
+        curve_label = f"u-{math.ceil(self.env.size[0]/self.tiling_size[0]) * math.ceil(self.env.size[1]/self.tiling_size[1])}"
         for rep in range(self.repetitions):
             print(f"+++++++++ Begin repetition: {rep} +++++++++")
             # experiment timing start
@@ -954,7 +1270,10 @@ class UniformExpMaker(ExperimentMaker):
             self.sentences_period = []
 
             # build and solve amdp
-            amdp = self._build_and_solve_amdp(tiling_size=self.tiling_size)
+            amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=self.tiling_size, gensim_opt=None)
+            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            self._solve_amdp(amdp)
+            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
 
             # ground learning
             self._ground_learning(amdp)
@@ -979,11 +1298,11 @@ class UniformExpMaker(ExperimentMaker):
         # ax_title = f"flags collection in {'big' if self.big == 1 else 'small'} {self.env.maze_name}"
 
         self.plot_maker.plot_mean_performance_across_reps(self.flags_episodes_repetitions,
-                                                     self.reward_episodes_repetitions,
-                                                     self.move_count_episodes_repetitions, curve_label)
-
-        self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
-                                             self.ground_learning_time_repetitions, bar_label=curve_label)
+                                                          self.reward_episodes_repetitions,
+                                                          self.move_count_episodes_repetitions, curve_label)
+        if time_comparison:
+            self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
+                                                      self.ground_learning_time_repetitions, bar_label=curve_label)
 
         self._results_upload()
 
@@ -1043,6 +1362,7 @@ class GeneralExpMaker(ExperimentMaker):
         start_exploration = time.time()
         agent_e = ExploreStateBrain(env=self.env, explore_config=self.explore_config)
         env = self.env
+        valid_states_ = tuple(env.valid_states)
         for ep in range(self.explore_config['e_eps']):
             if (ep + 1) % 100 == 0:
                 print(f"episode_100: {ep} | avg_move_count: {int(np.mean(self.move_count_episodes[-100:]))} | "
@@ -1058,7 +1378,7 @@ class GeneralExpMaker(ExperimentMaker):
 
             if self.explore_config['e_start'] == 'random':
                 env.reset()
-                start_state = random.choice(env.valid_states)
+                start_state = random.choice(valid_states_)
                 env.state = start_state
             elif self.explore_config['e_start'] == 'last':
                 start_state = env.state
@@ -1118,10 +1438,12 @@ class GeneralExpMaker(ExperimentMaker):
 
             if self.explore_config['ds_factor'] == 1:
                 self.sentences_period.append(track)
+                self.sentences_period_complete.append(track)
             else:
                 down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
                                 math.floor(len(track) * self.explore_config['ds_factor'])))]
                 self.sentences_period.append(down_sampled)
+                self.sentences_period_complete.append(track)
 
             # print("np.std(agent.states_episodic):", np.std(agent.states_episodic[agent.states_episodic > 0]))
 
@@ -1299,7 +1621,7 @@ class GeneralExpMaker(ExperimentMaker):
         print("general approach uploaded to google sheet")
         print(" FINISHED!")
 
-    def run(self, evo=0, cluster_layout=0):
+    def run(self, evo=0, heatmap=0, cluster_layout=0, time_comparison=0):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
@@ -1323,10 +1645,13 @@ class GeneralExpMaker(ExperimentMaker):
             self.gamma_episodes = []
 
             self.sentences_collected = []
-            self.sentences_period = []
+            self.sentences_period = []      # for gensim w2v
+            self.sentences_period_complete = []     # for building amdp transition
 
             # exploration
             agent_e = self._explore()
+            if heatmap:
+                self.plot_maker.plot_each_heatmap_general(agent_e, rep, self.path_results, show=1, save=1)
 
             # solve w2v and k-means to get clusters and save cluster file
             gensim_opt = self._w2v_and_kmeans()
@@ -1334,8 +1659,10 @@ class GeneralExpMaker(ExperimentMaker):
                 self.plot_maker.plot_each_cluster_layout_general(gensim_opt, self.num_clusters, self.env, self.path_results, rep, save=1, show=1)
 
             # build and solve amdp
-            amdp = self._build_and_solve_amdp(gensim_opt=gensim_opt, general=1)
-
+            amdp = AMDP_General(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt)
+            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            self._solve_amdp(amdp)
+            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
             # ground learning
             if evo == 0:
                 self._ground_learning(amdp)
@@ -1366,10 +1693,11 @@ class GeneralExpMaker(ExperimentMaker):
         sliced_m_ep_rep = np.array(self.move_count_episodes_repetitions)[:, self.explore_config['e_eps']:]
         self.plot_maker.plot_mean_performance_across_reps(sliced_f_ep_rep, sliced_r_ep_rep, sliced_m_ep_rep, curve_label)
 
-        self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
-                                             self.ground_learning_time_repetitions, self.exploration_time_repetitions,
-                                             self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
-                                             bar_label=curve_label)
+        if time_comparison:
+            self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
+                                                      self.ground_learning_time_repetitions, self.exploration_time_repetitions,
+                                                      self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
+                                                      bar_label=curve_label)
 
         self._results_upload()
 

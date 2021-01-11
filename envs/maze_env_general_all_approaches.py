@@ -14,6 +14,7 @@ class Maze:
         self.size = (len(self.room_layout), len(self.room_layout[0]))
         print("maze.size:", self.size)
         self.reset()
+        self.start_state = self.state
         self.valid_coords, self.valid_states = self.get_valid_coords_and_states()
         print("len(env.valid_coords)", len(self.valid_coords))
         print("len(env.valid_states)", len(self.valid_states))
@@ -409,8 +410,8 @@ class Maze:
                                 current_state[2+index] = 1
                             valid_states.append(tuple(current_state))
 
-        # return valid_coords, valid_states
-        return list(set(valid_coords)), list(set(valid_states))
+        return set(valid_coords), set(valid_states)
+        # return list(set(valid_coords)), list(set(valid_states))
 
     def isMovable(self, state):
         # check if wall is in the way or already out of the bounds
