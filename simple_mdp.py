@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import numpy.ma as ma
 import pandas as pd
 import scipy
 import random
@@ -13,7 +14,14 @@ import os
 from itertools import chain
 from collections import Counter
 from os import makedirs
+
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.figure as figure
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+# plt.rcParams['xtick.labelsize'] = 17
+# plt.rcParams['ytick.labelsize'] = 17
+
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pprint import pprint
 from envs.maze_env_general_all_approaches import Maze
@@ -106,23 +114,23 @@ class MDP:
         self.num_states = len(self.list_of_states)
         print("self.num_states:", self.num_states)
         transition = np.zeros(shape=(self.num_states, self.num_states, self.num_states))
-        # rewards = np.zeros(shape=(self.num_states, self.num_states, self.num_states))-1
-        rewards = np.full(shape=(self.num_states, self.num_states, self.num_states), fill_value=-1)
+        rewards = np.zeros(shape=(self.num_states, self.num_states, self.num_states))
+        # rewards = np.full(shape=(self.num_states, self.num_states, self.num_states), fill_value=-1)
         # rewards = np.empty((self.num_states, self.num_states, self.num_states), float).fill(-1)
         print("transition and rewards initialized")
         for i in range(self.num_states):
             # print(self.list_of_states[i])
             if self.list_of_states[i] == self.env.goal:
                 transition[-1, i, -1] = 1
-                rewards[-1, i, -1] = 3000
-                continue
+                rewards[-1, i, -1] = 1000
+                # continue
             adjacency_i = self.get_actions(self.list_of_states[i])
             for j in range(self.num_states):
                 if self.list_of_states[j] in adjacency_i:
                     transition[j, i, j] = 1
                     if str(list(self.list_of_states[i])) in self.env.traps:    #self.list_of_states[j] or self.list_of_states[i] different results
                         print("traps----")
-                        rewards[j, i, j] = -800
+                        rewards[j, i, j] = -130     # -130 for v1;
 
 
         self.transition = transition
@@ -149,7 +157,7 @@ class MDP:
                     transition[j, i, j] = 1
                     if str(list(self.list_of_states[j])) in self.env.traps:
                         print("traps----")
-                        rewards[j, i, j] = -3000
+                        rewards[j, i, j] = -1000
                 if self.env.goal in adjacency_i:
                     rewards[index_goal, i, index_goal] = 3000
         self.transition = transition
@@ -172,8 +180,9 @@ class MDP:
                 v = values[i]
                 list_of_values = []
                 for a in range(len(values)):
-                    value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
-                    list_of_values.append(value)
+                    if self.transition[a, i, a] != 0:
+                        value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
+                        list_of_values.append(value)
                 if synchronous:
                     values2[i] = max(list_of_values)
                     delta = max(delta, abs(v - values2[i]))
@@ -188,21 +197,21 @@ class MDP:
 
         print("np.min(values), np.max(values), second_min_values: ", np.min(values), np.max(values), np.partition(values, 1)[1])
         # print(values)
-        self.plot_current_values(self.env, values)
+        self.plot_current_values(self.env, values, version=1)
         # values -= np.min(values[:-1])
         # second_smallest = np.partition(values, 1)[1]
         # values -= second_smallest
 
         self.dict_s_v = dict(zip((str(i) for i in self.list_of_states), values))
         print("self.dict_s_v:")
-        # pprint(self.dict_s_v)
+        pprint(self.dict_s_v)
 
     def get_value(self, state):
         value = self.dict_s_v[str(state)]
         return value
 
     def plot_current_values(self, env, values, version=1, plot_text=0, show=1, save=1):
-        fig, ax = plt.subplots(figsize=(15, 12))
+        fig, ax = plt.subplots(figsize=(13, 12))
         my_cmap = copy.copy(plt.cm.get_cmap('hot'))
         values_max = np.amax(values)
         vmax = values_max
@@ -211,7 +220,7 @@ class MDP:
         vmin = values_min - 0.1 * (values_max - values_min)
         # vmin = -0.1 * vmax
         print(vmax, vmin)
-        my_cmap.set_under('darkred')
+        my_cmap.set_under('lime')
         my_cmap.set_bad('lime')
         my_cmap.set_over('dodgerblue')
         asp = 'equal'
@@ -227,14 +236,13 @@ class MDP:
                 current_state = (i, j)
                 if current_state in env.valid_states:
                     if current_state == (env.start_state[0], env.start_state[1]):
-                        row.append(np.nan)
+                        row.append(vmin-1)
                         row2.append(dict_[str(current_state)])
                     elif current_state == env.goal:
                         row.append(vmax+1)
                         row2.append(dict_[str(current_state)])
                     else:
-                        v = dict_[str(current_state)]
-                        row.append(v)
+                        row.append(dict_[str(current_state)])
                         row2.append(dict_[str(current_state)])
                 elif str([i, j]) in env.walls:
                     row.append(vmin)
@@ -243,27 +251,38 @@ class MDP:
             plate2.append(row2)
 
         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        ax.tick_params(axis='both', which='both', length=0)
+        # plate = np.array(plate)-vmin+0.001
+        # im = ax.imshow(plate, norm = colors.LogNorm(vmin=np.amin(plate)+1, vmax=np.amax(plate)-1), aspect=asp, cmap=my_cmap)
+
         # print(plate)
         if plot_text:
             for i in range(env.size[0]):
                 for j in range(env.size[1]):
-                    current_state = (i, j)
-                    if current_state in env.valid_coords:
-                        text_ = round(plate2[i][j])
-                        ax.text(j, i, f"{text_}", horizontalalignment='center', verticalalignment='center',
-                                fontsize=9, fontweight='semibold', color='k')
+                    if (i % 3 == 0) and (j % 3 ==0):
+                        current_state = (i, j)
+                        if current_state in env.valid_states:
+                            text_ = round(plate2[i][j])
+                            ax.text(j, i, f"{text_}", horizontalalignment='center', verticalalignment='center',
+                                    fontsize=9, fontweight='semibold', color='k')
         # fig.subplots_adjust(right=0.85)
         # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
         # fig.colorbar(im, cax=cax)
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.1)
-        fig.colorbar(im, cax=cax)
+        cb = fig.colorbar(im, cax=cax)
+        cax.ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
+        cax.tick_params(axis='both', which='both', labelsize=24)
+        cax.yaxis.get_offset_text().set_fontsize(24)
         # fig.colorbar(im, ax=ax, shrink=0.75)
         if show:
             fig.show()
         if save:
-            fig.savefig(f"./naive_solved_mdp/{env.maze_name}_big{env.big}_v{version}")
+            fig.savefig(f"./naive_solved_mdp/{env.maze_name}_big{env.big}_v{version}_equal",
+                        dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 
 class PlotMakerNaive:
@@ -286,10 +305,65 @@ class PlotMakerNaive:
         self.current_approach_time_consumption = self.num_approaches
         self.highest_bar_height = 0
 
-    def plot_each_heatmap(self, agent_e, rep, ax_title):
+        pass
+
+    @staticmethod
+    def plot_maze_trap(env: Maze, version=1, show=1, save=0):
+        fontsize = 20 if env.big == 0 else 4.5
+        fontweight = 'semibold'
+        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red", "purple"])
+        maze_to_plot = np.where(env.room_layout == 'w', 0, 1)
+        maze_to_plot[env.start_state[0], env.start_state[1]] = 4
+        maze_to_plot[env.goal[0], env.goal[1]] = 3
+
+        # w, h = figure.figaspect(maze_to_plot)
+        # print("w, h:", w, h)
+        fig1, ax1 = plt.subplots(figsize=(8, 8))
+        # fig, ax1 = plt.subplots()
+        ax1.text(env.start_state[1] + 0.5, env.start_state[0] + 0.55, 'S', ha="center", va="center", color="k", fontsize=fontsize,
+                 fontweight=fontweight)
+        ax1.text(env.goal[1] + 0.5, env.goal[0] + 0.55, 'G', ha="center", va="center", color="k", fontsize=fontsize,
+                 fontweight=fontweight)
+        for trap in env.traps:
+            trap = eval(trap)
+            maze_to_plot[trap[0], trap[1]] = 5
+            ax1.text(trap[1] + 0.5, trap[0] + 0.55, 'T', ha="center", va="center", color="k", fontsize=fontsize,
+                     fontweight=fontweight)
+        # for flag in env.flags:
+        #     # print(flag)
+        #     maze_to_plot[flag[0], flag[1]] = 2
+        #     ax1.text(flag[1] + 0.5, flag[0] + 0.55, 'F', ha="center", va="center", color="k", fontsize=fontsize,
+        #              fontweight=fontweight)
+        # print(maze_to_plot)
+        ax1.pcolor(maze_to_plot, cmap=cmap, vmin=0, vmax=5, edgecolors='k', linewidth=2)
+        ax1.set_aspect('equal')
+        ax1.invert_yaxis()
+        ax1.axis('off')
+        fig1.tight_layout()
+        if show:
+            fig1.show()
+        if save:
+            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}_traps_v{version}.png", dpi=200,
+                         transparent=False, bbox_inches='tight', pad_inches=0.1)
+
+    def plot_each_heatmap(self, agent_e, rep, ax_title, save_path):
         # plot heatmap
-        im = self.axs_each_rep[rep, 0].imshow(agent_e.states_long_life, aspect='auto', cmap='hot')
-        self.fig_each_rep.colorbar(im, ax=self.axs_each_rep[rep, 0])
+        fig, ax = plt.subplots(figsize=(13,12))
+        im = ax.imshow(agent_e.states_long_life, aspect='equal', cmap='hot')
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        ax.tick_params(axis='both', which='both', length=0)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
+        cb = fig.colorbar(im, cax=cax)
+        cb.ax.ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
+        cax.tick_params(axis='both', labelsize=24)
+        cax.yaxis.get_offset_text().set_fontsize(24)
+        fig.show()
+        fig.savefig(f"{save_path}/visit_count_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
+
+        # im = self.axs_each_rep[rep, 0].imshow(agent_e.states_long_life, aspect='equal', cmap='hot')
+        # self.fig_each_rep.colorbar(im, ax=self.axs_each_rep[rep, 0])
         # self.axs_each_rep[rep, 0].set_title(ax_title)
 
         # divider = make_axes_locatable(self.axs_each_rep[rep, 0])
@@ -333,7 +407,7 @@ class PlotMakerNaive:
 
         # self.fig_each_rep.show()
 
-    def plot_each_cluster_layout_and_values(self, env, amdp, amdp_mode, rep, ax_title=None, version=1, text_cluster_and_values=1, show=1, save=0):
+    def plot_each_cluster_layout_and_values(self, env, amdp, amdp_mode, rep, ax_title=None, save_path=None, version=1, text_cluster_and_values=0, show=0, save=0):
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         # fig, axs = plt.subplots(1, 2, figsize=(15*2, 12))
@@ -343,7 +417,7 @@ class PlotMakerNaive:
         my_cmap.set_under('darkred')
         my_cmap.set_bad('lime')
         my_cmap.set_over('dodgerblue')
-        asp = 'auto'
+        asp = 'equal'
 
         if amdp_mode == "uniform":
             sqrt_ = np.sqrt((len(amdp.list_of_abstract_states) - 1))
@@ -407,10 +481,81 @@ class PlotMakerNaive:
             plate3.append(row3)
             plate4.append(row4)
 
-        self.axs_each_rep[rep, 1].imshow(plate, vmin=vmin1, vmax=vmax1, aspect=asp, cmap=my_cmap1)
+        def contour_rect_slow(plate, ax):
+            """Clear version"""
+
+            pad = np.pad(plate, [(1, 1), (1, 1)])  # zero padding
+
+            im0 = np.abs(np.diff(pad, n=1, axis=0))[:, 1:]
+            im1 = np.abs(np.diff(pad, n=1, axis=1))[1:, :]
+
+            lines = []
+
+            for ii, jj in np.ndindex(im0.shape):
+                if im0[ii, jj] > 0:
+                    lines += [([ii - .5, ii - .5], [jj - .5, jj + .5])]
+                if im1[ii, jj] > 0:
+                    lines += [([ii - .5, ii + .5], [jj - .5, jj - .5])]
+
+            for line in lines:
+                ax.plot(line[1], line[0], color='k', alpha=1, linewidth=2)
+
+
+        fig, ax = plt.subplots(figsize=(12,12))
+        im = ax.imshow(plate, vmin=vmin1, vmax=vmax1, aspect=asp, cmap=my_cmap1)
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        ax.tick_params(axis='both', which='both', length=0)
+        # x = np.arange(len(plate))
+        # y = np.arange(len(plate[0]))
+        # X, Y = np.meshgrid(x, y)
+        # im = ax.contourf(plate, levels=17, aspect=asp, cmap=my_cmap1, origin='upper')
+        # im = ax.contour(plate, levels=17, colors='k', origin='upper')
+        # divider = make_axes_locatable(ax)
+        # cax = divider.append_axes("right", size="5%", pad=0.1)
+        # plt.colorbar(im, cax=cax)
+        plate2 = np.array(plate2)
+        for a_state in amdp.list_of_abstract_states:
+            coords = np.argwhere(plate2 == str(a_state))
+            if len(coords) > 0:
+                mean = np.mean(coords, axis=0)
+                v_ = round(dict_as2v[a_state])
+                ax.text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
+                                          fontsize=24, fontweight='semibold', color='k')
+        contour_rect_slow(np.array(plate), ax)
+        fig.show()
+        fig.savefig(f"{save_path}/cluster_layout_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
+        # self.axs_each_rep[rep, 1].imshow(plate, vmin=vmin1, vmax=vmax1, aspect=asp, cmap=my_cmap1)
         # self.axs_each_rep[rep, 1].set_title(ax_title)
 
-        im = self.axs_each_rep[rep, 2].imshow(plate3, vmin=vmin2, vmax=vmax2, aspect=asp, cmap=my_cmap)
+        fig, ax = plt.subplots(figsize=(13, 12))
+        im = ax.imshow(plate3, vmin=vmin2, vmax=vmax2, aspect=asp, cmap=my_cmap)
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        ax.tick_params(axis='both', which='both', length=0)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
+        fig.colorbar(im, cax=cax)
+        cax.tick_params(axis='both', labelsize=24)
+        # cb.ax.ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
+        # cax.yaxis.get_offset_text().set_fontsize(24)
+        # print(np.around(plate3, 1))
+        # plt.imshow(plate3, vmin=vmin2, vmax=vmax2, aspect=asp, cmap=my_cmap)
+        plate2 = np.array(plate2)
+        for a_state in amdp.list_of_abstract_states:
+            coords = np.argwhere(plate2 == str(a_state))
+            if len(coords) > 0:
+                mean = np.mean(coords, axis=0)
+                v_ = round(dict_as2v[a_state],1)
+                ax.text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
+                         fontsize=24, fontweight='semibold', color='k')
+                # ax.text(mean[1], mean[0], f"{str(v_)}", horizontalalignment='center', verticalalignment='center',
+                #         fontsize=15, fontweight='semibold', color='k')
+        contour_rect_slow(np.array(plate), ax)
+
+        fig.show()
+        fig.savefig(f"{save_path}/solved_values_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
+        # im = self.axs_each_rep[rep, 2].imshow(plate3, vmin=vmin2, vmax=vmax2, aspect=asp, cmap=my_cmap)
         # divider = make_axes_locatable(self.axs_each_rep[rep, 2])
         # cax = divider.append_axes("right", size="5%", pad=0.1)
         # self.fig_each_rep.colorbar(im, cax=cax)
@@ -424,9 +569,11 @@ class PlotMakerNaive:
                     mean = np.mean(coords, axis=0)
                     v_ = round(dict_as2v[a_state])
                     self.axs_each_rep[rep, 1].text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
-                                              fontsize=10, fontweight='semibold', color='k')
-                    self.axs_each_rep[rep, 2].text(mean[1], mean[0], f"{str(v_)}", horizontalalignment='center', verticalalignment='center',
-                                            fontsize=10, fontweight='semibold', color='k')
+                                              fontsize=12, fontweight='semibold', color='k')
+                    self.axs_each_rep[rep, 2].text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
+                                                   fontsize=12, fontweight='semibold', color='k')
+                    # self.axs_each_rep[rep, 2].text(mean[1], mean[0], f"{str(v_)}", horizontalalignment='center', verticalalignment='center',
+                    #                         fontsize=10, fontweight='semibold', color='k')
 
 
         if show:
@@ -620,22 +767,50 @@ class MazeNaive:
         W = "w"
         if self.maze_name == 'basic':
             ## "True" layout determined by doorways.
-            room_layout = [[C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
-                          [C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
-                          [C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
+            room_layout = [[C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, W, F, F, F, F, F],
+                          [C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, W, F, F, F, F, F],
+                          [C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, W, F, F, F, F, F],
                           [C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
                           [W, W, W, W, C, W, W, W, W, W, W, D, D, D, D, W, F, F, F, F, F],
                           [B, B, B, B, B, B, B, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
                           [B, B, B, B, B, B, W, E, E, E, E, D, D, D, D, W, F, F, F, F, F],
-                          [B, B, B, B, B, B, W, E, E, E, W, D, D, D, D, W, F, F, T, F, F],
-                          [W, A, W, W, W, W, W, E, E, E, W, D, D, D, D, W, F, F, T, F, F],
-                          [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, F, F, T, F, F],
-                          [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
-                          [A, A, A, A, A, A, W, W, E, W, W, W, W, W, W, W, F, F, F, F, F],
-                          [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
-                          [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
+                          [B, B, B, B, B, B, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                          [W, A, W, W, W, W, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                          [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                          [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                          [T, T, T, T, A, A, W, W, E, W, W, W, W, W, W, W, F, F, F, F, F],
+                          [T, T, T, T, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
+                          [T, T, T, T, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, F, F, F, F, F, F],
                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F]]
+            room_layout = np.array(room_layout)
+
+        elif self.maze_name == 'simple':
+            room_layout = [[A, A, A, W, H, H, H, I, I, I, I, I, I, I, W, J, T, T, T, T],  ## simple
+                           [A, A, A, W, H, H, H, W, I, I, I, I, I, I, J, J, T, T, T, T],
+                           [A, A, A, W, H, H, H, W, I, I, I, I, I, I, W, J, J, J, J, J],
+                           [A, A, A, W, H, W, W, W, W, W, W, W, W, W, W, J, J, J, J, J],
+                           [A, A, A, W, G, G, G, G, G, G, G, W, P, P, W, J, J, J, J, J],
+                           [A, A, A, W, G, G, G, G, G, G, G, G, P, P, W, W, W, W, B, B],
+                           [A, A, A, W, G, G, G, G, G, G, G, G, P, P, P, T, T, W, B, B],
+                           [A, A, A, W, W, W, W, G, G, G, G, W, P, P, P, T, T, W, B, B],
+                           [A, A, A, A, A, A, W, W, W, W, W, W, P, P, P, T, T, B, B, B],
+                           [A, A, A, A, A, A, F, F, F, F, F, F, P, P, P, T, T, B, B, B],
+                           [A, A, A, A, A, A, W, F, F, F, F, F, P, P, P, T, T, B, B, B]]
+            room_layout = np.array(room_layout)
+
+        elif self.maze_name == 'simple2':
+            room_layout = [[H, H, H, I, I, I, I, I, I, I, W, J, J, J, J, J],  ## simple2
+                           [H, H, H, W, I, I, I, I, I, I, J, J, J, J, J, J],
+                           [H, H, H, W, I, I, I, I, I, I, W, J, J, J, J, J],
+                           [H, W, W, W, W, W, W, W, W, W, W, J, J, J, J, J],
+                           [G, G, G, G, G, G, G, W, P, P, W, J, J, J, J, J],
+                           [G, G, G, G, G, G, G, G, P, P, W, J, J, J, J, J],
+                           [G, G, G, G, G, G, G, G, P, P, W, W, W, W, J, J],
+                           [W, W, W, G, G, G, G, W, P, P, T, T, B, W, J, J],
+                           [A, A, W, W, W, W, W, W, P, P, T, T, B, B, J, J],
+                           [A, A, F, F, F, F, F, F, P, P, T, T, B, B, J, J],
+                           [A, A, W, F, F, F, F, F, P, P, T, T, B, B, J, J]]
             room_layout = np.array(room_layout)
 
         elif self.maze_name == 'strips':
@@ -864,6 +1039,12 @@ class MazeNaive:
 
             self.state = (15, 0)    # v5
             self.goal = (0, 5)
+        elif self.maze_name == 'simple':
+            self.state = (1, 1)
+            self.goal = (9, 18)
+        elif self.maze_name == 'simple2':
+            self.state = (9, 0)
+            self.goal = (9, 14)
         elif self.maze_name == 'strips':
             self.state = (0, 0)
             self.flags = [(15, 11), (19, 0), (4, 19)]
@@ -943,11 +1124,11 @@ class MazeNaive:
         if self.big:
             self.state = tuple([i*3 for i in self.state])
             self.goal = tuple([i*3 for i in self.goal])
-            flags_big = []
-            for item in self.flags:
-                item_prime = tuple([i*3 for i in item])
-                flags_big.append(item_prime)
-            self.flags = flags_big
+            # flags_big = []
+            # for item in self.flags:
+            #     item_prime = tuple([i*3 for i in item])
+            #     flags_big.append(item_prime)
+            # self.flags = flags_big
 
     def set_valid_states(self):
         valid_states = []
@@ -991,9 +1172,16 @@ class MazeNaive:
             new_state = (state[0] - 1, state[1])
         return new_state
 
-    def reward(self, state_prime):
+    def reward(self, state, state_prime):
+        # if str(list(state)) in self.traps:
+        #     if str(list(state_prime)) in self.traps:
+        #         return 0
+        #     else:
+        #         return -500000
+        # if str(list(state)) in self.traps:
+        #     return -100000
         if str(list(state_prime)) in self.traps:
-            return -300000      # -300000/-100000
+            return -100000     # -300000/-100000/-50000
         if state_prime == self.goal:
             return 0
         return -1  # normal steps
@@ -1133,14 +1321,16 @@ class AMDP_Naive:
                 # normal transition
                 if self.list_of_abstract_states[j] in ajacency_of_i:
                     transition[j, i, j] = 1
+                    rewards[j, i, j] = -1
                     # print("set normal transition:",[j, i, j])
 
             # # goal transition
             if "to_bin" in ajacency_of_i:  # 可修改
                 transition[-1, i, -1] = 1
-                rewards[-1, i, -1] = 1000
+                # rewards[-1, i, -1] = 1000
                 # print("goal transition set!!!")
                 # print("set goal transition:",[-1, i, -1])
+        rewards[-1, -1, -1] = 0
 
         self.transition_table = transition
         self.rewards_table = rewards
@@ -1163,8 +1353,9 @@ class AMDP_Naive:
                 v = values[i]
                 list_of_values = []
                 for a in range(len(values)):
-                    value = self.transition_table[a, i, a] * (self.rewards_table[a, i, a] + 0.99 * values[a])
-                    list_of_values.append(value)
+                    if self.transition_table[a, i, a] != 0:
+                        value = self.transition_table[a, i, a] * (self.rewards_table[a, i, a] + 0.99 * values[a])
+                        list_of_values.append(value)
                 if synchronous:
                     values2[i] = max(list_of_values)
                     delta = max(delta, abs(v - values2[i]))
@@ -1177,7 +1368,7 @@ class AMDP_Naive:
             if monitor:
                 self.plot_current_values(self.env, values)           # plot current values
 
-        self.plot_current_values(self.env, values)
+        # self.plot_current_values(self.env, values)
         # values -= min(values[:-1])
         self.values = values
         self.dict_as2v = dict(zip((i for i in self.list_of_abstract_states), self.values))
@@ -1188,10 +1379,10 @@ class AMDP_Naive:
         value = self.dict_as2v[str(astate)]
         return value
 
-    def plot_current_values(self, env, values, version=1, text_all_values=0, text_cluster_values=1, show=1, save=0):
+    def plot_current_values(self, env, values, version=1, text_all_values=0, text_cluster_values=0, show=1, save=1):
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
-        fig, ax = plt.subplots(figsize=(15, 12))
+        fig, ax = plt.subplots(figsize=(12, 12))
         my_cmap = copy.copy(plt.cm.get_cmap('hot'))
         values_max = np.amax(values)
         vmax = values_max
@@ -1262,20 +1453,21 @@ class AMDP_Naive:
         # fig.subplots_adjust(right=0.85)
         # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
         # fig.colorbar(im, cax=cax)
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
-        fig.colorbar(im, cax=cax)
+        # divider = make_axes_locatable(ax)
+        # cax = divider.append_axes("right", size="5%", pad=0.1)
+        # fig.colorbar(im, cax=cax)
         # fig.colorbar(im, ax=ax, shrink=0.75)
         if show:
             fig.show()
         if save:
-            fig.savefig(f"./naive_solved_mdp/{env.maze_name}_big{env.big}_v{version}")
+            fig.savefig(f"./naive_solved_mdp/{env.maze_name}_big{env.big}_v{version}_uniform", dpi=300)
 
 
 class AMDP_General_Naive:
-    def __init__(self, sentences_period_complete, env=None, gensim_opt=None):  # tiling_mode is same with tiling_size
+    def __init__(self, sentences_period_complete, env=None, gensim_opt=None, save_path=None):  # tiling_mode is same with tiling_size
         self.sentences_period_complete = sentences_period_complete
         assert (env!=None) and (gensim_opt!=None), "env and gensim_opt need to be assigned"
+        self.save_path = save_path
         self.env = env
         # self.manuel_layout = env.room_layout     # np array
         self.goal = env.goal
@@ -1316,6 +1508,7 @@ class AMDP_General_Naive:
                         transition[cluster_label2, cluster_label1, cluster_label2] += 1
                         transition2[cluster_label2, cluster_label1, cluster_label2] += 1
                         # transition[cluster_label1, cluster_label2, cluster_label1] = 1
+                        rewards[cluster_label2, cluster_label1, cluster_label2] = -1
                 else:
                     # index1 = self.list_of_ground_states.index(sentence[i])
                     # cluster_label1 = self.list_of_abstract_states[index1]
@@ -1324,15 +1517,16 @@ class AMDP_General_Naive:
                 if state_in_tuple == (self.goal[0], self.goal[1]):
                     transition[-1, cluster_label1, -1] = 1
                     # transition2[-1, cluster_label1, -1] += 1
-                    rewards[-1, cluster_label1, -1] = 3000
+                    # rewards[-1, cluster_label1, -1] = 1000
+        transition[-1, -1, -1] = 1
 
         valid_transitions = transition[transition>1]
         print("valid_transitions:", valid_transitions)
 
-        bad_valid_transitions = np.partition(valid_transitions, 4)[:10]
+        bad_valid_transitions = np.partition(valid_transitions, 2)[:10]
         print("bad_transitions:", bad_valid_transitions)
 
-        smallest_valid_trasition = np.partition(valid_transitions, 4)[4]
+        smallest_valid_trasition = np.partition(valid_transitions, 2)[2]
         print("smallest_valid_trasition:", smallest_valid_trasition)
         transition = np.where((1<transition) & (transition<smallest_valid_trasition), 0, transition)
         transition = np.where(transition >= smallest_valid_trasition, 1, transition)
@@ -1360,8 +1554,9 @@ class AMDP_General_Naive:
                 v = values[i]
                 list_of_values = []
                 for a in range(len(values)):
-                    value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
-                    list_of_values.append(value)
+                    if self.transition[a, i, a] != 0:
+                        value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
+                        list_of_values.append(value)
                 if synchronous:
                     values2[i] = max(list_of_values)
                     delta = max(delta, abs(v - values2[i]))
@@ -1390,7 +1585,7 @@ class AMDP_General_Naive:
         # print("value:",value)
         return value
 
-    def plot_current_values(self, env, values, version=1, text_all_values=0, text_cluster_values=1, show=1, save=0):
+    def plot_current_values(self, env, values, version=1, text_all_values=0, text_cluster_values=0, show=1, save=0):
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         fig, ax = plt.subplots(figsize=(15, 12))
@@ -1464,14 +1659,14 @@ class AMDP_General_Naive:
         # fig.subplots_adjust(right=0.85)
         # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
         # fig.colorbar(im, cax=cax)
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
-        fig.colorbar(im, cax=cax)
+        # divider = make_axes_locatable(ax)
+        # cax = divider.append_axes("right", size="5%", pad=0.1)
+        # fig.colorbar(im, cax=cax)
         # fig.colorbar(im, ax=ax, shrink=0.75)
         if show:
             fig.show()
         if save:
-            fig.savefig(f"./naive_solved_mdp/{env.maze_name}_big{env.big}_v{version}")
+            fig.savefig(f"./{self.save_path}/solved_AMDP")
 
 
 class ExploreBrainNaive:
@@ -1871,6 +2066,8 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
         env = self.env
         valid_states_ = tuple(env.valid_states)
         for ep in range(self.explore_config['e_eps']):
+            # if (ep+1) % int(self.explore_config['e_eps']/10) == 0:
+            #     self.plot_maker.plot_each_heatmap(agent_e, 0, None, None)
             if (ep + 1) % 100 == 0:
                 print(f"episode_100: {ep} | avg_move_count: {int(np.mean(self.move_count_episodes[-100:]))} | "
                       f"avd_reward: {int(np.mean(self.reward_episodes[-100:]))} | "
@@ -1913,7 +2110,7 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
                     # beta = ep / num_explore_episodes
                     # r = (1 - beta) * r1 + (beta) * r2
                     # r = (1 - beta) * r2 + (beta) * r1
-                    r2 = env.reward(new_state)
+                    r2 = env.reward(env.state, new_state)
                     if r2 < -1:
                         r = r1*10 + r2
                         # print("trap, r:", r)
@@ -1954,7 +2151,7 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
                 self.sentences_period.append(track)
                 self.sentences_period_complete.append(track)
             else:
-                for _ in range(2):
+                for _ in range(4):
                     down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
                                     math.floor(len(track) * self.explore_config['ds_factor'])))]
                     self.sentences_period.append(down_sampled)
@@ -2086,18 +2283,18 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
             # exploration
             agent_e = self._explore()
             if p_heatmap:
-                self.plot_maker.plot_each_heatmap(agent_e, rep, ax_title=f"exploration-{self.explore_config['e_start']}")
+                self.plot_maker.plot_each_heatmap(agent_e, rep, ax_title=f"exploration-{self.explore_config['e_start']}", save_path=self.path_results)
 
             # solve w2v and k-means to get clusters and save cluster file
             gensim_opt = self._w2v_and_kmeans()
 
             # build and solve amdp
-            amdp = AMDP_General_Naive(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt)
+            amdp = AMDP_General_Naive(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt, save_path=self.path_results)
             self._solve_amdp(amdp)
             if p_cluster_layout_and_values:
                 ax_title = f"clusters{self.num_clusters}mm{self.explore_config['max_move_count']}s" \
                            f"{self.w2v_config['rep_size']}w{self.w2v_config['win_size']}sg{self.w2v_config['sg']}"
-                self.plot_maker.plot_each_cluster_layout_and_values(self.env, amdp, "general", rep, ax_title=ax_title, save=0, show=1)
+                self.plot_maker.plot_each_cluster_layout_and_values(self.env, amdp, "general", rep, ax_title=ax_title, save_path=self.path_results, save=0, show=0)
 
             # ground learning
             # self._ground_learning(amdp)
@@ -2135,16 +2332,16 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
 
 
 def compare_approaches():
-    maze = 'basic'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
-    big = 0
+    maze = 'simple2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = 1
     e_mode = 'sarsa'  # 'sarsa' or 'softmax'
-    e_start = 'random'  # 'random' or 'last' or 'semi_random'
+    e_start = 'last'  # 'random' or 'last' or 'semi_random'
     e_eps = 10000        # 3000 / 20000
     mm = 100
     ds_factor = 0.5
 
     q_eps = 500
-    repetitions = 2
+    repetitions = 3
     rep_size = 128
     win_size = 50
     sg = 1  # 'SG' or 'CBOW'
@@ -2163,9 +2360,10 @@ def compare_approaches():
         # path_results = f"./cluster_layout/{maze}_big={big}" \
         #                f"/topology-vs-uniform{numbers_of_clusters}-oop/v4_rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
         #                f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
-        path_results = f"./cluster_layout/{maze}_big={big}" \
+        path_results = f"./naive/{maze}_big={big}_v1" \
                        f"/general{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
-                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
+                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/" \
+                       f"k[{numbers_of_clusters[i]}]_trap_in-100000_equal"
         if not os.path.isdir(path_results):
             makedirs(path_results)
         if print_to_file == 1:
@@ -2203,7 +2401,7 @@ def compare_approaches():
         if show:
             plot_maker.fig_each_rep.show()
         if save:
-            plot_maker.fig_each_rep.savefig(f"{path_results}/plots_of_each_rep.png", dpi=100, facecolor='w', edgecolor='w',
+            plot_maker.fig_each_rep.savefig(f"{path_results}/plots_of_each_rep.png", dpi=300, facecolor='w', edgecolor='w',
                                             orientation='portrait', format=None,
                                             transparent=False, bbox_inches=None, pad_inches=0.1)
 
@@ -2227,9 +2425,11 @@ def compare_approaches():
             sys.stdout.close()
 
 if __name__ == "__main__":
-    # env = MazeNaive(maze="low_connectivity", big=0)
+    # env = MazeNaive(maze="simple2", big=1)
     # mdp = MDP(env)
     # mdp.solve_mdp(synchronous=0, monitor=0)
 
+    # env = MazeNaive(maze="simple2", big=0)
+    # PlotMakerNaive.plot_maze_trap(env, version=2, save=1)
 
     compare_approaches()
