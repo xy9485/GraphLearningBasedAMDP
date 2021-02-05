@@ -4,6 +4,7 @@ import copy
 import math
 import statistics
 import random
+import pickle
 # print(matplotlib.get_backend())
 import matplotlib.pyplot as plt
 import matplotlib.figure as figure
@@ -14,6 +15,8 @@ import numpy as np
 import os
 # from PIL import Image
 import time
+from itertools import chain
+from collections import Counter
 from abstractions.abstraction_all_approaches import AMDP_Topology_Uniform, AMDP_General
 from envs.maze_env_general_all_approaches import Maze
 from RL_brains.RL_brain_all_approaches import ExploreStateBrain, ExploreCoordBrain, QLambdaBrain
@@ -44,7 +47,27 @@ class PlotMaker:
     #                                                         figsize=(5 * 5, num_of_repetitions * 4))
     #     self.fig_each_rep.set_tight_layout(True)
     @staticmethod
-    def plot_maze(env: Maze, show=1, save=1):
+    def contour_rect_slow(plate, ax):
+        """Clear version"""
+
+        pad = np.pad(plate, [(1, 1), (1, 1)])  # zero padding
+
+        im0 = np.abs(np.diff(pad, n=1, axis=0))[:, 1:]
+        im1 = np.abs(np.diff(pad, n=1, axis=1))[1:, :]
+
+        lines = []
+
+        for ii, jj in np.ndindex(im0.shape):
+            if im0[ii, jj] > 0:
+                lines += [([ii - .5, ii - .5], [jj - .5, jj + .5])]
+            if im1[ii, jj] > 0:
+                lines += [([ii - .5, ii + .5], [jj - .5, jj - .5])]
+
+        for line in lines:
+            ax.plot(line[1], line[0], color='k', alpha=1, linewidth=1.5)
+
+    @staticmethod
+    def plot_maze(env: Maze, version=1, show=1, save=1):
         fontsize = 12 if env.big == 0 else 4.5
         fontweight = 'semibold'
         cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red"])
@@ -72,24 +95,108 @@ class PlotMaker:
         if show:
             fig1.show()
         if save:
-            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}.png", dpi=600, facecolor='w', edgecolor='w',
+            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}_v{version}_temp.png", dpi=300, facecolor='w', edgecolor='w',
                          orientation='portrait', format=None,
                          transparent=False, bbox_inches=None, pad_inches=0.1)
 
+    @staticmethod
+    def plot_maze_trap(env: Maze, version=1, show=1, save=0):
+        fontsize = 20 if env.big == 0 else 4.5
+        fontweight = 'semibold'
+        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red", "purple"])
+        maze_to_plot = np.where(env.room_layout == 'w', 0, 1)
+        maze_to_plot[env.start_state[0], env.start_state[1]] = 4
+        maze_to_plot[env.goal[0], env.goal[1]] = 3
+
+        w, h = figure.figaspect(maze_to_plot)
+        print("w, h:", w, h)
+        fig1, ax1 = plt.subplots(figsize=(12, 12))
+        # fig, ax1 = plt.subplots()
+        ax1.text(env.start_state[1] + 0.5, env.start_state[0] + 0.55, 'S', ha="center", va="center", color="k", fontsize=fontsize,
+                 fontweight=fontweight)
+        ax1.text(env.goal[1] + 0.5, env.goal[0] + 0.55, 'G', ha="center", va="center", color="k", fontsize=fontsize,
+                 fontweight=fontweight)
+        for trap in env.traps:
+            trap = eval(trap)
+            maze_to_plot[trap[0], trap[1]] = 5
+            ax1.text(trap[1] + 0.5, trap[0] + 0.55, 'T', ha="center", va="center", color="k", fontsize=fontsize,
+                     fontweight=fontweight)
+        # for flag in env.flags:
+        #     # print(flag)
+        #     maze_to_plot[flag[0], flag[1]] = 2
+        #     ax1.text(flag[1] + 0.5, flag[0] + 0.55, 'F', ha="center", va="center", color="k", fontsize=fontsize,
+        #              fontweight=fontweight)
+        # print(maze_to_plot)
+        ax1.pcolor(maze_to_plot, cmap=cmap, vmin=0, vmax=5, edgecolors='k', linewidth=2)
+        ax1.invert_yaxis()
+        ax1.axis('off')
+        fig1.tight_layout()
+        if show:
+            fig1.show()
+        if save:
+            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}_traps_v{version}.png", dpi=200, facecolor='w', edgecolor='w',
+                         orientation='portrait', format=None,
+                         transparent=False, bbox_inches=None, pad_inches=0.1)
+
+    @staticmethod
+    def plot_manual_rooms(env: Maze, version, show=1, save=1, plot_label=1):
+        room_layout = copy.deepcopy(env.room_layout).tolist()
+        for row in room_layout:
+            for index, item in enumerate(row):
+                # print(type(row[index]), row[index])
+                if row[index].isdigit():
+                    row[index] = int(row[index])
+                else:
+                    row[index] = -1
+        vmax = np.amax(room_layout)
+        vmin = -vmax * 0.16
+        print("vmax:", vmax)
+        for row in room_layout:
+            for index, item in enumerate(row):
+                if row[index] < 0:
+                    row[index] = vmin/2
+        room_layout = np.array(room_layout)
+        w, h = figure.figaspect(room_layout)
+        # w = round(w*1.5, 2)
+        # h = round(h*1.5, 2)
+        print("w, h:", w, h)
+        fig, ax = plt.subplots(figsize=(6, 4.8))
+        # fig, ax = plt.subplots()
+        my_cmap = plt.cm.get_cmap('gist_ncar')
+        # my_cmap.set_under('k')
+        ax.imshow(room_layout, vmax=vmax, vmin=vmin, aspect='equal', cmap=my_cmap)
+        # ax.tick_params(axis='both', labelsize=16)
+        PlotMaker.contour_rect_slow(room_layout, ax)
+        if plot_label == 1:
+            indice_room_centers = []
+            # print(np.array(room_layout))
+            for i in range(vmax+1):
+                coords = np.argwhere(env.room_layout == str(i))
+                indice_room_centers.append(np.mean(coords, axis=0))
+            for index, cen in enumerate(indice_room_centers):
+                # print(index, cen)
+                ax.text(cen[1], cen[0], str(index), horizontalalignment='center', verticalalignment='center',
+                                 fontsize=14, fontweight='semibold')
+        if show:
+            fig.show()
+        if save:
+            fig.savefig(f"./img_manual_room_layout/{env.maze_name}_big{env.big}_v{version}.png", dpi=300, facecolor='w', edgecolor='w',
+                        orientation='portrait', format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
+
     def plot_each_heatmap(self, agent_e, rep, ax_title):
         # plot heatmap
-        im = self.axs_each_rep[rep, 4].imshow(agent_e.states_long_life, aspect='auto', cmap='hot')
+        im = self.axs_each_rep[rep, 4].imshow(agent_e.states_long_life, aspect='equal', cmap='hot')
         self.fig_each_rep.colorbar(im, ax=self.axs_each_rep[rep, 4])
         self.axs_each_rep[rep, 4].set_title(ax_title)
         # self.fig_each_rep.show()
 
     def plot_each_heatmap_general(self, agent_e, rep, path_results, show=1, save=1):
         # fig = plt.figure(figsize=(5 * 3, 4 * 4))
-        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        fig = plt.figure(figsize=(5 * 3, 5 * 4))
         vmin = np.amin(agent_e.states_long_life)
         vmax = np.amax(agent_e.states_long_life)
         my_cmap = 'hot'
-        asp = 'auto'
+        asp = 'equal'
         for k in range(2):
             for l in range(2):
                 for m in range(2):
@@ -121,16 +228,16 @@ class PlotMaker:
                         im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
                     ax.set_title(f"{k}-{l}-{m}", fontsize=15, fontweight='semibold')
         # fig.set_tight_layout(False)
-        fig.subplots_adjust(right=0.85)
+        fig.subplots_adjust(right=0.88)
         cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
         fig.colorbar(im, cax=cax)
+        cax.tick_params(axis='both', labelsize='large')
+
         # fig.set_tight_layout(True)
         if show:
             fig.show()
         if save:
-            fig.savefig(f"{path_results}/building_heatmap{rep}.png", dpi=100, facecolor='w', edgecolor='w',
-            orientation='portrait', format=None,
-            transparent=False, bbox_inches=None, pad_inches=0.1)
+            fig.savefig(f"{path_results}/building_heatmap_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     def plot_each_cluster_layout(self, gensim_opt, num_clusters, rep, ax_title, plot_label=1):
         copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
@@ -156,7 +263,7 @@ class PlotMaker:
                 coords = np.argwhere(np_cluster_layout == str(i))
                 indice_center_clusters.append(np.mean(coords, axis=0))
             for index, cen in enumerate(indice_center_clusters):
-                print(index, cen)
+                # print(index, cen)
                 self.axs_each_rep[rep, 3].text(cen[1], cen[0], str(index), horizontalalignment='center', verticalalignment='center',
                                  fontsize=13, fontweight='semibold')
 
@@ -260,13 +367,14 @@ class PlotMaker:
                                         # transparent=False, bbox_inches=None, pad_inches=0.1)
 
     def plot_each_cluster_layout_t_u_g(self, env, amdp, rep, path_results, plot_label=1, show=1, save=1):
-        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        fig = plt.figure(figsize=(5 * 3, 5 * 4))
         my_cmap = copy.copy(plt.cm.get_cmap('gist_ncar'))
         # my_cmap.set_under('k')
         # my_cmap.set_bad('lime')
         # my_cmap.set_over('dodgerblue')
         # my_cmap = 'gist_ncar'
-        asp = 'auto'
+        asp = 'equal'
+        PlotMaker.plates = {}
         if isinstance(amdp.list_of_abstract_states[0], int):
             approach = 'general'
             vmax = len(amdp.list_of_abstract_states)-1
@@ -295,9 +403,14 @@ class PlotMaker:
                         row2 = []
                         for j in range(env.size[1]):
                             current_state = (i, j, k, l, m)
+                            current_coord = (i, j)
                             if current_state in env.valid_states:
                                 a_state = amdp.get_abstract_state(current_state)
-                                if approach == 'general':
+                                if current_state == env.start_state:
+                                    row.append(vmin/2)
+                                elif current_coord == env.goal:
+                                    row.append(vmin/2)
+                                elif approach == 'general':
                                     row.append(a_state)
                                 elif approach == 'topology':
                                     row.append(int(a_state[0]))
@@ -323,27 +436,43 @@ class PlotMaker:
                     if k == 0 and l == 0 and m == 0:
                         ax = fig.add_subplot(4, 3, 11)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['000'] = plate
                     elif k == 1 and l == 0 and m == 0:
                         ax = fig.add_subplot(4, 3, 7)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['100'] = plate
                     elif k == 0 and l == 1 and m == 0:
                         ax = fig.add_subplot(4, 3, 8)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['010'] = plate
                     elif k == 0 and l == 0 and m == 1:
                         ax = fig.add_subplot(4, 3, 9)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['001'] = plate
                     elif k == 1 and l == 1 and m == 0:
                         ax = fig.add_subplot(4, 3, 4)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['110'] = plate
                     elif k == 1 and l == 0 and m == 1:
                         ax = fig.add_subplot(4, 3, 5)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['101'] = plate
                     elif k == 0 and l == 1 and m == 1:
                         ax = fig.add_subplot(4, 3, 6)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['011'] = plate
                     elif k == 1 and l == 1 and m == 1:
                         ax = fig.add_subplot(4, 3, 2)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(plate, ax)
+                        PlotMaker.plates['111'] = plate
                     if plot_label:
                         np_cluster_layout = np.array(plate2)
                         c = 0
@@ -359,7 +488,7 @@ class PlotMaker:
                                 mean = np.mean(coords, axis=0)
                                 c += 1
                                 ax.text(mean[1], mean[0], f"{str(a_state_head)}", horizontalalignment='center', verticalalignment='center',
-                                        fontsize=13, fontweight='semibold', color='k')
+                                        fontsize=9, fontweight='semibold', color='k')
                     ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
         # fig.subplots_adjust(right=0.85)
         # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
@@ -367,13 +496,16 @@ class PlotMaker:
         if show:
             fig.show()
         if save:
-            fig.savefig(f"{path_results}/building_cluster_layout_rep{rep}.png", dpi=200, facecolor='w', edgecolor='w')
+            fig.savefig(f"{path_results}/building_cluster_layout_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     def plot_each_amdp_values_t_u_g(self, env, amdp, rep, path_results, plot_label=1, show=1, save=1):
-        fig = plt.figure(figsize=(5 * 3, 4 * 4))
+        fig = plt.figure(figsize=(5 * 3, 5 * 4))
         my_cmap = copy.copy(plt.cm.get_cmap('hot'))
-        vmax = np.amax(amdp.values_of_abstract_states)
-        vmin = -0.1 * vmax
+        # vmax = np.amax(amdp.values_of_abstract_states)
+        # vmin = -0.1 * vmax
+        vmax = np.amax(amdp.values_of_abstract_states[:-1])
+        values_min = np.min(amdp.values_of_abstract_states[:-1])
+        vmin = values_min - 0.07 * (vmax - values_min)
         # vmin = 0
         my_cmap.set_under('grey')
         my_cmap.set_bad('lime')
@@ -420,27 +552,35 @@ class PlotMaker:
                     if k == 0 and l == 0 and m == 0:
                         ax = fig.add_subplot(4, 3, 11)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['000'], ax)
                     elif k == 1 and l == 0 and m == 0:
                         ax = fig.add_subplot(4, 3, 7)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['100'], ax)
                     elif k == 0 and l == 1 and m == 0:
                         ax = fig.add_subplot(4, 3, 8)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['010'], ax)
                     elif k == 0 and l == 0 and m == 1:
                         ax = fig.add_subplot(4, 3, 9)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['001'], ax)
                     elif k == 1 and l == 1 and m == 0:
                         ax = fig.add_subplot(4, 3, 4)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['110'], ax)
                     elif k == 1 and l == 0 and m == 1:
                         ax = fig.add_subplot(4, 3, 5)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['101'], ax)
                     elif k == 0 and l == 1 and m == 1:
                         ax = fig.add_subplot(4, 3, 6)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['011'], ax)
                     elif k == 1 and l == 1 and m == 1:
                         ax = fig.add_subplot(4, 3, 2)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
+                        PlotMaker.contour_rect_slow(PlotMaker.plates['111'], ax)
                     if plot_label:
                         np_cluster_layout = np.array(plate2)
                         c = 0
@@ -456,19 +596,20 @@ class PlotMaker:
                                         a_state_head = f"{a_state_[0][1]}-{a_state_[0][4]}"
                                 mean = np.mean(coords, axis=0)
                                 c += 1
-                                v_ = round(amdp.get_value(a_state_))
-                                ax.text(mean[1], mean[0], f"{str(a_state_head)}\n{str(v_)}", horizontalalignment='center', verticalalignment='center',
-                                        fontsize=10, fontweight='semibold', color='k')
+                                v_ = round(amdp.get_value(a_state_), 1)
+                                # ax.text(mean[1], mean[0], f"{str(a_state_head)}", horizontalalignment='center', verticalalignment='center',
+                                #         fontsize=9, fontweight='semibold', color='k')
                                 # ax.text(mean[1], mean[0], str(v_), horizontalalignment='center', verticalalignment='center',
                                 #         fontsize=10, fontweight='semibold', color='k')
                     ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
-        # fig.subplots_adjust(right=0.85)
-        # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
-        # fig.colorbar(im, cax=cax)
+        fig.subplots_adjust(right=0.88)
+        cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
+        fig.colorbar(im, cax=cax)
+        cax.tick_params(axis='both', labelsize='large')
         if show:
             fig.show()
         if save:
-            fig.savefig(f"{path_results}/building_solved_values_rep{rep}.png", dpi=200, facecolor='w', edgecolor='w')
+            fig.savefig(f"{path_results}/building_solved_values_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     def plot_each_flag_reward_movecount(self, flags_episodes, reward_episodes, move_count_episodes, rep, curve_label):
         rolling_window_size = int(len(flags_episodes)/30)
@@ -527,9 +668,9 @@ class PlotMaker:
         rolling_window_size = int(len(flags_episodes_repetitions[0])/30)
         if curve_label.startswith('t'):
             ls = '-'
-        elif curve_label.startswith('u'):
+        elif curve_label.startswith('U'):
             ls = '--'
-        elif curve_label.startswith('g'):
+        elif curve_label.startswith('T'):
             ls = '-'
 
         print("============Flags plotting============")
@@ -575,6 +716,7 @@ class PlotMaker:
             self.axs_mean_performance[1].set_xlabel("Episode No.")
             # self.axs_mean_performance[1].legend(loc=4)
             self.axs_mean_performance[1].grid(True)
+            self.axs_mean_performance[1].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
             # axs[0].set_title(ax_title)
             # axs[0].axvspan(0, num_explore_episodes, facecolor='green', alpha=0.5)
             # axs[1].axvspan(num_explore_episodes, second_evolution, facecolor='blue', alpha=0.5)
@@ -598,6 +740,7 @@ class PlotMaker:
         s = pd.Series(confidence_interval)
         rolled_d = pd.Series.rolling(d, window=rolling_window_size, center=False).mean()
         rolled_p = pd.Series.rolling(p, window=rolling_window_size, center=False).mean()
+        # rolled_p = p
         rolled_s = pd.Series.rolling(s, window=rolling_window_size, center=False).mean()
         self.axs_mean_performance[2].plot(rolled_p, rolled_d, linestyle=ls, label=curve_label)
         self.axs_mean_performance[2].fill_between(rolled_p, rolled_d - rolled_s, rolled_d + rolled_s, alpha=0.25)
@@ -605,10 +748,10 @@ class PlotMaker:
             self.max_steps = rolled_p.max()
         if self.current_approach_mean_performance == 0:
             self.axs_mean_performance[2].set_ylabel("reward")
-            self.axs_mean_performance[2].set_xlabel("steps")
+            self.axs_mean_performance[2].set_xlabel("accumulated steps")
             self.axs_mean_performance[2].legend(loc=4)
             self.axs_mean_performance[2].grid(True)
-            self.axs_mean_performance[2].ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
+            self.axs_mean_performance[2].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
             # axs[1].set_title(f"reward against steps over {'big' if env.big==1 else 'small'} {env.maze_name}")
             # axs[3].axvspan(0, num_explore_episodes, facecolor='green', alpha=0.5)
             # axs[3].axvspan(num_explore_episodes, second_evolution, facecolor='blue', alpha=0.5)
@@ -778,7 +921,7 @@ class ExperimentMaker:
     def _solve_amdp(self, amdp, syn=0):
         print("-----Begin solving amdp-----")
         start_amdp = time.time()
-        amdp.solve_amdp(synchronous=syn)
+        amdp.solve_amdp(synchronous=syn, monitor=0)
         end_amdp = time.time()
         solve_amdp_time = end_amdp - start_amdp
         print("solve_amdp_time:", solve_amdp_time)
@@ -847,6 +990,30 @@ class ExperimentMaker:
         print("-----Finish Ground Learning-----")
 
         return agent_q
+
+    def _pickler(self, approach):
+        os.makedirs(f"{self.path_results}/performance", exist_ok=True)
+        with open(f"{self.path_results}/performance/flags_eps_reps.pkl", 'wb') as f:
+            pickle.dump(self.flags_episodes_repetitions, f)
+        with open(f"{self.path_results}/performance/rewards_eps_reps.pkl", 'wb') as f:
+            pickle.dump(self.reward_episodes_repetitions, f)
+        with open(f"{self.path_results}/performance/mc_eps_reps.pkl", 'wb') as f:
+            pickle.dump(self.move_count_episodes_repetitions, f)
+
+        os.makedirs(f"{self.path_results}/times_reps", exist_ok=True)
+        with open(f"{self.path_results}/times_reps/experiment.pkl", 'wb') as f:
+            pickle.dump(self.experiment_time_repetitions, f)
+        with open(f"{self.path_results}/times_reps/solve_amdp.pkl", 'wb') as f:
+            pickle.dump(self.solve_amdp_time_repetitions, f)
+        with open(f"{self.path_results}/times_reps/ground_learning.pkl", 'wb') as f:
+            pickle.dump(self.ground_learning_time_repetitions, f)
+        if approach == 'g' or approach == 't':
+            with open(f"{self.path_results}/times_reps/exploration.pkl", 'wb') as f:
+                pickle.dump(self.exploration_time_repetitions, f)
+            with open(f"{self.path_results}/times_reps/solve_w2v.pkl", 'wb') as f:
+                pickle.dump(self.solve_word2vec_time_repetitions, f)
+            with open(f"{self.path_results}/times_reps/solve_kmeans.pkl", 'wb') as f:
+                pickle.dump(self.solve_kmeans_time_repetitions, f)
 
 class TopologyExpMaker(ExperimentMaker):
     def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
@@ -949,6 +1116,13 @@ class TopologyExpMaker(ExperimentMaker):
                     # beta = ep / num_explore_episodes
                     # r = (1 - beta) * r1 + (beta) * r2
                     # r = (1 - beta) * r2 + (beta) * r1
+                    # r2 = env.reward(env.state, a, new_state)
+                    # if r2 < -1:
+                    #     r = r1 * 10 + r2
+                    #     # print("trap, r:", r)
+                    # else:
+                    #     r = r1
+                    #     r *= 10
                     r = r1
                     r *= 10
                     a_prime = agent_e.policy_explore_rl(new_state, env.actions(new_state))
@@ -982,9 +1156,10 @@ class TopologyExpMaker(ExperimentMaker):
             if self.explore_config['ds_factor'] == 1:
                 self.sentences_period.append(track)
             else:
-                down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
-                                math.floor(len(track) * self.explore_config['ds_factor'])))]
-                self.sentences_period.append(down_sampled)
+                for _ in range(4):
+                    down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
+                                    math.floor(len(track) * self.explore_config['ds_factor'])))]
+                    self.sentences_period.append(down_sampled)
 
         end_exploration = time.time()
         exploration_time = end_exploration - start_exploration
@@ -999,8 +1174,6 @@ class TopologyExpMaker(ExperimentMaker):
         print("longlife_exploration_sum:", np.sum(agent_e.states_long_life[agent_e.states_long_life > 0]))
 
         # check sentences_period
-        from itertools import chain
-        from collections import Counter
         print("len of self.sentences_period:", len(self.sentences_period))
         flatten_list = list(chain.from_iterable(self.sentences_period))
         counter_dict = Counter(flatten_list)
@@ -1133,9 +1306,9 @@ class TopologyExpMaker(ExperimentMaker):
 
             # build and solve amdp
             amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=None, gensim_opt=gensim_opt)
-            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results, save=0)
             self._solve_amdp(amdp)
-            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
+            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, save=0)
 
             # ground learning
             self._ground_learning(amdp)
@@ -1170,7 +1343,7 @@ class TopologyExpMaker(ExperimentMaker):
                                                       self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
                                                       bar_label=curve_label)
 
-        self._results_upload()
+        # self._results_upload()
 
 class UniformExpMaker(ExperimentMaker):
     def __init__(self, env_name: str, big: int, tiling_size: tuple, q_eps: int, repetitions: int, interpreter: str,
@@ -1271,9 +1444,9 @@ class UniformExpMaker(ExperimentMaker):
 
             # build and solve amdp
             amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=self.tiling_size, gensim_opt=None)
-            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results, save=1)
             self._solve_amdp(amdp)
-            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
+            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, save=1)
 
             # ground learning
             self._ground_learning(amdp)
@@ -1304,7 +1477,8 @@ class UniformExpMaker(ExperimentMaker):
             self.plot_maker.plot_mean_time_comparison(self.experiment_time_repetitions, self.solve_amdp_time_repetitions,
                                                       self.ground_learning_time_repetitions, bar_label=curve_label)
 
-        self._results_upload()
+        # self._results_upload()
+        self._pickler(approach='u')
 
 class GeneralExpMaker(ExperimentMaker):
     def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
@@ -1406,6 +1580,13 @@ class GeneralExpMaker(ExperimentMaker):
                     # beta = ep / num_explore_episodes
                     # r = (1 - beta) * r1 + (beta) * r2
                     # r = (1 - beta) * r2 + (beta) * r1
+                    # r2 = env.reward(env.state, a, new_state)
+                    # if r2 < -1:
+                    #     r = r1*10 + r2
+                    #     # print("trap, r:", r)
+                    # else:
+                    #     r = r1
+                    #     r *= 10
                     r = r1
                     r *= 10
                     a_prime = agent_e.policy_explore_rl(new_state, env.actions(new_state))
@@ -1440,9 +1621,10 @@ class GeneralExpMaker(ExperimentMaker):
                 self.sentences_period.append(track)
                 self.sentences_period_complete.append(track)
             else:
-                down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
-                                math.floor(len(track) * self.explore_config['ds_factor'])))]
-                self.sentences_period.append(down_sampled)
+                for _ in range(2):
+                    down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
+                                    math.floor(len(track) * self.explore_config['ds_factor'])))]
+                    self.sentences_period.append(down_sampled)
                 self.sentences_period_complete.append(track)
 
             # print("np.std(agent.states_episodic):", np.std(agent.states_episodic[agent.states_episodic > 0]))
@@ -1459,8 +1641,6 @@ class GeneralExpMaker(ExperimentMaker):
         print("longlife_exploration_sum:", np.sum(agent_e.states_long_life[agent_e.states_long_life > 0]))
 
         # check sentences_period
-        from itertools import chain
-        from collections import Counter
         print("len of self.sentences_period:", len(self.sentences_period))
         flatten_list = list(chain.from_iterable(self.sentences_period))
         counter_dict = Counter(flatten_list)
@@ -1493,84 +1673,101 @@ class GeneralExpMaker(ExperimentMaker):
         print("-----Finish w2v and k-means-----")
         return gensim_opt
 
-    def _ground_learning_evo(self, amdp, evo, ds_factor):
-        print("-----Begin Ground Learning EVO-----")
-        start_ground_learning = time.time()
-        agent_q = QLambdaBrain(env=self.env, ground_learning_config=self.ground_learning_config)
-        env = self.env
-        for evo_ in range(evo):
-            print(f"---start evo {evo_}----")
-            for ep in range(self.ground_learning_config['q_eps']):
-                if (ep + 1) % 100 == 0:
-                    print(f"episode_100: {ep} | avg_move_count: {int(np.mean(self.move_count_episodes[-100:]))} | "
-                          f"avd_reward: {int(np.mean(self.reward_episodes[-100:]))} | "
-                          f"env.state: {env.state} | "
-                          f"env.flagcollected: {env.flags_collected} | "
-                          f"agent.epsilon: {agent_q.epsilon} | "
-                          f"agent.lr: {agent_q.lr}")
-                # set epsilon
-                epsilon_q_max = self.ground_learning_config['epsilon_q_max']
-                temp_epsilon = epsilon_q_max/(evo_+1) - (epsilon_q_max/(evo_+1) / self.ground_learning_config['q_eps']) * ep
-                if temp_epsilon > 0.1:
-                    agent_q.epsilon = round(temp_epsilon, 5)
-
-                env.reset()
-                agent_q.reset_eligibility()
-                episode_reward = 0
-                move_count = 0
-                track = [str((env.state[0], env.state[1]))]
-                a = agent_q.policy(env.state, env.actions(env.state))
-                while not env.isTerminal(env.state):
-                    abstract_state = amdp.get_abstract_state(env.state)
-                    new_state = env.step(env.state, a)
-                    move_count += 1
-                    track.append(str((new_state[0], new_state[1])))
-                    new_abstract_state = amdp.get_abstract_state(new_state)
-                    a_prime = agent_q.policy(new_state, env.actions(new_state))  ##Greedy next-action selected
-                    a_star = agent_q.policyNoRand(new_state, env.actions(new_state))
-                    r = env.reward(env.state, a, new_state)  ## ground level reward
-                    episode_reward += r
-
-                    value_new_abstract_state = amdp.get_value(new_abstract_state)
-                    value_abstract_state = amdp.get_value(abstract_state)
-                    shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
-                              self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
-                    # shaping = 0
-                    agent_q.learn(env.state, a, new_state, a_prime, a_star, r + shaping)
-
-                    env.state = new_state
-                    a = a_prime
-
-                self.reward_episodes.append(episode_reward)
-                self.flags_episodes.append(env.flags_collected)
-                self.move_count_episodes.append(move_count)
-                self.flags_found_order_episodes.append(env.flags_found_order)
-
-                self.epsilons_episodes.append(agent_q.epsilon)
-                self.gamma_episodes.append(agent_q.gamma)
-                self.lr_episodes.append(agent_q.lr)
-
-                if ds_factor == 1:
-                    self.sentences_period.append(track)
-                else:
-                    down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
-                                    math.floor(len(track) * self.explore_config['ds_factor'])))]
-                    self.sentences_period.append(down_sampled)
-
-            self.sentences_collected.extend(self.sentences_period)
-            self.sentences_period = []
-            if evo_ == evo-1:
-                gensim_opt = self._w2v_and_kmeans()
-                amdp = self._build_and_solve_amdp(gensim_opt=gensim_opt, general=1)
-
-        end_ground_learning = time.time()
-        ground_learning_time = end_ground_learning - start_ground_learning
-        print("ground_learning_time:", ground_learning_time)
-        self.ground_learning_time_repetitions.append(ground_learning_time)
-
-        print("-----Finish Ground Learning-----")
-
-        return agent_q
+    # def _ground_learning_evo(self, amdp, evo, ds_factor):       # not actually  perfect to use
+    #     print("-----Begin Ground Learning EVO-----")
+    #     start_ground_learning = time.time()
+    #     agent_q = QLambdaBrain(env=self.env, ground_learning_config=self.ground_learning_config)
+    #     env = self.env
+    #     for evo_ in range(evo+1):
+    #         print(f"---start evo {evo_}----")
+    #         for ep in range(self.ground_learning_config['q_eps']):
+    #             if (ep + 1) % 100 == 0:
+    #                 print(f"episode_100: {ep} | avg_move_count: {int(np.mean(self.move_count_episodes[-100:]))} | "
+    #                       f"avd_reward: {int(np.mean(self.reward_episodes[-100:]))} | "
+    #                       f"env.state: {env.state} | "
+    #                       f"env.flagcollected: {env.flags_collected} | "
+    #                       f"agent.epsilon: {agent_q.epsilon} | "
+    #                       f"agent.lr: {agent_q.lr}")
+    #             # set epsilon
+    #             epsilon_q_max = self.ground_learning_config['epsilon_q_max']
+    #             temp_epsilon = epsilon_q_max/(evo_+1) - (epsilon_q_max/(evo_+1) / self.ground_learning_config['q_eps']) * ep
+    #             # temp_epsilon = epsilon_q_max - (epsilon_q_max / self.ground_learning_config['q_eps']) * ep
+    #             if temp_epsilon > 0.1:
+    #                 agent_q.epsilon = round(temp_epsilon, 5)
+    #
+    #             env.reset()
+    #             agent_q.reset_eligibility()
+    #             # agent_q.reset_episodic_staff()
+    #             episode_reward = 0
+    #             move_count = 0
+    #             track = [str(env.state)]
+    #             a = agent_q.policy(env.state, env.actions(env.state))
+    #             while not env.isTerminal(env.state):
+    #                 # agent_q.states_episodic[env.state[0], env.state[1], env.state[2], env.state[3], env.state[4]] += 1
+    #                 abstract_state = amdp.get_abstract_state(env.state)
+    #                 new_state = env.step(env.state, a)
+    #                 move_count += 1
+    #                 track.append(str(new_state))
+    #                 new_abstract_state = amdp.get_abstract_state(new_state)
+    #                 a_prime = agent_q.policy(new_state, env.actions(new_state))  ##Greedy next-action selected
+    #                 a_star = agent_q.policyNoRand(new_state, env.actions(new_state))
+    #                 r = env.reward(env.state, a, new_state)  ## ground level reward
+    #                 episode_reward += r
+    #                 # if agent_q.states_episodic[env.state[0], env.state[1], env.state[2], env.state[3], env.state[4]] < 1:
+    #                 #     r += 100
+    #
+    #                 value_new_abstract_state = amdp.get_value(new_abstract_state)
+    #                 value_abstract_state = amdp.get_value(abstract_state)
+    #                 shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
+    #                           self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
+    #                 # shaping = 0
+    #                 if evo_ == 0:
+    #                     agent_q.learn(env.state, a, new_state, a_prime, a_star, r + shaping)
+    #                 else:
+    #                     agent_q.learn_sarsa(env.state, a, new_state, a_prime, r + shaping)
+    #                 env.state = new_state
+    #                 a = a_prime
+    #
+    #             self.reward_episodes.append(episode_reward)
+    #             self.flags_episodes.append(env.flags_collected)
+    #             self.move_count_episodes.append(move_count)
+    #             self.flags_found_order_episodes.append(env.flags_found_order)
+    #
+    #             self.epsilons_episodes.append(agent_q.epsilon)
+    #             self.gamma_episodes.append(agent_q.gamma)
+    #             self.lr_episodes.append(agent_q.lr)
+    #
+    #             if ds_factor == 1:
+    #                 self.sentences_period.append(track)
+    #                 self.sentences_period_complete.append(track)
+    #             else:
+    #                 for _ in range(10):
+    #                     down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
+    #                                     math.floor(len(track) * self.explore_config['ds_factor'])))]
+    #                     for i in range(0, len(down_sampled), 50):
+    #                         self.sentences_period.append(down_sampled[i:i+50])
+    #                 self.sentences_period_complete.append(track)
+    #         last_percentage = int(len(self.sentences_period)/3)
+    #         print("len(self.sentences_period):",len(self.sentences_period))
+    #         for _ in range(1):
+    #             self.sentences_collected.extend(self.sentences_period[-last_percentage:])
+    #         self.sentences_period = []
+    #         if evo_ < evo:
+    #             gensim_opt = self._w2v_and_kmeans()
+    #             rep = 0
+    #             amdp = AMDP_General(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt)
+    #             self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results, save=0)
+    #             self._solve_amdp(amdp)
+    #             self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, save=0)
+    #
+    #     end_ground_learning = time.time()
+    #     ground_learning_time = end_ground_learning - start_ground_learning
+    #     print("ground_learning_time:", ground_learning_time)
+    #     self.ground_learning_time_repetitions.append(ground_learning_time)
+    #
+    #     print("-----Finish Ground Learning-----")
+    #
+    #     return agent_q
 
     def _results_upload(self):
         print("============upload experiments details to google sheets============")
@@ -1660,14 +1857,15 @@ class GeneralExpMaker(ExperimentMaker):
 
             # build and solve amdp
             amdp = AMDP_General(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt)
-            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
             self._solve_amdp(amdp)
-            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
+            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
             # ground learning
-            if evo == 0:
-                self._ground_learning(amdp)
-            elif evo > 0:
-                self._ground_learning_evo(amdp, evo, 0.5)
+            self._ground_learning(amdp)
+            # if evo == 0:
+            #     self._ground_learning(amdp)
+            # elif evo > 0:
+            #     self._ground_learning_evo(amdp, evo, 0.5)
 
             # experiment timing ends and saved
             end_experiment = time.time()
@@ -1699,7 +1897,8 @@ class GeneralExpMaker(ExperimentMaker):
                                                       self.solve_word2vec_time_repetitions, self.solve_kmeans_time_repetitions,
                                                       bar_label=curve_label)
 
-        self._results_upload()
+        # self._results_upload()
+        self._pickler(approach='g')
 
 if __name__ == "__main__":
     maze = 'basic'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
