@@ -249,6 +249,7 @@ class AMDP_Topology_Uniform:
                 # normal transition, nothing happens
                 if self.list_of_abstract_states[j] in ajacency_of_i:
                     transition[j, i, j] = 1
+                    # rewards[j, i, j] = -1
                     # print("set normal transition:",[j, i, j])
 
                 # flag collection transition
@@ -260,6 +261,7 @@ class AMDP_Topology_Uniform:
                             s_prime[1 + f] = 1
                             if self.list_of_abstract_states[j] == s_prime:
                                 transition[j, i, j] = 1
+                                # rewards[j, i, j] = -1
                                 # print("set flag transition:",[num_of_abstract_state + f, i, j])
 
 
@@ -271,7 +273,7 @@ class AMDP_Topology_Uniform:
                     transition[-1, i, -1] = 1
                     # print("goal transition set!!!")
                     # print("set goal transition:",[-1, i, -1])
-
+        # rewards[-1, -1, -1] = 0
         # self.transition = transition
         # print("where T1!=T2:",np.array_equal(transition,transition2))
         # print("self.transition:",self.transition)
@@ -293,7 +295,7 @@ class AMDP_Topology_Uniform:
         # self.rewards[-1,-1,-1]=1
         return transition, rewards
 
-    def solve_amdp(self, synchronous=0):   # streamlined solve_amdp
+    def solve_amdp(self, synchronous=0, monitor=0):   # streamlined solve_amdp
         print('length of self.list_of_abstract_states:', len(self.list_of_abstract_states))
         print('self.list_of_abstract_states:', self.list_of_abstract_states)
         values = np.zeros(len(self.list_of_abstract_states))
@@ -311,6 +313,7 @@ class AMDP_Topology_Uniform:
                 v = values[i]
                 list_of_values = []
                 for a in range(len(values)):
+                    # if self.transition_table[a, i, a] != 0:
                     value = self.transition_table[a, i, a] * (self.rewards_table[a, i, a] + 0.99 * values[a])
                     list_of_values.append(value)
                 if synchronous:
@@ -322,7 +325,8 @@ class AMDP_Topology_Uniform:
             print("delta:", delta)
             if synchronous:
                 values = copy.deepcopy(values2)
-            # self.plot_current_values(self.env, values)           # plot current values
+            if monitor:
+                self.plot_current_values(self.env, values)           # plot current values
         # print(V)
         values -= min(values[:-1])
         self.values_of_abstract_states = values
@@ -331,7 +335,7 @@ class AMDP_Topology_Uniform:
         # print(len(self.list_of_abstract_states), len(self.values_of_abstract_states))
         self.dict_as_v = dict(zip((str(i) for i in self.list_of_abstract_states), self.values_of_abstract_states))
         print("self.dict_as_v:")
-        pprint(self.dict_as_v)
+        print(self.dict_as_v)
 
     def plot_current_values(self, env, values, plot_label=1):
         import matplotlib.pyplot as plt
@@ -482,7 +486,9 @@ class AMDP_General:
                     cluster_label2 = self.get_abstract_state(sentence[i+1])
                     if not cluster_label1 == cluster_label2:
                         transition[cluster_label2, cluster_label1, cluster_label2] = 1
+                        # transition[cluster_label2, cluster_label1, cluster_label1] = 0.2
                         # transition[cluster_label1, cluster_label2, cluster_label1] = 1
+                        # rewards[cluster_label2, cluster_label1, cluster_label2] = -1
                 else:
                     # index1 = self.list_of_ground_states.index(sentence[i])
                     # cluster_label1 = self.list_of_abstract_states[index1]
@@ -490,12 +496,13 @@ class AMDP_General:
                 state_in_tuple = eval(sentence[i])
                 if state_in_tuple == (self.goal[0], self.goal[1], 1, 1, 1):
                     transition[-1, cluster_label1, -1] = 1
-                    rewards[-1, cluster_label1, -1] = 3000
+                    rewards[-1, cluster_label1, -1] = 3000  #to comment when highest value is 0
+        # transition[-1, -1, -1] = 1  #when highest value is 0, other max(list_of_values) report error of empty sequence
         self.num_abstract_states = num_abstract_states
         self.transition = transition
         self.rewards = rewards
 
-    def solve_amdp(self, synchronous=0):
+    def solve_amdp(self, synchronous=0, monitor=0):
         values = np.zeros(self.num_abstract_states)
         if synchronous:
             values2 = copy.deepcopy(values)
@@ -509,8 +516,9 @@ class AMDP_General:
                 v = values[i]
                 list_of_values = []
                 for a in range(len(values)):
-                    value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
-                    list_of_values.append(value)
+                    # if self.transition[a, i, a] != 0:  #  when highest value is 0
+                        value = self.transition[a, i, a] * (self.rewards[a, i, a] + 0.99 * values[a])
+                        list_of_values.append(value)
                 if synchronous:
                     values2[i] = max(list_of_values)
                     delta = max(delta, abs(v - values2[i]))
@@ -520,16 +528,17 @@ class AMDP_General:
             print("delta:", delta)
             if synchronous:
                 values = copy.deepcopy(values2)
-            # self.plot_current_values(self.env, values)            # plot current values
-        # print(V)
-        values -= min(values[:-1])
+            if monitor:
+                self.plot_current_values(self.env, values)            # plot current values
+        # print(values)
+        # values -= min(values[:-1])      #to comment when highest value is 0
         self.values_of_abstract_states = values
         # print("self.values_of_abstract_states:")
         # print(self.values_of_abstract_states)
         # print(len(self.list_of_abstract_states), len(self.values_of_abstract_states))
         self.dict_as_v = dict(zip((str(i) for i in self.list_of_abstract_states), self.values_of_abstract_states))
         print("self.dict_as_v:")
-        pprint(self.dict_as_v)
+        print(self.dict_as_v)
 
     def solve_amdp_asynchronous(self):
         values = np.zeros(self.num_abstract_states)

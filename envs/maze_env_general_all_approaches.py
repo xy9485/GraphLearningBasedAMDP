@@ -85,6 +85,19 @@ class Maze:
                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F]]
             room_layout = np.array(room_layout)
             # self.walls = np.argwhere(roomLayout == 'w').tolist()
+        elif self.maze_name == "simple":
+            room_layout = [[D, D, D, F, F, F, F, F, F, F, W, H, H, H, H, H],  ## simple2
+                           [D, D, D, W, F, F, F, F, F, F, H, H, H, H, H, H],
+                           [D, D, D, W, F, F, F, F, F, F, W, H, H, H, H, H],
+                           [D, W, W, W, W, W, W, W, W, W, W, H, H, H, H, H],
+                           [G, G, G, G, G, G, G, W, E, E, W, H, H, H, H, H],
+                           [G, G, G, G, G, G, G, G, E, E, W, H, H, H, H, H],
+                           [G, G, G, G, G, G, G, G, E, E, W, W, W, W, B, B],
+                           [W, W, W, G, G, G, G, W, E, E, E, E, E, W, B, B],
+                           [A, A, W, W, W, W, W, W, E, E, E, E, E, W, B, B],
+                           [A, A, C, C, C, C, C, C, E, E, E, E, E, W, B, B],
+                           [A, A, W, C, C, C, C, C, E, E, E, E, E, W, B, B]]
+            room_layout = np.array(room_layout)
 
         elif self.maze_name == 'strips':
             room_layout = [[A, A, W, B, B, W, C, C, W, D, D, D, W, E, E, W, F, F, W, G],  ## Strips
@@ -314,22 +327,26 @@ class Maze:
             # self.flags = [(0, 5), (15, 0), (15, 20)]
             # self.goal = (14, 1)
 
-            # self.state = (6, 1, 0, 0, 0)        # v2
-            # self.flags = [(0, 5), (0, 7), (4, 20)]
-            # self.goal = (14, 1)
+            self.state = (6, 1, 0, 0, 0)        # v2
+            self.flags = [(0, 5), (0, 7), (4, 20)]
+            self.goal = (14, 1)
 
             # self.state = (6, 1, 0, 0, 0)        # v3
             # self.flags = [(0, 5), (1, 14), (1, 16)]
             # self.goal = (14, 1)
 
-            self.state = (6, 1, 0, 0, 0)        # v4
-            self.flags = [(0, 5), (15, 7), (1, 16)]
-            self.goal = (15, 18)
+            # self.state = (6, 1, 0, 0, 0)        # v4
+            # self.flags = [(0, 5), (15, 7), (1, 16)]
+            # self.goal = (15, 18)
 
             # self.state = (15, 0, 0, 0, 0)    # v5
             # self.flags = [(10, 14), (0, 7), (0, 16)]
             # self.goal = (0, 5)
             # self.traps = [(15, 7), (15, 8)]
+        elif self.maze_name == "simple":
+            self.state = (2, 2, 0, 0, 0)  # v2
+            self.flags = [(0, 1), (0, 2), (0, 3)]
+            self.goal = (1, 1)
         elif self.maze_name == 'strips':
             self.state = (0, 0, 0, 0, 0)
             self.flags = [(15, 11), (19, 0), (4, 19)]
@@ -343,18 +360,18 @@ class Maze:
             # self.flags = [(0, 19), (15, 6), (6, 6)]
             # self.goal = (13, 13)
 
-            # self.state = (19, 0, 0, 0, 0)       #v2
-            # self.flags = [(0, 19), (15, 6), (10, 10)]
-            # self.goal = (0, 0)
+            self.state = (19, 0, 0, 0, 0)       #v2
+            self.flags = [(0, 19), (15, 6), (10, 10)]
+            self.goal = (0, 0)
 
-            self.state = (19, 0, 0, 0, 0)         # v3
-            self.flags = [(3, 3), (16, 16), (10, 10)]
-            self.goal = (16, 18)
+            # self.state = (19, 0, 0, 0, 0)         # v3
+            # self.flags = [(3, 3), (16, 16), (10, 10)]
+            # self.goal = (16, 18)
         elif self.maze_name == 'open_space':
             self.state = (19, 0, 0, 0, 0)
             self.flags = [(0, 0), (2, 17), (13, 14)]
-            self.goal = (19, 3)
-            # self.goal = (5, 3)   # 纯属试一试
+            # self.goal = (19, 3)  # v1
+            self.goal = (19, 19)   # v2
         elif self.maze_name == 'high_connectivity':
             self.state = (19, 0, 0, 0, 0)
             self.flags = [(0, 1), (2, 18), (5, 6)]
@@ -494,6 +511,7 @@ class Maze:
         if str([state_prime[0], state_prime[1]]) in self.traps:
             return -100000
         if (state_prime[0], state_prime[1]) == self.goal and self.flags_collected == 3:
+        # if (state_prime[0], state_prime[1]) == self.goal:
             # return self.flags_collected * 1000
             return 0
         return -1

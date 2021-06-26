@@ -166,6 +166,9 @@ class PlotMaker:
         # my_cmap.set_under('k')
         ax.imshow(room_layout, vmax=vmax, vmin=vmin, aspect='equal', cmap=my_cmap)
         # ax.tick_params(axis='both', labelsize=16)
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        ax.tick_params(axis='both', which='both', length=0)
         PlotMaker.contour_rect_slow(room_layout, ax)
         if plot_label == 1:
             indice_room_centers = []
@@ -180,8 +183,7 @@ class PlotMaker:
         if show:
             fig.show()
         if save:
-            fig.savefig(f"./img_manual_room_layout/{env.maze_name}_big{env.big}_v{version}.png", dpi=300, facecolor='w', edgecolor='w',
-                        orientation='portrait', format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
+            fig.savefig(f"./img_manual_room_layout/{env.maze_name}_big{env.big}_v{version}.png", dpi=300, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     def plot_each_heatmap(self, agent_e, rep, ax_title):
         # plot heatmap
@@ -227,17 +229,21 @@ class PlotMaker:
                         ax = fig.add_subplot(4, 3, 2)
                         im = ax.imshow(hm, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
                     ax.set_title(f"{k}-{l}-{m}", fontsize=15, fontweight='semibold')
+                    plt.setp(ax.get_xticklabels(), visible=False)
+                    plt.setp(ax.get_yticklabels(), visible=False)
+                    ax.tick_params(axis='both', which='both', length=0)
         # fig.set_tight_layout(False)
         fig.subplots_adjust(right=0.88)
         cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
         fig.colorbar(im, cax=cax)
-        cax.tick_params(axis='both', labelsize='large')
+        cax.tick_params(axis='both', labelsize=20)
 
         # fig.set_tight_layout(True)
         if show:
             fig.show()
         if save:
-            fig.savefig(f"{path_results}/building_heatmap_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
+            os.makedirs(f"{path_results}/building", exist_ok=True)
+            fig.savefig(f"{path_results}/building/building_heatmap_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     def plot_each_cluster_layout(self, gensim_opt, num_clusters, rep, ax_title, plot_label=1):
         copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
@@ -473,6 +479,9 @@ class PlotMaker:
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
                         PlotMaker.contour_rect_slow(plate, ax)
                         PlotMaker.plates['111'] = plate
+                    plt.setp(ax.get_xticklabels(), visible=False)
+                    plt.setp(ax.get_yticklabels(), visible=False)
+                    ax.tick_params(axis='both', which='both', length=0)
                     if plot_label:
                         np_cluster_layout = np.array(plate2)
                         c = 0
@@ -488,7 +497,7 @@ class PlotMaker:
                                 mean = np.mean(coords, axis=0)
                                 c += 1
                                 ax.text(mean[1], mean[0], f"{str(a_state_head)}", horizontalalignment='center', verticalalignment='center',
-                                        fontsize=9, fontweight='semibold', color='k')
+                                        fontsize=12, fontweight='semibold', color='k')
                     ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
         # fig.subplots_adjust(right=0.85)
         # cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
@@ -496,9 +505,10 @@ class PlotMaker:
         if show:
             fig.show()
         if save:
-            fig.savefig(f"{path_results}/building_cluster_layout_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
+            os.makedirs(f"{path_results}/building_{approach}", exist_ok=True)
+            fig.savefig(f"{path_results}/building_{approach}/building_cluster_layout_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
-    def plot_each_amdp_values_t_u_g(self, env, amdp, rep, path_results, plot_label=1, show=1, save=1):
+    def plot_each_amdp_values_t_u_g(self, env, amdp, rep, path_results, approach, plot_label=1, show=1, save=1):
         fig = plt.figure(figsize=(5 * 3, 5 * 4))
         my_cmap = copy.copy(plt.cm.get_cmap('hot'))
         # vmax = np.amax(amdp.values_of_abstract_states)
@@ -510,7 +520,7 @@ class PlotMaker:
         my_cmap.set_under('grey')
         my_cmap.set_bad('lime')
         my_cmap.set_over('dodgerblue')
-        asp = 'auto'
+        asp = 'equal'
         for k in range(2):
             for l in range(2):
                 for m in range(2):
@@ -581,6 +591,9 @@ class PlotMaker:
                         ax = fig.add_subplot(4, 3, 2)
                         im = ax.imshow(plate, vmin=vmin, vmax=vmax, aspect=asp, cmap=my_cmap)
                         PlotMaker.contour_rect_slow(PlotMaker.plates['111'], ax)
+                    plt.setp(ax.get_xticklabels(), visible=False)
+                    plt.setp(ax.get_yticklabels(), visible=False)
+                    ax.tick_params(axis='both', which='both', length=0)
                     if plot_label:
                         np_cluster_layout = np.array(plate2)
                         c = 0
@@ -599,25 +612,26 @@ class PlotMaker:
                                 v_ = round(amdp.get_value(a_state_), 1)
                                 # ax.text(mean[1], mean[0], f"{str(a_state_head)}", horizontalalignment='center', verticalalignment='center',
                                 #         fontsize=9, fontweight='semibold', color='k')
-                                # ax.text(mean[1], mean[0], str(v_), horizontalalignment='center', verticalalignment='center',
-                                #         fontsize=10, fontweight='semibold', color='k')
-                    ax.set_title(f"{k}-{l}-{m}-c{c}", fontsize=15, fontweight='semibold')
+                                ax.text(mean[1], mean[0], str(v_), horizontalalignment='center', verticalalignment='center',
+                                        fontsize=10, fontweight='semibold', color='k')
+                    ax.set_title(f"{k}-{l}-{m}", fontsize=15, fontweight='semibold')
         fig.subplots_adjust(right=0.88)
         cax = fig.add_axes([0.9, 0.23, 0.03, 0.5])
         fig.colorbar(im, cax=cax)
-        cax.tick_params(axis='both', labelsize='large')
+        cax.tick_params(axis='both', labelsize=20)
         if show:
             fig.show()
         if save:
-            fig.savefig(f"{path_results}/building_solved_values_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
+            os.makedirs(f"{path_results}/building_{approach}", exist_ok=True)
+            fig.savefig(f"{path_results}/building_{approach}/building_solved_values_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     def plot_each_flag_reward_movecount(self, flags_episodes, reward_episodes, move_count_episodes, rep, curve_label):
         rolling_window_size = int(len(flags_episodes)/30)
         if curve_label.startswith('t'):
             ls = '-'
-        elif curve_label.startswith('u'):
+        elif curve_label.startswith('U'):
             ls = '--'
-        elif curve_label.startswith('g'):
+        elif curve_label.startswith('T'):
             ls = '-'
 
         d1 = pd.Series(flags_episodes)
@@ -643,6 +657,7 @@ class PlotMaker:
         self.axs_each_rep[rep, 1].set_title(f"reward curve of rep{rep}")
         self.axs_each_rep[rep, 1].legend(loc=4)
         self.axs_each_rep[rep, 1].grid(True)
+        self.axs_each_rep[rep, 1].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
         # axs[rep, 1].axvspan(0, num_explore_episodes, facecolor='green', alpha=0.5 / num_of_repetitions)
         # axs[rep, 1].axvspan(num_explore_episodes, second_evolution, facecolor='blue',alpha=0.5/num_of_repetitions)
         self.axs_each_rep[rep, 1].axis([0, None, None, 35000])
@@ -655,6 +670,7 @@ class PlotMaker:
         self.axs_each_rep[rep, 2].set_title(f"move_count curve of rep{rep}")
         self.axs_each_rep[rep, 2].legend(loc=1)
         self.axs_each_rep[rep, 2].grid(True)
+        self.axs_each_rep[rep, 2].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
         # axs[rep, 2].axvspan(0, num_explore_episodes, facecolor='green', alpha=0.5 / num_of_repetitions)
         # axs[rep, 2].axvspan(num_explore_episodes, second_evolution, facecolor='blue', alpha=0.5/num_of_repetitions)
         self.axs_each_rep[rep, 2].axis([0, None, None, None])
@@ -669,10 +685,12 @@ class PlotMaker:
         if curve_label.startswith('t'):
             ls = '-'
         elif curve_label.startswith('U'):
-            ls = '--'
+            ls = '-'
         elif curve_label.startswith('T'):
             ls = '-'
 
+        fs = 17
+        fs2 = 13
         print("============Flags plotting============")
         mean_by_rep_flags = np.mean(flags_episodes_repetitions, axis=0)
         std_by_rep_flags = np.std(flags_episodes_repetitions, axis=0)
@@ -689,14 +707,17 @@ class PlotMaker:
         self.axs_mean_performance[0].plot(np.arange(len(rolled_d)), rolled_d, linestyle=ls, label=curve_label)
         self.axs_mean_performance[0].fill_between(np.arange(len(rolled_d)), rolled_d - rolled_s, rolled_d + rolled_s, alpha=0.25)
         if self.current_approach_mean_performance == 0:
-            self.axs_mean_performance[0].set_ylabel("No. Of Flags Collected")
-            self.axs_mean_performance[0].set_xlabel("Episode No.")
+            self.axs_mean_performance[0].set_ylabel("Flags", fontsize=fs)
+            self.axs_mean_performance[0].set_xlabel("Episode", fontsize=fs)
             # self.axs_mean_performance[0].legend(loc=4)
             self.axs_mean_performance[0].grid(True)
             # self.axs_mean_performance[0].set_title(ax_title)
             # self.axs_mean_performance[0].axvspan(0, num_explore_episodes, facecolor='green', alpha=0.5)
             # axs[0].axvspan(num_explore_episodes,second_evolution, facecolor='blue', alpha=0.5)
             self.axs_mean_performance[0].axis([0, None, 0, 3.5])
+            self.axs_mean_performance[0].tick_params(axis='both', labelsize=fs2)
+            self.axs_mean_performance[0].xaxis.get_offset_text().set_fontsize('large')
+            self.axs_mean_performance[0].yaxis.get_offset_text().set_fontsize('large')
 
         print("============Reward plotting============")
         mean_by_rep_reward = np.mean(reward_episodes_repetitions, axis=0)
@@ -712,8 +733,8 @@ class PlotMaker:
         self.axs_mean_performance[1].plot(np.arange(len(rolled_d)), rolled_d, linestyle=ls, label=curve_label)
         self.axs_mean_performance[1].fill_between(np.arange(len(rolled_d)), rolled_d - rolled_s, rolled_d + rolled_s, alpha=0.25)
         if self.current_approach_mean_performance == 0:
-            self.axs_mean_performance[1].set_ylabel("reward")
-            self.axs_mean_performance[1].set_xlabel("Episode No.")
+            self.axs_mean_performance[1].set_ylabel("Reward", fontsize=fs)
+            self.axs_mean_performance[1].set_xlabel("Episode", fontsize=fs)
             # self.axs_mean_performance[1].legend(loc=4)
             self.axs_mean_performance[1].grid(True)
             self.axs_mean_performance[1].ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
@@ -722,6 +743,9 @@ class PlotMaker:
             # axs[1].axvspan(num_explore_episodes, second_evolution, facecolor='blue', alpha=0.5)
             # axs[1].set(xlim=(0, num_total_episodes))
             self.axs_mean_performance[1].axis([0, None, None, 35000])
+            self.axs_mean_performance[1].tick_params(axis='both', labelsize=fs2)
+            self.axs_mean_performance[1].xaxis.get_offset_text().set_fontsize('large')
+            self.axs_mean_performance[1].yaxis.get_offset_text().set_fontsize('large')
 
         print("============Reward against time steps plotting============")
         mean_by_rep_reward = np.mean(reward_episodes_repetitions, axis=0)
@@ -747,9 +771,9 @@ class PlotMaker:
         if rolled_p.max() > self.max_steps:
             self.max_steps = rolled_p.max()
         if self.current_approach_mean_performance == 0:
-            self.axs_mean_performance[2].set_ylabel("reward")
-            self.axs_mean_performance[2].set_xlabel("accumulated steps")
-            self.axs_mean_performance[2].legend(loc=4)
+            self.axs_mean_performance[2].set_ylabel("Reward", fontsize=fs)
+            self.axs_mean_performance[2].set_xlabel("Steps", fontsize=fs)
+            self.axs_mean_performance[2].legend(loc=4, fontsize=15)
             self.axs_mean_performance[2].grid(True)
             self.axs_mean_performance[2].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
             # axs[1].set_title(f"reward against steps over {'big' if env.big==1 else 'small'} {env.maze_name}")
@@ -757,6 +781,9 @@ class PlotMaker:
             # axs[3].axvspan(num_explore_episodes, second_evolution, facecolor='blue', alpha=0.5)
             # axs[1].set(xlim=(0, num_total_episodes))
             self.axs_mean_performance[2].axis([0, self.max_steps * 1.05, None, 35000])
+            self.axs_mean_performance[2].tick_params(axis='both', labelsize=fs2)
+            self.axs_mean_performance[2].xaxis.get_offset_text().set_fontsize('large')
+            self.axs_mean_performance[2].yaxis.get_offset_text().set_fontsize('large')
 
     def plot_mean_time_comparison(self, experiment_time_repetitions, solve_amdp_time_repetitions,
                                   ground_learning_time_repetitions, exploration_time_repetitions=[0],
@@ -769,7 +796,7 @@ class PlotMaker:
                              xy=(rect.get_x() + rect.get_width() / 2, height),
                              xytext=(0, 3),  # 3 points vertical offset
                              textcoords="offset points",
-                             ha='center', va='bottom', fontsize=fontsize, fontweight=400)
+                             ha='center', va='bottom', fontsize=fontsize, fontweight='semibold')
 
         mean_by_rep_experiment_time = np.mean(experiment_time_repetitions)
         mean_by_rep_exploration_time = np.mean(exploration_time_repetitions)
@@ -777,7 +804,7 @@ class PlotMaker:
         mean_by_rep_kmeans_time = np.mean(solve_kmeans_time_repetitions)
         mean_by_rep_amdp_time = np.mean(solve_amdp_time_repetitions)
         mean_by_rep_q_time = np.mean(ground_learning_time_repetitions)
-        labels = ['Total', 'Exploration', 'Word2vec', 'K-means', 'AMDP', 'Q-learning']
+        labels = ['Total', 'Explore', 'Skip-gram', 'Cluster', 'Solve AMDP', r'Q($\lambda$)']
         data = [mean_by_rep_experiment_time,
                 mean_by_rep_exploration_time,
                 mean_by_rep_word2vec_time,
@@ -819,7 +846,7 @@ class PlotMaker:
             fontsize = 10
             rects = self.ax_time_consumption.bar(x, data, width, label=bar_label)
 
-        autolabel(rects, fontsize)
+        # autolabel(rects, fontsize)
         if data[0] > self.highest_bar_height:
             self.highest_bar_height = data[0]
         self.current_approach_time_consumption -= 1
@@ -827,9 +854,13 @@ class PlotMaker:
         if self.current_approach_time_consumption == 0:
             self.ax_time_consumption.set_xticks(x)
             self.ax_time_consumption.set_xticklabels(labels)
-            self.ax_time_consumption.set_ylabel("time taken in sec")
-            self.ax_time_consumption.legend(loc=9)
+            self.ax_time_consumption.set_ylabel("Time in sec", fontsize=15)
+            # self.ax_time_consumption.set_xlabel(fontsize=16)
+            self.ax_time_consumption.legend(loc=9, fontsize=13)
             self.ax_time_consumption.set_ylim(top=self.highest_bar_height * 1.1)
+            self.ax_time_consumption.tick_params(axis='y', labelsize=13)
+            self.ax_time_consumption.tick_params(axis='x', labelsize=12)
+
 
 class ExperimentMaker:
     def __init__(self, env_name, big, q_eps, interpreter, print_to_file, plot_maker: PlotMaker):
@@ -991,28 +1022,30 @@ class ExperimentMaker:
 
         return agent_q
 
-    def _pickler(self, approach):
-        os.makedirs(f"{self.path_results}/performance", exist_ok=True)
-        with open(f"{self.path_results}/performance/flags_eps_reps.pkl", 'wb') as f:
+    def _pickler(self, approach, granu):
+        os.makedirs(f"{self.path_results}/performance/{approach}", exist_ok=True)
+        pf = f"{self.path_results}/performance/{approach}"
+        with open(f"{pf}/k{granu}_flags_eps_reps.pkl", 'wb') as f:
             pickle.dump(self.flags_episodes_repetitions, f)
-        with open(f"{self.path_results}/performance/rewards_eps_reps.pkl", 'wb') as f:
+        with open(f"{pf}/k{granu}_rewards_eps_reps.pkl", 'wb') as f:
             pickle.dump(self.reward_episodes_repetitions, f)
-        with open(f"{self.path_results}/performance/mc_eps_reps.pkl", 'wb') as f:
+        with open(f"{pf}/k{granu}_mc_eps_reps.pkl", 'wb') as f:
             pickle.dump(self.move_count_episodes_repetitions, f)
 
-        os.makedirs(f"{self.path_results}/times_reps", exist_ok=True)
-        with open(f"{self.path_results}/times_reps/experiment.pkl", 'wb') as f:
+        os.makedirs(f"{self.path_results}/times/{approach}", exist_ok=True)
+        tm = f"{self.path_results}/times/{approach}"
+        with open(f"{tm}/k{granu}_experiment.pkl", 'wb') as f:
             pickle.dump(self.experiment_time_repetitions, f)
-        with open(f"{self.path_results}/times_reps/solve_amdp.pkl", 'wb') as f:
+        with open(f"{tm}/k{granu}_solve_amdp.pkl", 'wb') as f:
             pickle.dump(self.solve_amdp_time_repetitions, f)
-        with open(f"{self.path_results}/times_reps/ground_learning.pkl", 'wb') as f:
+        with open(f"{tm}/k{granu}_ground_learning.pkl", 'wb') as f:
             pickle.dump(self.ground_learning_time_repetitions, f)
-        if approach == 'g' or approach == 't':
-            with open(f"{self.path_results}/times_reps/exploration.pkl", 'wb') as f:
+        if approach == 'general' or approach == 'topology':
+            with open(f"{tm}/k{granu}_exploration.pkl", 'wb') as f:
                 pickle.dump(self.exploration_time_repetitions, f)
-            with open(f"{self.path_results}/times_reps/solve_w2v.pkl", 'wb') as f:
+            with open(f"{tm}/k{granu}_solve_w2v.pkl", 'wb') as f:
                 pickle.dump(self.solve_word2vec_time_repetitions, f)
-            with open(f"{self.path_results}/times_reps/solve_kmeans.pkl", 'wb') as f:
+            with open(f"{tm}/k{granu}_solve_kmeans.pkl", 'wb') as f:
                 pickle.dump(self.solve_kmeans_time_repetitions, f)
 
 class TopologyExpMaker(ExperimentMaker):
@@ -1156,7 +1189,7 @@ class TopologyExpMaker(ExperimentMaker):
             if self.explore_config['ds_factor'] == 1:
                 self.sentences_period.append(track)
             else:
-                for _ in range(4):
+                for _ in range(1):
                     down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
                                     math.floor(len(track) * self.explore_config['ds_factor'])))]
                     self.sentences_period.append(down_sampled)
@@ -1265,7 +1298,7 @@ class TopologyExpMaker(ExperimentMaker):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
-        curve_label = f"t-{self.num_clusters}"
+        curve_label = f"T-{self.num_clusters}"
         for rep in range(self.repetitions):
             print(f"+++++++++ Begin repetition: {rep} +++++++++")
             # experiment timing start
@@ -1323,7 +1356,7 @@ class TopologyExpMaker(ExperimentMaker):
                                                             self.reward_episodes[self.explore_config['e_eps']:],
                                                             self.move_count_episodes[self.explore_config['e_eps']:],
                                                             rep, curve_label)
-
+            # self.plot_maker.fig_each_rep.show()
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
             self.reward_episodes_repetitions.append(self.reward_episodes)
@@ -1331,6 +1364,7 @@ class TopologyExpMaker(ExperimentMaker):
 
         # plot mean performance among all reps
         ### ax_title = f"flags collection in {'big' if self.big==1 else 'small'} {self.env.maze_name}"
+        # self._pickler(approach='topology', granu=f"{self.num_clusters}")
 
         sliced_f_ep_rep = np.array(self.flags_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_r_ep_rep = np.array(self.reward_episodes_repetitions)[:, self.explore_config['e_eps']:]
@@ -1425,7 +1459,7 @@ class UniformExpMaker(ExperimentMaker):
             makedirs(self.path_results)
         self._print_before_start()
         # curve_label = f"u-{self.tiling_size[0]}x{self.tiling_size[1]}"
-        curve_label = f"u-{math.ceil(self.env.size[0]/self.tiling_size[0]) * math.ceil(self.env.size[1]/self.tiling_size[1])}"
+        curve_label = f"U-{math.ceil(self.env.size[0]/self.tiling_size[0]) * math.ceil(self.env.size[1]/self.tiling_size[1])}"
         for rep in range(self.repetitions):
             print(f"+++++++++ Begin repetition: {rep} +++++++++")
             # experiment timing start
@@ -1446,7 +1480,7 @@ class UniformExpMaker(ExperimentMaker):
             amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=self.tiling_size, gensim_opt=None)
             # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results, save=1)
             self._solve_amdp(amdp)
-            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, save=1)
+            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'uniform', save=1)
 
             # ground learning
             self._ground_learning(amdp)
@@ -1469,6 +1503,7 @@ class UniformExpMaker(ExperimentMaker):
 
         # plot mean performance among all reps
         # ax_title = f"flags collection in {'big' if self.big == 1 else 'small'} {self.env.maze_name}"
+        self._pickler(approach='uniform', granu=f"{self.tiling_size}")
 
         self.plot_maker.plot_mean_performance_across_reps(self.flags_episodes_repetitions,
                                                           self.reward_episodes_repetitions,
@@ -1478,7 +1513,7 @@ class UniformExpMaker(ExperimentMaker):
                                                       self.ground_learning_time_repetitions, bar_label=curve_label)
 
         # self._results_upload()
-        self._pickler(approach='u')
+
 
 class GeneralExpMaker(ExperimentMaker):
     def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
@@ -1822,7 +1857,7 @@ class GeneralExpMaker(ExperimentMaker):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
-        curve_label = f"g-{self.num_clusters}"
+        curve_label = f"T-{int(self.num_clusters/8)}"
         for rep in range(self.repetitions):
             print(f"+++++++++ Begin repetition: {rep} +++++++++")
             # experiment timing start
@@ -1857,9 +1892,9 @@ class GeneralExpMaker(ExperimentMaker):
 
             # build and solve amdp
             amdp = AMDP_General(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt)
-            # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
             self._solve_amdp(amdp)
-            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results)
+            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'general')
             # ground learning
             self._ground_learning(amdp)
             # if evo == 0:
@@ -1877,7 +1912,7 @@ class GeneralExpMaker(ExperimentMaker):
                                                             self.reward_episodes[self.explore_config['e_eps']:],
                                                             self.move_count_episodes[self.explore_config['e_eps']:],
                                                             rep, curve_label)
-
+            # self.plot_maker.fig_each_rep.show()
             # save performance of each rep
             self.flags_episodes_repetitions.append(self.flags_episodes)
             self.reward_episodes_repetitions.append(self.reward_episodes)
@@ -1885,6 +1920,7 @@ class GeneralExpMaker(ExperimentMaker):
 
         # plot mean performance among all reps
         ### ax_title = f"flags collection in {'big' if self.big==1 else 'small'} {self.env.maze_name}"
+        self._pickler(approach='general', granu=f"{self.num_clusters}")
 
         sliced_f_ep_rep = np.array(self.flags_episodes_repetitions)[:, self.explore_config['e_eps']:]
         sliced_r_ep_rep = np.array(self.reward_episodes_repetitions)[:, self.explore_config['e_eps']:]
@@ -1898,7 +1934,6 @@ class GeneralExpMaker(ExperimentMaker):
                                                       bar_label=curve_label)
 
         # self._results_upload()
-        self._pickler(approach='g')
 
 if __name__ == "__main__":
     maze = 'basic'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity

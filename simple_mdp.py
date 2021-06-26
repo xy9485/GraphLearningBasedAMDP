@@ -130,7 +130,7 @@ class MDP:
                     transition[j, i, j] = 1
                     if str(list(self.list_of_states[i])) in self.env.traps:    #self.list_of_states[j] or self.list_of_states[i] different results
                         print("traps----")
-                        rewards[j, i, j] = -130     # -130 for v1;
+                        rewards[j, i, j] = -100     # -130 for v1;
 
 
         self.transition = transition
@@ -308,6 +308,37 @@ class PlotMakerNaive:
         pass
 
     @staticmethod
+    def plot_maze(env: Maze, version=1, show=1, save=1):
+        fontsize = 20 if env.big == 0 else 4.5
+        fontweight = 'semibold'
+        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red"])
+        maze_to_plot = np.where(env.room_layout == 'w', 0, 1)
+        # maze_to_plot[env.start_state[0], env.start_state[1]] = 4
+        # maze_to_plot[env.goal[0], env.goal[1]] = 3
+        # w, h = figure.figaspect(maze_to_plot)
+        # print("w, h:", w, h)
+        # fig1, ax1 = plt.subplots(figsize=(w, h))
+        fig1, ax1 = plt.subplots(figsize=(5, 5))
+        # ax1.text(env.start_state[1] + 0.5, env.start_state[0] + 0.55, 'S', ha="center", va="center", color="k", fontsize=fontsize,
+        #          fontweight=fontweight)
+        # ax1.text(env.goal[1] + 0.5, env.goal[0] + 0.55, 'G', ha="center", va="center", color="k", fontsize=fontsize,
+        #          fontweight=fontweight)
+        ax1.text(6 + 0.5, 5 + 0.55, 'X', ha="center", va="center", color="r", fontsize=fontsize+9,
+                 fontweight=fontweight)
+        ax1.text(8 + 0.5, 5 + 0.55, 'X', ha="center", va="center", color="r", fontsize=fontsize+9,
+                 fontweight=fontweight)
+        ax1.pcolor(maze_to_plot, cmap=cmap, vmin=0, vmax=4, edgecolors='k', linewidth=2)
+        ax1.set_aspect('equal')
+        ax1.invert_yaxis()
+        ax1.axis('off')
+        fig1.tight_layout()
+        if show:
+            fig1.show()
+        if save:
+            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}_v{version}_XX.png", dpi=200,
+                         transparent=False, bbox_inches='tight', pad_inches=0.1)
+
+    @staticmethod
     def plot_maze_trap(env: Maze, version=1, show=1, save=0):
         fontsize = 20 if env.big == 0 else 4.5
         fontweight = 'semibold'
@@ -343,7 +374,7 @@ class PlotMakerNaive:
         if show:
             fig1.show()
         if save:
-            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}_traps_v{version}.png", dpi=200,
+            fig1.savefig(f"./img_mazes/{env.maze_name}_big{env.big}_irregular_traps_v{version}.png", dpi=200,
                          transparent=False, bbox_inches='tight', pad_inches=0.1)
 
     def plot_each_heatmap(self, agent_e, rep, ax_title, save_path):
@@ -506,6 +537,12 @@ class PlotMakerNaive:
         plt.setp(ax.get_xticklabels(), visible=False)
         plt.setp(ax.get_yticklabels(), visible=False)
         ax.tick_params(axis='both', which='both', length=0)
+        # using pcolor to plot
+        # ax.pcolor(plate, cmap=my_cmap1, vmin=vmin1, vmax=vmax1, edgecolors='k', linewidth=2)
+        # ax.set_aspect('equal')
+        # ax.invert_yaxis()
+        # ax.axis('off')
+
         # x = np.arange(len(plate))
         # y = np.arange(len(plate[0]))
         # X, Y = np.meshgrid(x, y)
@@ -520,8 +557,8 @@ class PlotMakerNaive:
             if len(coords) > 0:
                 mean = np.mean(coords, axis=0)
                 v_ = round(dict_as2v[a_state])
-                ax.text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
-                                          fontsize=24, fontweight='semibold', color='k')
+                # ax.text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
+                #                           fontsize=24, fontweight='semibold', color='k')
         contour_rect_slow(np.array(plate), ax)
         fig.show()
         fig.savefig(f"{save_path}/cluster_layout_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
@@ -537,6 +574,10 @@ class PlotMakerNaive:
         cax = divider.append_axes("right", size="5%", pad=0.1)
         fig.colorbar(im, cax=cax)
         cax.tick_params(axis='both', labelsize=24)
+        # ax.text(env.start_state[1], env.start_state[0], 'S', ha="center", va="center", color="k", fontsize=24,
+        #         fontweight='semibold')
+        # ax.text(env.goal[1], env.goal[0], 'G', ha="center", va="center", color="k", fontsize=24,
+        #         fontweight='semibold')
         # cb.ax.ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
         # cax.yaxis.get_offset_text().set_fontsize(24)
         # print(np.around(plate3, 1))
@@ -547,8 +588,8 @@ class PlotMakerNaive:
             if len(coords) > 0:
                 mean = np.mean(coords, axis=0)
                 v_ = round(dict_as2v[a_state],1)
-                ax.text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
-                         fontsize=24, fontweight='semibold', color='k')
+                # ax.text(mean[1], mean[0], f"{str(a_state)}", horizontalalignment='center', verticalalignment='center',
+                #          fontsize=24, fontweight='semibold', color='k')
                 # ax.text(mean[1], mean[0], f"{str(v_)}", horizontalalignment='center', verticalalignment='center',
                 #         fontsize=15, fontweight='semibold', color='k')
         contour_rect_slow(np.array(plate), ax)
@@ -767,22 +808,62 @@ class MazeNaive:
         W = "w"
         if self.maze_name == 'basic':
             ## "True" layout determined by doorways.
-            room_layout = [[C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, W, F, F, F, F, F],
-                          [C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, W, F, F, F, F, F],
-                          [C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, W, F, F, F, F, F],
-                          [C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
-                          [W, W, W, W, C, W, W, W, W, W, W, D, D, D, D, W, F, F, F, F, F],
-                          [B, B, B, B, B, B, B, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
-                          [B, B, B, B, B, B, W, E, E, E, E, D, D, D, D, W, F, F, F, F, F],
-                          [B, B, B, B, B, B, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
-                          [W, A, W, W, W, W, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
-                          [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
-                          [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
-                          [T, T, T, T, A, A, W, W, E, W, W, W, W, W, W, W, F, F, F, F, F],
-                          [T, T, T, T, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
-                          [T, T, T, T, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
-                          [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, F, F, F, F, F, F],
-                          [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F]]
+            room_layout = [[C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, D, D, D, W, F, F, F, F, F],
+                           [W, W, W, W, C, W, W, W, W, W, W, D, D, D, D, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, B, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, W, E, E, E, E, D, D, D, D, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [W, A, W, W, W, W, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [T, T, T, T, A, A, W, W, E, W, W, W, W, W, W, W, F, F, F, F, F],
+                           [T, T, T, T, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
+                           [T, T, T, T, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F],
+                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, F, F, F, F, F, F],
+                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F]]
+            room_layout = np.array(room_layout)
+
+        elif self.maze_name == 'basic2':
+            ## "True" layout determined by doorways.
+            room_layout = [[C, C, C, C, C, C, W, D, D, D, T, T, T, T, T, W, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, T, T, T, T, W, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, W, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, D, T, T, W, F, F, F, F, F],
+                           [W, W, W, W, C, W, W, W, W, W, W, D, D, D, T, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, B, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, W, E, E, E, E, D, D, D, D, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, W, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
+                           [W, A, W, W, W, W, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, T, T, A, A, W, W, E, W, W, W, W, W, W, W, T, T, T, F, F],
+                           [A, T, T, T, T, A, W, G, G, G, G, G, G, G, G, W, T, T, T, F, F],
+                           [A, T, T, T, T, A, W, G, G, G, G, G, G, G, G, W, T, T, T, F, F],
+                           [A, A, T, T, A, A, W, G, G, G, G, G, G, G, G, F, F, F, F, F, F],
+                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F]]
+            room_layout = np.array(room_layout)
+
+        elif self.maze_name == 'basic3':
+            ## "True" layout determined by doorways.
+            room_layout = [[C, C, C, C, C, C, W, D, D, D, D, T, T, T, T, T, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, T, T, T, T, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, D, T, T, T, F, F, F, F, F],
+                           [C, C, C, C, C, C, W, D, D, D, D, D, D, D, T, T, F, F, F, F, F],
+                           [W, W, W, W, C, W, W, W, W, W, W, D, D, D, D, T, F, F, F, F, F],
+                           [B, B, B, B, B, B, B, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, W, E, E, E, E, D, D, D, D, W, F, F, F, F, F],
+                           [B, B, B, B, B, B, W, E, E, E, W, D, D, D, D, W, F, F, F, F, F],
+                           [W, A, W, W, W, W, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, A, A, A, A, W, E, E, E, W, D, D, D, D, W, T, T, T, F, F],
+                           [A, A, T, T, A, A, W, W, E, W, W, W, W, W, W, W, T, T, T, F, F],
+                           [A, T, T, T, T, A, W, G, G, G, G, G, G, G, G, W, T, T, T, F, F],
+                           [A, T, T, T, T, A, W, G, G, G, G, G, G, G, G, W, T, T, T, F, F],
+                           [A, A, T, T, A, A, W, G, G, G, G, G, G, G, G, F, F, F, F, F, F],
+                           [A, A, A, A, A, A, W, G, G, G, G, G, G, G, G, W, F, F, F, F, F]]
             room_layout = np.array(room_layout)
 
         elif self.maze_name == 'simple':
@@ -802,6 +883,8 @@ class MazeNaive:
         elif self.maze_name == 'simple2':
             room_layout = [[H, H, H, I, I, I, I, I, I, I, W, J, J, J, J, J],  ## simple2
                            [H, H, H, W, I, I, I, I, I, I, J, J, J, J, J, J],
+                           # [H, H, H, W, I, I, I, I, I, I, W, T, T, T, J, J],
+                           # [H, W, W, W, W, W, W, W, W, W, W, T, T, T, J, J],
                            [H, H, H, W, I, I, I, I, I, I, W, J, J, J, J, J],
                            [H, W, W, W, W, W, W, W, W, W, W, J, J, J, J, J],
                            [G, G, G, G, G, G, G, W, P, P, W, J, J, J, J, J],
@@ -811,6 +894,40 @@ class MazeNaive:
                            [A, A, W, W, W, W, W, W, P, P, T, T, B, B, J, J],
                            [A, A, F, F, F, F, F, F, P, P, T, T, B, B, J, J],
                            [A, A, W, F, F, F, F, F, P, P, T, T, B, B, J, J]]
+            room_layout = np.array(room_layout)
+        
+        elif self.maze_name == 'simple3':
+            room_layout = [[P, P, P, J, J, J, J, J],
+                           [P, P, W, J, J, J, J, J],
+                           [P, P, W, J, J, J, J, J],
+                           [P, P, W, W, W, W, J, J],
+                           [P, P, P, P, P, W, J, J],
+                           [P, P, P, P, P, W, J, J]]
+            room_layout = np.array(room_layout)
+
+        elif self.maze_name == 'simple3_ala':
+            room_layout = [[P, P, P, J, J, J, J, J, J, J],
+                           [P, P, W, J, J, J, J, J, J, J],
+                           [P, P, W, J, J, J, J, J, J, J],
+                           [P, P, W, W, W, W, W, W, J, J],
+                           [P, P, P, P, P, P, P, W, J, J],
+                           [P, P, P, P, P, P, P, W, J, J]]
+            room_layout = np.array(room_layout)
+
+        elif self.maze_name == 'simple4':
+            room_layout = [[H, H, H, I, I, I, I, I, I, W, J, J, J, J, J],  ## simple2
+                           [H, H, H, W, I, I, I, I, I, J, J, J, J, J, J],
+                           # [H, H, H, W, I, I, I, I, I, W, T, T, T, J, J],
+                           # [H, W, W, W, W, W, W, W, W, W, T, T, T, J, J],
+                           [H, H, H, W, I, I, I, I, I, W, J, J, J, J, J],
+                           [H, W, W, W, W, W, W, W, W, W, J, J, J, J, J],
+                           [G, G, G, G, G, G, W, P, P, W, J, J, J, J, J],
+                           [G, G, G, G, G, G, G, P, P, W, J, J, J, J, J],
+                           [G, G, G, G, G, G, G, P, P, W, W, W, W, J, J],
+                           [W, W, W, G, G, G, W, P, P, P, P, B, W, J, J],
+                           [A, A, W, W, W, W, W, P, P, P, P, B, W, J, J],
+                           [A, A, F, F, F, F, F, P, P, P, P, B, W, J, J],
+                           [A, A, W, F, F, F, F, P, P, P, P, B, W, J, J]]
             room_layout = np.array(room_layout)
 
         elif self.maze_name == 'strips':
@@ -1038,11 +1155,26 @@ class MazeNaive:
             # self.goal = (15, 18)
 
             self.state = (15, 0)    # v5
-            self.goal = (0, 5)
+            self.goal = (1, 16)
+        elif self.maze_name == 'basic2':
+            self.state = (15, 3)
+            self.goal = (1, 16)
+        elif self.maze_name == 'basic3':
+            self.state = (15, 3)
+            self.goal = (1, 16)
         elif self.maze_name == 'simple':
             self.state = (1, 1)
             self.goal = (9, 18)
         elif self.maze_name == 'simple2':
+            self.state = (9, 0)
+            self.goal = (9, 14)
+        elif self.maze_name == 'simple3':
+            self.state = (5, 4)
+            self.goal = (5, 7)
+        elif self.maze_name == 'simple3_ala':
+            self.state = (5, 4)
+            self.goal = (5, 7)
+        elif self.maze_name == 'simple4':
             self.state = (9, 0)
             self.goal = (9, 14)
         elif self.maze_name == 'strips':
@@ -1178,10 +1310,15 @@ class MazeNaive:
         #         return 0
         #     else:
         #         return -500000
-        # if str(list(state)) in self.traps:
-        #     return -100000
+        r_traps = -2000
         if str(list(state_prime)) in self.traps:
-            return -100000     # -300000/-100000/-50000
+            if str(list(state)) not in self.traps:
+                return r_traps
+        if str(list(state)) in self.traps:
+            if str(list(state_prime)) not in self.traps:
+                return r_traps
+        # if str(list(state_prime)) in self.traps:
+        #     return r_traps    # -300000/-100000/-50000
         if state_prime == self.goal:
             return 0
         return -1  # normal steps
@@ -1379,7 +1516,7 @@ class AMDP_Naive:
         value = self.dict_as2v[str(astate)]
         return value
 
-    def plot_current_values(self, env, values, version=1, text_all_values=0, text_cluster_values=0, show=1, save=1):
+    def plot_current_values(self, env, values, version=1, text_all_values=0, text_cluster_values=1, show=1, save=1):
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         fig, ax = plt.subplots(figsize=(12, 12))
@@ -1482,7 +1619,7 @@ class AMDP_General_Naive:
         print("len(gensim_opt.words), len(gensim_opt.cluster_labels):", len(self.gensim_opt.words), len(self.gensim_opt.cluster_labels.tolist()))
 
         print("start setting amdp transition and reward...")
-        self.set_transition_and_rewards()
+        self.set_transition_and_rewards3()
 
     def get_abstract_state(self, state):
         if not isinstance(state, str):
@@ -1508,7 +1645,7 @@ class AMDP_General_Naive:
                         transition[cluster_label2, cluster_label1, cluster_label2] += 1
                         transition2[cluster_label2, cluster_label1, cluster_label2] += 1
                         # transition[cluster_label1, cluster_label2, cluster_label1] = 1
-                        rewards[cluster_label2, cluster_label1, cluster_label2] = -1
+                        # rewards[cluster_label2, cluster_label1, cluster_label2] = -1
                 else:
                     # index1 = self.list_of_ground_states.index(sentence[i])
                     # cluster_label1 = self.list_of_abstract_states[index1]
@@ -1517,7 +1654,7 @@ class AMDP_General_Naive:
                 if state_in_tuple == (self.goal[0], self.goal[1]):
                     transition[-1, cluster_label1, -1] = 1
                     # transition2[-1, cluster_label1, -1] += 1
-                    # rewards[-1, cluster_label1, -1] = 1000
+                    rewards[-1, cluster_label1, -1] = 1000
         transition[-1, -1, -1] = 1
 
         valid_transitions = transition[transition>1]
@@ -1530,6 +1667,100 @@ class AMDP_General_Naive:
         print("smallest_valid_trasition:", smallest_valid_trasition)
         transition = np.where((1<transition) & (transition<smallest_valid_trasition), 0, transition)
         transition = np.where(transition >= smallest_valid_trasition, 1, transition)
+
+        for i in range(len(self.list_of_abstract_states)):
+            # print(transition2[:, i, :])
+            nz = np.nonzero(transition2[:, i, :])
+            print(f"t-from-{self.list_of_abstract_states[i]}: {nz}, {transition2[:, i, :][nz]}")
+
+        self.num_abstract_states = num_abstract_states
+        self.transition = transition
+        self.rewards = rewards
+
+    def set_transition_and_rewards2(self):
+        self.list_of_abstract_states.append("bin")
+        num_abstract_states = len(self.list_of_abstract_states)    #+1 for absorbing abstract state
+        transition = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        transition2 = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        rewards = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        for sentence in self.sentences_period_complete:
+            for i in range(len(sentence)):
+                state_in_tuple = eval(sentence[i])
+                if i < (len(sentence)-1):
+                    # index1 = self.list_of_ground_states.index(sentence[i])
+                    # index2 = self.list_of_ground_states.index(sentence[i+1])
+                    # cluster_label1 = self.list_of_abstract_states[index1]
+                    # cluster_label2 = self.list_of_abstract_states[index2]
+                    cluster_label1 = self.get_abstract_state(sentence[i])
+                    cluster_label2 = self.get_abstract_state(sentence[i+1])
+                    if str(list(state_in_tuple)) in self.env.traps:
+                        cluster_label1_bad = True
+                    else:
+                        cluster_label1_bad = False
+                    if not cluster_label1 == cluster_label2:
+                        transition[cluster_label2, cluster_label1, cluster_label2] = 1
+                        transition2[cluster_label2, cluster_label1, cluster_label2] += 1
+                        if cluster_label1_bad:
+                            rewards[cluster_label2, cluster_label1, cluster_label2] = -100
+                        # transition[cluster_label1, cluster_label2, cluster_label1] = 1
+                        # rewards[cluster_label2, cluster_label1, cluster_label2] = -1
+                else:
+                    # index1 = self.list_of_ground_states.index(sentence[i])
+                    # cluster_label1 = self.list_of_abstract_states[index1]
+                    cluster_label1 = self.get_abstract_state(sentence[i])
+                if state_in_tuple == (self.goal[0], self.goal[1]):
+                    transition[-1, cluster_label1, -1] = 1
+                    # transition2[-1, cluster_label1, -1] += 1
+                    rewards[-1, cluster_label1, -1] = 1000
+        transition[-1, -1, -1] = 1
+
+        for i in range(len(self.list_of_abstract_states)):
+            # print(transition2[:, i, :])
+            nz = np.nonzero(transition2[:, i, :])
+            print(f"t-from-{self.list_of_abstract_states[i]}: {nz}, {transition2[:, i, :][nz]}")
+
+        self.num_abstract_states = num_abstract_states
+        self.transition = transition
+        self.rewards = rewards
+
+    def set_transition_and_rewards3(self):
+        self.list_of_abstract_states.append("bin")
+        num_abstract_states = len(self.list_of_abstract_states)    #+1 for absorbing abstract state
+        transition = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        transition2 = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        rewards = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        for sentence in self.sentences_period_complete:
+            for i in range(len(sentence)):
+                state_in_tuple = eval(sentence[i])
+                if i < (len(sentence)-1):
+                    # index1 = self.list_of_ground_states.index(sentence[i])
+                    # index2 = self.list_of_ground_states.index(sentence[i+1])
+                    # cluster_label1 = self.list_of_abstract_states[index1]
+                    # cluster_label2 = self.list_of_abstract_states[index2]
+                    cluster_label1 = self.get_abstract_state(sentence[i])
+                    cluster_label2 = self.get_abstract_state(sentence[i+1])
+                    if str(list(state_in_tuple)) in self.env.traps:
+                        cluster_label1_bad = True
+                    else:
+                        cluster_label1_bad = False
+                    if not cluster_label1 == cluster_label2:
+                        transition[cluster_label2, cluster_label1, cluster_label2] = 1
+                        transition2[cluster_label2, cluster_label1, cluster_label2] += 1
+                        if cluster_label1_bad:
+                            rewards[cluster_label2, cluster_label1, cluster_label2] = -10
+                        else:
+                            rewards[cluster_label2, cluster_label1, cluster_label2] = -1
+                        # transition[cluster_label1, cluster_label2, cluster_label1] = 1
+                        # rewards[cluster_label2, cluster_label1, cluster_label2] = -1
+                else:
+                    # index1 = self.list_of_ground_states.index(sentence[i])
+                    # cluster_label1 = self.list_of_abstract_states[index1]
+                    cluster_label1 = self.get_abstract_state(sentence[i])
+                if state_in_tuple == (self.goal[0], self.goal[1]):
+                    transition[-1, cluster_label1, -1] = 1
+                    # transition2[-1, cluster_label1, -1] += 1
+                    # rewards[-1, cluster_label1, -1] = 1000
+        transition[-1, -1, -1] = 1
 
         for i in range(len(self.list_of_abstract_states)):
             # print(transition2[:, i, :])
@@ -1976,7 +2207,8 @@ class UniformExpMakerNaive(ExperimentMakerNaive):
             # amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=self.tiling_size, gensim_opt=None)
             amdp = AMDP_Naive(env=self.env, uniform_mode=self.tiling_size, gensim_opt=None)
             self._solve_amdp(amdp)
-            self.plot_maker.plot_each_cluster_layout_and_values(self.env, amdp, "uniform", rep, ax_title=None, save=0, show=1)
+            self.plot_maker.plot_each_cluster_layout_and_values(self.env, amdp, "uniform", rep,
+                                                                ax_title=None, save_path=self.path_results, save=0, show=1)
 
             # ground learning
             # self._ground_learning(amdp)
@@ -2009,7 +2241,7 @@ class UniformExpMakerNaive(ExperimentMakerNaive):
 
 
 class GeneralExpMakerNaive(ExperimentMakerNaive):
-    def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
+    def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor, ds_repetitions,
                  rep_size: int, win_size: int, sg: int, num_clusters: int, k_means_pkg: str, q_eps: int,
                  repetitions: int, interpreter: str, print_to_file: int, plot_maker: PlotMakerNaive, path_results: str):
 
@@ -2021,6 +2253,7 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
             'e_eps': e_eps,
             'max_move_count': mm,
             'ds_factor': ds_factor,
+            'ds_repetitions': ds_repetitions,
             'lr': 0.1,
             'gamma': 0.999,
             'epsilon_e': 0.01,
@@ -2112,11 +2345,11 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
                     # r = (1 - beta) * r2 + (beta) * r1
                     r2 = env.reward(env.state, new_state)
                     if r2 < -1:
-                        r = r1*10 + r2
+                        r = r1*1 + r2
                         # print("trap, r:", r)
                     else:
                         r = r1
-                        r *= 10
+                        r *= 1
                     # r = r1
                     # r *= 10
                     a_prime = agent_e.policy_explore_rl(new_state, env.actions(new_state))
@@ -2151,7 +2384,7 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
                 self.sentences_period.append(track)
                 self.sentences_period_complete.append(track)
             else:
-                for _ in range(4):
+                for _ in range(self.explore_config['ds_repetitions']):
                     down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
                                     math.floor(len(track) * self.explore_config['ds_factor'])))]
                     self.sentences_period.append(down_sampled)
@@ -2332,19 +2565,21 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
 
 
 def compare_approaches():
-    maze = 'simple2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    maze = 'basic3'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
     big = 1
     e_mode = 'sarsa'  # 'sarsa' or 'softmax'
     e_start = 'last'  # 'random' or 'last' or 'semi_random'
-    e_eps = 10000        # 3000 / 20000
+    e_eps = 5000        # 3000 / 20000
     mm = 100
     ds_factor = 0.5
+    ds_repetitions = 4
 
     q_eps = 500
-    repetitions = 3
+    repetitions = 4
     rep_size = 128
     win_size = 50
     sg = 1  # 'SG' or 'CBOW'
+    ng = 5
     # numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
     numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
 
@@ -2360,10 +2595,10 @@ def compare_approaches():
         # path_results = f"./cluster_layout/{maze}_big={big}" \
         #                f"/topology-vs-uniform{numbers_of_clusters}-oop/v4_rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
         #                f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
-        path_results = f"./naive/{maze}_big={big}_v1" \
-                       f"/general{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
-                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/" \
-                       f"k[{numbers_of_clusters[i]}]_trap_in-100000_equal"
+        path_results = f"./naive/{maze}_big={big}_irregular_traps" \
+                       f"/uniform{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
+                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_ng{ng}_{k_means_pkg}_{interpreter}/" \
+                       f"k[{numbers_of_clusters[i]}]_trap_inout-2k_equal"
         if not os.path.isdir(path_results):
             makedirs(path_results)
         if print_to_file == 1:
@@ -2381,20 +2616,20 @@ def compare_approaches():
 
         # ===uniform approach===
         # ---match number of abstract state same with the one in topology approach, in order to be fair.
-        # env = Maze(maze=maze, big=big)
-        # a = math.ceil(env.size[0] / np.sqrt(numbers_of_clusters[i]))
-        # b = math.ceil(env.size[1] / np.sqrt(numbers_of_clusters[i]))
-        # print("(a,b): ", (a, b))
-        # uniform_maker = UniformExpMakerNaive(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
-        #                                 interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
-        #                                 path_results=path_results)
-        # uniform_maker.run(time_comparison=1)
+        env = MazeNaive(maze=maze, big=big)
+        a = math.ceil(env.size[0] / np.sqrt(numbers_of_clusters[i]))
+        b = math.ceil(env.size[1] / np.sqrt(numbers_of_clusters[i]))
+        print("(a,b): ", (a, b))
+        uniform_maker = UniformExpMakerNaive(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
+                                        interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
+                                        path_results=path_results)
+        uniform_maker.run(time_comparison=1)
 
         # ===general approach===
-        general_maker = GeneralExpMakerNaive(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
-                     rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
-                     repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
-        general_maker.run(p_heatmap=1, p_cluster_layout_and_values=1)
+        # general_maker = GeneralExpMakerNaive(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor, ds_repetitions=ds_repetitions,
+        #              rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
+        #              repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
+        # general_maker.run(p_heatmap=1, p_cluster_layout_and_values=1)
 
         # ===plot and save summary===
         print("saving fig_each_rep ...")
@@ -2425,11 +2660,12 @@ def compare_approaches():
             sys.stdout.close()
 
 if __name__ == "__main__":
-    # env = MazeNaive(maze="simple2", big=1)
+    # env = MazeNaive(maze="basic", big=1)
     # mdp = MDP(env)
     # mdp.solve_mdp(synchronous=0, monitor=0)
 
-    # env = MazeNaive(maze="simple2", big=0)
-    # PlotMakerNaive.plot_maze_trap(env, version=2, save=1)
+    env = MazeNaive(maze="simple2", big=0)
+    # PlotMakerNaive.plot_maze_trap(env, version=1, save=1)
+    PlotMakerNaive.plot_maze(env, version=1, save=0)
 
-    compare_approaches()
+    # compare_approaches()

@@ -9,6 +9,8 @@ import copy
 from nltk.cluster import KMeansClusterer
 import nltk
 import time
+from itertools import chain
+from collections import Counter
 from envs.maze_env_general_all_approaches import Maze
 
 
@@ -22,7 +24,7 @@ class GensimOperator_Topology:
         self.num_of_sentences_last_time = 0
         print("GensimOperator initialized!")
 
-    def get_cluster_layout(self, sentences, size, window, clusters, skip_gram=1, min_count=5, workers=32, negative=5,
+    def get_cluster_layout(self, sentences, size, window, clusters, skip_gram=1, min_count=5, workers=30, negative=5,
                                      package='sklearn'):
         print("start gensim Word2Vec model training...")
         # self.sentences = sentences
@@ -125,9 +127,10 @@ class GensimOperator_General:
         self.wv = None
         self.cluster_labels = None
         self.num_of_sentences_last_time = 0
+        self.model = None
         print("GensimOperator_General initialized!!")
 
-    def get_cluster_labels(self, sentences, size, window, clusters, skip_gram=1, min_count=5, workers=32, negative=5,
+    def get_cluster_labels(self, sentences, size, window, clusters, skip_gram=1, min_count=5, workers=30, negative=5,
                             package='sklearn'):
         self.sentences = sentences
         self.num_clusters = clusters
@@ -144,9 +147,16 @@ class GensimOperator_General:
         self.wv = model.wv
         self.embeddings = []
         self.words = []
+        self.weights = []
+        flatten_list = list(chain.from_iterable(sentences))
+        self.counter_dict = Counter(flatten_list)
+        # print("self.counter_dict:", self.counter_dict)
+        print(len(self.counter_dict))
         for i, word in enumerate(self.wv.vocab):
             self.words.append(word)
             self.embeddings.append(self.wv[word])
+            self.weights.append(self.counter_dict[word])
+        self.weights = None
 
         print("start check unvisited nodes...")
         self.check_unvisited_states()
@@ -155,7 +165,7 @@ class GensimOperator_General:
         start = time.time()
         if package == 'sklearn':
             norm_embeddings = preprocessing.normalize(self.embeddings)
-            kmeans_labels = KMeans(n_clusters=clusters, init='k-means++').fit_predict(np.array(norm_embeddings))
+            kmeans_labels = KMeans(n_clusters=clusters, init='k-means++', tol=0.00001).fit_predict(np.array(norm_embeddings), sample_weight=self.weights)
             self.cluster_labels = kmeans_labels
             print("gensim_opt.cluster_labels:", self.cluster_labels[:10])
 
@@ -183,8 +193,105 @@ class GensimOperator_General:
             if str(i) not in visited_states:
                 print("not visited: ", i)
 
+    def get_cluster_labels_online(self, sentences, size, window, clusters, skip_gram=1, min_count=5, workers=32, negative=5,
+                            package='sklearn'):
+        self.sentences = sentences
+        self.num_clusters = clusters
+        print("start gensim Word2Vec model training...")
 
+        start = time.time()
+        if not self.model:
+            self.model = gensim.models.Word2Vec(sentences=sentences, min_count=min_count, size=size, workers=workers,
+                                                window=window, sg=skip_gram, negative=negative)
+            self.wv = self.model.wv
+            self.words = []
+            self.embeddings = []
+            for i, word in enumerate(self.wv.vocab):
+                self.words.append(word)
+                self.embeddings.append(self.wv[word])
+            self.weights = None
+        else:
+            # self.model.build_vocab(sentences, update=False)
+            # self.model.train(sentences, total_examples=self.model.corpus_count, epochs=self.model.iter)
+            self.model = self.model.train(sentences, total_examples=len(sentences), epochs=self.model.iter)
+            # self.model = gensim.models.Word2Vec(sentences=sentences, min_count=min_count, size=size, workers=workers,
+            #                                window=window, sg=skip_gram, negative=negative)
+            self.wv = self.model.wv
+            self.words = []
+            self.embeddings = []
+            self.weights = []
+            flatten_list = list(chain.from_iterable(sentences))
+            set_flatten_list = set(flatten_list)
+            self.counter_dict = Counter(flatten_list)
+            # print("self.counter_dict:", self.counter_dict)
+            print(len(self.counter_dict))
+            for i, word in enumerate(self.wv.vocab):
+                self.words.append(word)
+                self.embeddings.append(self.wv[word])
+                # self.weights.append(self.counter_dict[word] ** 2)
+            self.weights = None
 
+        end = time.time()
+        w2v_time = end - start
+        print(f"internal w2v training time: {w2v_time}")
+
+        print("start check unvisited nodes...")
+        self.check_unvisited_states()
+
+        print("start clustering...")
+        start = time.time()
+        if package == 'sklearn':
+            norm_embeddings = preprocessing.normalize(self.embeddings)
+            kmeans_labels = KMeans(n_clusters=clusters, init='k-means++').fit_predict(np.array(norm_embeddings), sample_weight=self.weights)
+            self.cluster_labels = kmeans_labels
+            print("gensim_opt.cluster_labels:", self.cluster_labels[:10])
+
+        if package == 'nltk':
+            embeddings = preprocessing.normalize(self.embeddings)
+            kclusterer = KMeansClusterer(clusters, distance=nltk.cluster.util.cosine_distance, repeats=25)
+            embeddings = [np.array(f) for f in embeddings]
+            assigned_clusters = kclusterer.cluster(embeddings, assign_clusters=True)
+            self.cluster_labels = assigned_clusters
+
+        end = time.time()
+        kmeans_time = end - start
+        print(f"internal k-means time: {kmeans_time}")
+
+        self.dict_gstates_astates = dict(zip(self.words, self.cluster_labels.tolist()))
+        return w2v_time, kmeans_time
+
+    def reduce_dimensions_and_visualization(self, wv):
+        import matplotlib.pyplot as plt
+        import random
+        from sklearn.manifold import TSNE
+        num_dimensions = 2  # final num dimensions (2D, 3D, etc)
+
+        vectors = []  # positions in vector space
+        labels = []  # keep track of words to label our data again later
+        for word in wv.vocab:
+            vectors.append(wv[word])
+            labels.append(word)
+
+        # extract the words & their vectors, as numpy arrays
+        vectors = np.asarray(vectors)
+        labels = np.asarray(labels)  # fixed-width numpy strings
+
+        # reduce using t-SNE
+        tsne = TSNE(n_components=num_dimensions, random_state=0)
+        vectors = tsne.fit_transform(vectors)
+
+        x_vals = [v[0] for v in vectors]
+        y_vals = [v[1] for v in vectors]
+
+        random.seed(0)
+        # plt.figure(figsize=(12, 12))
+        fig, ax = plt.subplots(figsize=(12, 12))
+        ax.scatter(x_vals, y_vals)
+        indices = list(range(len(labels)))
+        selected_indices = random.sample(indices, 30)
+        for i in selected_indices:
+            ax.annotate(labels[i], (x_vals[i], y_vals[i]), fontsize=10, fontweight='normal')
+        fig.show()
 # =====================================
 
 
@@ -210,7 +317,7 @@ class GensimOperator_General:
 #     gen_opt.get_clusterlayout_from_paths(size=64, window=20, clusters=10, package='nltk')
 #     # gen_opt.prettyprint2()
 #     gen_opt.write_cluster_layout()
-#     # print(gen_opt.wv.most_similar(positive=["(19,19)"],topn=60))
+    # print(gen_opt.wv.most_similar(positive=["(19,19)"],topn=60))
 
 # gen_opt.check_unvisited_nodes()
 # cluster_layout = gen_opt.get_cluster_layout_kmeans(clusters=10)
