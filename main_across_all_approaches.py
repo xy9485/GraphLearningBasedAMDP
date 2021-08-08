@@ -70,8 +70,11 @@ class PlotMaker:
     def plot_maze(env: Maze, version=1, show=1, save=1):
         fontsize = 12 if env.big == 0 else 4.5
         fontweight = 'semibold'
-        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red"])
+        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red", "blue"])
+        indice_z = np.where(env.room_layout == 'z')
         maze_to_plot = np.where(env.room_layout == 'w', 0, 1)
+        for i in range(len(indice_z[0])):
+            maze_to_plot[indice_z[0][i], indice_z[1][i]] = 5
         maze_to_plot[env.start_state[0], env.start_state[1]] = 4
         maze_to_plot[env.goal[0], env.goal[1]] = 3
         w, h = figure.figaspect(maze_to_plot)
@@ -88,7 +91,7 @@ class PlotMaker:
             ax1.text(flag[1] + 0.5, flag[0] + 0.55, 'F', ha="center", va="center", color="k", fontsize=fontsize,
                      fontweight=fontweight)
         # print(maze_to_plot)
-        ax1.pcolor(maze_to_plot, cmap=cmap, vmin=0, vmax=4, edgecolors='k', linewidth=1)
+        ax1.pcolor(maze_to_plot, cmap=cmap, vmin=0, vmax=5, edgecolors='k', linewidth=1)
         ax1.invert_yaxis()
         ax1.axis('off')
         fig1.tight_layout()
@@ -863,13 +866,14 @@ class PlotMaker:
 
 
 class ExperimentMaker:
-    def __init__(self, env_name, big, q_eps, interpreter, print_to_file, plot_maker: PlotMaker):
+    def __init__(self, env_name, big, q_eps, interpreter, print_to_file, plot_maker: PlotMaker, stochasticity=None):
         self.env_name = env_name
         self.big = big
+        self.stochasticity = stochasticity
 
         self.interpreter = interpreter
         self.print_to_file = print_to_file
-        self.env = Maze(maze=self.env_name, big=self.big)
+        self.env = Maze(maze=self.env_name, big=self.big, stochasticity=self.stochasticity)
         self.plot_maker = plot_maker
 
         plt.rcParams['agg.path.chunksize'] = 10000
@@ -889,7 +893,7 @@ class ExperimentMaker:
             'q_eps': q_eps,
             'lr': 0.1,
             'lambda': 0.9,
-            'gamma': 0.999,
+            'gamma': 0.9999,
             'omega': 100,
             'epsilon_q_max': 1,
             'epsilon_q_min': 0.1,
@@ -987,22 +991,27 @@ class ExperimentMaker:
                 abstract_state = amdp.get_abstract_state(env.state)
                 new_state = env.step(env.state, a)
                 move_count += 1
-                track.append(str((new_state[0], new_state[1])))
-                new_abstract_state = amdp.get_abstract_state(new_state)
-                a_prime = agent_q.policy(new_state, env.actions(new_state))  ##Greedy next-action selected
-                a_star = agent_q.policyNoRand(new_state, env.actions(new_state))
-                r = env.reward(env.state, a, new_state)  ## ground level reward
-                episode_reward += r
+                env.update_walls(move_count=sum(self.move_count_episodes))  # to comment when the env is not stochastic
+                available_states = env.actions(new_state)
+                if len(available_states) > 0:
+                    track.append(str((new_state[0], new_state[1])))
+                    new_abstract_state = amdp.get_abstract_state(new_state)
+                    a_prime = agent_q.policy(new_state, available_states)  ##Greedy next-action selected
+                    a_star = agent_q.policyNoRand(new_state, available_states)
+                    r = env.reward(env.state, a, new_state)  ## ground level reward
+                    episode_reward += r
 
-                value_new_abstract_state = amdp.get_value(new_abstract_state)
-                value_abstract_state = amdp.get_value(abstract_state)
-                shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
-                          self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
-                # shaping = 0
-                agent_q.learn(env.state, a, new_state, a_prime, a_star, r + shaping)
+                    value_new_abstract_state = amdp.get_value(new_abstract_state)
+                    value_abstract_state = amdp.get_value(abstract_state)
+                    shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
+                              self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
+                    # shaping = 0
+                    agent_q.learn(env.state, a, new_state, a_prime, a_star, r + shaping)
 
-                env.state = new_state
-                a = a_prime
+                    env.state = new_state
+                    a = a_prime
+                else:
+                    track.append(str(env.state))
 
             self.reward_episodes.append(episode_reward)
             self.flags_episodes.append(env.flags_collected)
@@ -1380,10 +1389,10 @@ class TopologyExpMaker(ExperimentMaker):
         # self._results_upload()
 
 class UniformExpMaker(ExperimentMaker):
-    def __init__(self, env_name: str, big: int, tiling_size: tuple, q_eps: int, repetitions: int, interpreter: str,
+    def __init__(self, env_name: str, big: int, stochasticity: dict, tiling_size: tuple, q_eps: int, repetitions: int, interpreter: str,
                  print_to_file: int, plot_maker: PlotMaker, path_results: str):
 
-        super().__init__(env_name, big, q_eps, interpreter, print_to_file, plot_maker)
+        super().__init__(env_name, big, q_eps, interpreter, print_to_file, plot_maker, stochasticity)
 
         self.tiling_size = tiling_size
         self.repetitions = repetitions
@@ -1480,7 +1489,7 @@ class UniformExpMaker(ExperimentMaker):
             amdp = AMDP_Topology_Uniform(env=self.env, uniform_mode=self.tiling_size, gensim_opt=None)
             # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results, save=1)
             self._solve_amdp(amdp)
-            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'uniform', save=1)
+            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'uniform', save=0)
 
             # ground learning
             self._ground_learning(amdp)
@@ -1516,11 +1525,11 @@ class UniformExpMaker(ExperimentMaker):
 
 
 class GeneralExpMaker(ExperimentMaker):
-    def __init__(self, env_name: str, big: int, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
+    def __init__(self, env_name: str, big: int, stochasticity: dict, e_mode: str, e_start: str, e_eps: int, mm: int, ds_factor,
                  rep_size: int, win_size: int, sg: int, num_clusters: int, k_means_pkg: str, q_eps: int,
                  repetitions: int, interpreter: str, print_to_file: int, plot_maker: PlotMaker, path_results: str):
 
-        super().__init__(env_name, big, q_eps, interpreter, print_to_file, plot_maker)
+        super().__init__(env_name, big, q_eps, interpreter, print_to_file, plot_maker, stochasticity)
 
         self.explore_config = {
             'e_mode': e_mode,
@@ -1537,7 +1546,7 @@ class GeneralExpMaker(ExperimentMaker):
             'rep_size': rep_size,
             'win_size': win_size,
             'sg': sg,
-            'workers': 32
+            'workers': 2056
         }
 
         self.num_clusters = num_clusters
@@ -1559,8 +1568,9 @@ class GeneralExpMaker(ExperimentMaker):
         print("+++++++++++start GeneralExpMaker.run()+++++++++++")
         print("PID: ", os.getpid())
         print("=path_results=:", self.path_results)
-        print(f"maze:{self.env_name} | big:{self.big} | repetitions:{self.repetitions} | interpreter:{self.interpreter} |"
+        print(f"=maze=:{self.env_name} | big:{self.big} | repetitions:{self.repetitions} | interpreter:{self.interpreter} |"
               f"print_to_file: {self.print_to_file}")
+        print(f"maze_stochasticity:", self.stochasticity)
         print(f"=explore_config=: {self.explore_config}")
         print(f"=w2v_config=: {self.w2v_config}")
         print(f"=ground_learning_config=: {self.ground_learning_config}")
@@ -1629,6 +1639,150 @@ class GeneralExpMaker(ExperimentMaker):
                     agent_e.learn_explore_sarsa(env.state, a, new_state, a_prime, r)
                     env.state = new_state
                     a = a_prime
+            elif self.explore_config['e_mode'] == 'softmax':
+                track = [str(env.state)]
+                a = agent_e.policy_explore_softmax(env.state, env.actions(env.state))
+                while move_count < self.explore_config['max_move_count']:
+                    agent_e.state_actions_long_life[env.state[0], env.state[1], env.state[2], env.state[3], env.state[4], a] -= 1
+                    new_state = env.step(env.state, a)
+                    move_count += 1
+                    track.append(str(new_state))
+                    a_prime = agent_e.policy_explore_softmax(new_state, env.actions(new_state))
+                    env.state = new_state
+                    a = a_prime
+            else:
+                raise Exception("Invalid self.explore_config['e_mode']")
+
+            self.reward_episodes.append(episode_reward)
+            self.flags_episodes.append(env.flags_collected)
+            self.move_count_episodes.append(move_count)
+            self.flags_found_order_episodes.append(env.flags_found_order)
+
+            self.epsilons_episodes.append(agent_e.epsilon)
+            self.gamma_episodes.append(agent_e.gamma)
+            self.lr_episodes.append(agent_e.lr)
+
+            if self.explore_config['ds_factor'] == 1:
+                self.sentences_period.append(track)
+                self.sentences_period_complete.append(track)
+            else:
+                for _ in range(2):
+                    down_sampled = [track[index] for index in sorted(random.sample(range(len(track)),
+                                    math.floor(len(track) * self.explore_config['ds_factor'])))]
+                    self.sentences_period.append(down_sampled)
+                self.sentences_period_complete.append(track)
+
+            # print("np.std(agent.states_episodic):", np.std(agent.states_episodic[agent.states_episodic > 0]))
+
+        end_exploration = time.time()
+        exploration_time = end_exploration - start_exploration
+        print("exploration_time:", exploration_time)
+        self.exploration_time_repetitions.append(exploration_time)
+
+        self.longlife_exploration_std_repetitions.append(np.std(agent_e.states_long_life[agent_e.states_long_life > 0]))
+        print("longlife_exploration_std:", self.longlife_exploration_std_repetitions)
+        self.longlife_exploration_mean_repetitions.append(np.mean(agent_e.states_long_life[agent_e.states_long_life > 0]))
+        print("longlife_exploration_mean:", self.longlife_exploration_mean_repetitions)
+        print("longlife_exploration_sum:", np.sum(agent_e.states_long_life[agent_e.states_long_life > 0]))
+
+        # check sentences_period
+        print("len of self.sentences_period:", len(self.sentences_period))
+        flatten_list = list(chain.from_iterable(self.sentences_period))
+        counter_dict = Counter(flatten_list)
+        print("min counter value:", min(counter_dict.values()))
+        under5 = [k for k, v in counter_dict.items() if v < 5]
+        print("under5:", under5)
+        print("under5 length:", len(under5))
+        print("len(flatten_list):", len(flatten_list))
+        print("unique len(flatten_list)", len(set(flatten_list)))
+
+        self.sentences_collected.extend(self.sentences_period)
+        self.sentences_period = []
+
+        print("-----Finish Exploration-----")
+        return agent_e
+
+    def _explore_stochastic(self):
+        print("-----Begin Exploration-----")
+        start_exploration = time.time()
+        agent_e = ExploreStateBrain(env=self.env, explore_config=self.explore_config)
+        env = self.env
+        valid_states_ = tuple(env.valid_states)
+        # env.choose_stochastic_opens(p1=50)    # this step can be done when initializing env
+
+        for ep in range(self.explore_config['e_eps']):
+            if (ep + 1) % 100 == 0:
+                print(f"episode_100: {ep} | avg_move_count: {int(np.mean(self.move_count_episodes[-100:]))} | "
+                      f"avd_reward: {int(np.mean(self.reward_episodes[-100:]))} | "
+                      f"env.state: {env.state} | "
+                      f"env.flagcollected: {env.flags_collected} | "
+                      f"agent.epsilon: {agent_e.epsilon} | "
+                      f"agent.lr: {agent_e.lr}")
+            move_count = 0
+            episode_reward = 0
+
+            agent_e.epsilon = self.explore_config['epsilon_e']
+
+            if self.explore_config['e_start'] == 'random':
+                env.reset()
+                # start_state = random.choice(valid_states_)
+                # start_coord = env.room_layout[start_state[0], start_state[1]]
+                bad_start = 1
+                while bad_start:
+                    start_state = random.choice(valid_states_)
+                    start_coord = env.room_layout[start_state[0], start_state[1]]
+                    if start_coord != 'z':
+                        bad_start = 0
+                    else:
+                        # print("bad start")
+                        pass
+                env.state = start_state
+            elif self.explore_config['e_start'] == 'last':
+                start_state = env.state
+                env.reset()
+                env.state = start_state
+            elif self.explore_config['e_start'] == 'origin':
+                env.reset()
+            else:
+                raise Exception("Invalid self.explore_config['e_start']")
+
+            agent_e.reset_episodic_staff()
+
+            if self.explore_config['e_mode'] == 'sarsa':
+                track = [str(env.state)]
+                a = agent_e.policy_explore_rl(env.state, env.actions(env.state))
+                while move_count < self.explore_config['max_move_count']:
+                    agent_e.states_episodic[env.state[0], env.state[1], env.state[2], env.state[3], env.state[4]] += 1
+                    agent_e.states_long_life[env.state[0], env.state[1], env.state[2], env.state[3], env.state[4]] += 1
+                    new_state = env.step(env.state, a)
+                    move_count += 1
+                    env.update_walls(move_count=move_count)
+                    # track.append(str(new_state))
+
+                    r1 = -agent_e.states_long_life[new_state[0], new_state[1], new_state[2], new_state[3], new_state[4]]
+                    # r2 = -agent.states_episodic[new_state[0], new_state[1], new_state[2], new_state[3], new_state[4]]
+                    # beta = ep / num_explore_episodes
+                    # r = (1 - beta) * r1 + (beta) * r2
+                    # r = (1 - beta) * r2 + (beta) * r1
+                    # r2 = env.reward(env.state, a, new_state)
+                    # if r2 < -1:
+                    #     r = r1*10 + r2
+                    #     # print("trap, r:", r)
+                    # else:
+                    #     r = r1
+                    #     r *= 10
+                    r = r1
+                    r *= 10
+                    available_actions = env.actions(new_state)
+                    if len(available_actions)>0:
+                        a_prime = agent_e.policy_explore_rl(new_state, available_actions)
+                        # a_star = agent_e.policyNoRand_explore_rl(new_state, env.actions(new_state))
+                        agent_e.learn_explore_sarsa(env.state, a, new_state, a_prime, r)
+                        track.append(str(new_state))
+                        env.state = new_state
+                        a = a_prime
+                    else:
+                        track.append(str(env.state))
             elif self.explore_config['e_mode'] == 'softmax':
                 track = [str(env.state)]
                 a = agent_e.policy_explore_softmax(env.state, env.actions(env.state))
@@ -1881,7 +2035,9 @@ class GeneralExpMaker(ExperimentMaker):
             self.sentences_period_complete = []     # for building amdp transition
 
             # exploration
-            agent_e = self._explore()
+            # agent_e = self._explore()
+            agent_e = self._explore_stochastic()
+            print("size of self.sentences_period_complete", np.array(self.sentences_period_complete).shape)
             if heatmap:
                 self.plot_maker.plot_each_heatmap_general(agent_e, rep, self.path_results, show=1, save=1)
 
@@ -1892,9 +2048,9 @@ class GeneralExpMaker(ExperimentMaker):
 
             # build and solve amdp
             amdp = AMDP_General(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt)
-            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
             self._solve_amdp(amdp)
-            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'general')
+            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'general')
             # ground learning
             self._ground_learning(amdp)
             # if evo == 0:

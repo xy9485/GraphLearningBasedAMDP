@@ -1,4 +1,4 @@
-
+import time
 import copy
 import numpy as np
 import sys
@@ -463,7 +463,8 @@ class AMDP_General:
         print("len(gensim_opt.words), len(gensim_opt.cluster_labels):", len(self.gensim_opt.words), len(self.gensim_opt.cluster_labels.tolist()))
 
         print("start setting amdp transition and reward...")
-        self.set_transition_and_rewards()
+        # self.set_transition_and_rewards()
+        self.set_transition_and_rewards_stochastic()
 
     def get_abstract_state(self, state):
         if not isinstance(state, str):
@@ -502,6 +503,52 @@ class AMDP_General:
         self.transition = transition
         self.rewards = rewards
 
+    def set_transition_and_rewards_stochastic(self):
+        start = time.time()
+        self.list_of_abstract_states.append("bin")
+        num_abstract_states = len(self.list_of_abstract_states)    #+1 for absorbing abstract state
+        transition = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        # transition_mask = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        rewards = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        alpha = 0.05
+        beta = 0.1
+        s_num = 0
+        transition_mask = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+        for sentence in self.sentences_period_complete:
+            if s_num % 1 == 0:
+                transition_mask = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
+            s_num += 1
+            for i in range(len(sentence)):
+                if i < (len(sentence)-1):
+                    # index1 = self.list_of_ground_states.index(sentence[i])
+                    # index2 = self.list_of_ground_states.index(sentence[i+1])
+                    # cluster_label1 = self.list_of_abstract_states[index1]
+                    # cluster_label2 = self.list_of_abstract_states[index2]
+                    cluster_label1 = self.get_abstract_state(sentence[i])
+                    cluster_label2 = self.get_abstract_state(sentence[i+1])
+                    if not cluster_label1 == cluster_label2:
+                        transition_mask[cluster_label2, cluster_label1, cluster_label2] = 1
+                        # transition[cluster_label2, cluster_label1, cluster_label2] = 1
+                        # transition[cluster_label2, cluster_label1, cluster_label1] = 0.2
+                        # transition[cluster_label1, cluster_label2, cluster_label1] = 1
+                        # rewards[cluster_label2, cluster_label1, cluster_label2] = -1
+                else:
+                    # index1 = self.list_of_ground_states.index(sentence[i])
+                    # cluster_label1 = self.list_of_abstract_states[index1]
+                    cluster_label1 = self.get_abstract_state(sentence[i])
+                state_in_tuple = eval(sentence[i])
+                if state_in_tuple == (self.goal[0], self.goal[1], 1, 1, 1):
+                    transition[-1, cluster_label1, -1] = 1
+                    rewards[-1, cluster_label1, -1] = 3000  #to comment when highest value is 0
+            transition = transition + alpha * (1 - transition) * transition_mask
+            # transition = transition + beta * (0 - transition) * (1 - transition_mask)
+        # transition[-1, -1, -1] = 1  #when highest value is 0, other max(list_of_values) report error of empty sequence
+        self.num_abstract_states = num_abstract_states
+        self.transition = transition
+        self.rewards = rewards
+        end = time.time()
+        print("time of set_transition_and_rewards_stochastic:", end - start)
+
     def solve_amdp(self, synchronous=0, monitor=0):
         values = np.zeros(self.num_abstract_states)
         if synchronous:
@@ -531,7 +578,7 @@ class AMDP_General:
             if monitor:
                 self.plot_current_values(self.env, values)            # plot current values
         # print(values)
-        # values -= min(values[:-1])      #to comment when highest value is 0
+        values -= min(values[:-1])      #to comment when highest value is 0, this also helps reduce the effect of negative shapings
         self.values_of_abstract_states = values
         # print("self.values_of_abstract_states:")
         # print(self.values_of_abstract_states)
