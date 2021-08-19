@@ -510,8 +510,8 @@ class AMDP_General:
         transition = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
         # transition_mask = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
         rewards = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
-        alpha = 0.05
-        beta = 0.1
+        alpha = 0.1
+        beta = 0.01
         s_num = 0
         transition_mask = np.zeros(shape=(num_abstract_states, num_abstract_states, num_abstract_states))
         for sentence in self.sentences_period_complete:
@@ -541,7 +541,7 @@ class AMDP_General:
                     transition[-1, cluster_label1, -1] = 1
                     rewards[-1, cluster_label1, -1] = 3000  #to comment when highest value is 0
             transition = transition + alpha * (1 - transition) * transition_mask
-            # transition = transition + beta * (0 - transition) * (1 - transition_mask)
+            transition = transition + beta * (0 - transition) * (1 - transition_mask)
         # transition[-1, -1, -1] = 1  #when highest value is 0, other max(list_of_values) report error of empty sequence
         self.num_abstract_states = num_abstract_states
         self.transition = transition

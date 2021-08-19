@@ -24,7 +24,7 @@ from main_across_all_approaches import TopologyExpMaker, UniformExpMaker, Genera
 def plot_maze(maze, big, version):
     env = Maze(maze=maze, big=big, stochasticity=None)
     # env.room_layout = np.where(env.room_layout == "z", "w", env.room_layout)
-    PlotMaker.plot_maze(env=env, version=version, show=1, save=0)
+    PlotMaker.plot_maze(env=env, version=version, show=1, save=1)
 
 def plot_maze_trap(maze, big, version):
     env = Maze(maze=maze, big=big)
@@ -250,7 +250,7 @@ def compare_para_2approaches():
         sys.stdout.close()
 
 def compare_approaches():
-    maze = 'strips3'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    maze = 'basic2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
     big = 1
     e_mode = 'sarsa'  # 'sarsa' or 'softmax'
     e_start = 'random'  # 'random' or 'last' or 'semi_random'
@@ -259,12 +259,12 @@ def compare_approaches():
     ds_factor = 0.5
 
     q_eps = 500
-    repetitions = 20
+    repetitions = 10
     rep_size = 128
     win_size = 75
     sg = 1  # 'SG' or 'CBOW'
     numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    # numbers_of_clusters = [16, 25]  # number of abstract states for Uniform will be matched with the number of clusters
+    # numbers_of_clusters = [9, 16, 25]  # number of abstract states for Uniform will be matched with the number of clusters
 
     stochasticity = {
         "p2be_stochastic": 0.5,
@@ -312,7 +312,7 @@ def compare_approaches():
                      rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
                      repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
         # pload(path_results, 'general', numbers_of_clusters[i]*8, general_maker)
-        general_maker.run(heatmap=0, time_comparison=1)
+        general_maker.run(heatmap=0, cluster_layout=0, time_comparison=1, final_policy=0)
 
         # ===uniform approach===
         # ---match number of abstract state same with the one in topology approach, in order to be fair.
@@ -324,7 +324,7 @@ def compare_approaches():
                                         interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
                                         path_results=path_results)
         # pload(path_results, 'uniform', (a, b), uniform_maker)
-        uniform_maker.run(time_comparison=1)
+        uniform_maker.run(time_comparison=1, final_policy=0)
 
         # ===plot and save summary===
         print("saving fig_each_rep ...")
@@ -351,10 +351,97 @@ def compare_approaches():
         if print_to_file == 1:
             sys.stdout.close()
 
+def compare_stochascities(): #pickle.load() from files to read data
+    maze = 'external_maze21x21_1'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = 1
+    e_mode = 'sarsa'  # 'sarsa' or 'softmax'
+    e_start = 'random'  # 'random' or 'last' or 'semi_random'
+    e_eps = 5000
+    mm = 150
+    ds_factor = 0.5
+
+    q_eps = 500
+    repetitions = 20
+    rep_size = 128
+    win_size = 75
+    sg = 1  # 'SG' or 'CBOW'
+    numbers_of_clusters = [9, 16, 25, 36]  # number of abstract states for Uniform will be matched with the number of clusters
+    # numbers_of_clusters = [9]  # number of abstract states for Uniform will be matched with the number of clusters
+
+    stochasticity = {
+        "p2be_stochastic": 0.9,
+        "p2be_closed": 0.5,
+        "interval": 1
+    }
+
+    k_means_pkg = 'sklearn'  # 'sklearn' or 'nltk'
+    interpreter = 'R'  # L or R
+    std_factor = 1 / np.sqrt(10)
+
+    approach = 'general'
+    print_to_file = 1
+    show = 1
+    save = 0
+    # plot_maze(maze, big=0, version=1)
+    numbers_of_clusters2 = [16]
+    stochs = [0.1, 0.5, 0.9]
+
+    for k in numbers_of_clusters2:
+        env = Maze(stochasticity=None, maze=maze, big=big)
+        a = math.ceil(env.size[0] / np.sqrt(k))
+        b = math.ceil(env.size[1] / np.sqrt(k))
+        if approach == 'general':
+            granu = int(k*8)
+            cut = int(e_eps * 6)
+        elif approach == 'uniform':
+            granu = (a, b)
+            cut = 0
+        else:
+            raise Exception("wrong name of approach")
+        plot_maker = PlotMaker(repetitions, std_factor, 3)  # third argument should match num of approaches below
+        for stoch in stochs:
+            stochasticity["p2be_stochastic"] = stoch
+            path_results = f"./cluster_layout/{maze}_big={big}" \
+                           f"/general-vs-uniform{numbers_of_clusters}-{stochasticity['p2be_stochastic']}opens{stochasticity['p2be_closed']}-itv{stochasticity['interval']}/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
+                           f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{k}]"
+            print("path_results:", path_results)
+            flags_episodes_repetitions, reward_episodes_repetitions, move_count_episodes_repetitions =\
+                unpickler(approach=approach, granu=granu, path_results=path_results)  # don't *8 if uniform approach
+            print(np.array(reward_episodes_repetitions).shape)
+            sliced_f_ep_rep = np.array(flags_episodes_repetitions)[:, cut:]
+            sliced_r_ep_rep = np.array(reward_episodes_repetitions)[:, cut:]
+            sliced_m_ep_rep = np.array(move_count_episodes_repetitions)[:, cut:]
+            print(sliced_r_ep_rep.shape)
+            if approach == 'general':
+                curve_label = f"T-{int(stoch*100)}%"
+            elif approach == 'uniform':
+                curve_label = f"U-{int(stoch*100)}%"
+            plot_maker.plot_mean_performance_across_reps(sliced_f_ep_rep, sliced_r_ep_rep, sliced_m_ep_rep, curve_label)
+        if show:
+            plot_maker.fig_mean_performance.show()
+        if save:
+            plot_maker.fig_mean_performance.savefig(f"./cluster_layout/{maze}_big={big}/performance_{approach}_stochs{stochs}_close{stochasticity['p2be_closed']}_k{numbers_of_clusters2}.png",
+                                                    dpi=300, transparent=False, bbox_inches='tight', pad_inches=0.1)
+
+
+def unpickler(approach, granu, path_results):
+    pf = f"{path_results}/performance/{approach}"
+    with open(f"{pf}/k{granu}_flags_eps_reps.pkl", 'rb') as f:
+        flags_episodes_repetitions = pickle.load(f)
+    with open(f"{pf}/k{granu}_rewards_eps_reps.pkl", 'rb') as f:
+        reward_episodes_repetitions = pickle.load(f)
+    with open(f"{pf}/k{granu}_mc_eps_reps.pkl", 'rb') as f:
+        move_count_episodes_repetitions = pickle.load(f)
+
+    return flags_episodes_repetitions,\
+           reward_episodes_repetitions,\
+           move_count_episodes_repetitions
+
 if __name__ == "__main__":
     # compare_para_1approach()
     # compare_para_2approaches()
     compare_approaches()
-    # plot_maze('external_maze21x21_1', big=0, version=1)     # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    # compare_stochascities()
+    # plot_maze('strips3', big=0, version=1)     # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
     # plot_room_layout('simple', big=0, version=0)
     # plot_maze_trap('low_connectivity', big=0, version=1)

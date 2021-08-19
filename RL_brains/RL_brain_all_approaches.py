@@ -187,6 +187,8 @@ class QLambdaBrain:
         self.lambda_ = ground_learning_config['lambda']
 
         self.states = []
+        self.states_long_life = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2))
+        self.states_episodic = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2))
         # self.q_table = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size))
         self.q_table = np.random.rand(self.state_size[0], self.state_size[1], 2, 2, 2, self.action_size)
 
@@ -195,6 +197,9 @@ class QLambdaBrain:
 
     def reset_eligibility(self):
         self.e_table = []
+
+    def reset_episodic_staff(self):
+        self.states_episodic = np.zeros((self.state_size[0], self.state_size[1], 2, 2, 2))
 
 
     def policy(self, state, actions):

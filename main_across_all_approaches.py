@@ -70,7 +70,7 @@ class PlotMaker:
     def plot_maze(env: Maze, version=1, show=1, save=1):
         fontsize = 12 if env.big == 0 else 4.5
         fontweight = 'semibold'
-        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red", "blue"])
+        cmap = ListedColormap(["black", "lightgrey", "yellow", "green", "red", "tab:cyan"])
         indice_z = np.where(env.room_layout == 'z')
         maze_to_plot = np.where(env.room_layout == 'w', 0, 1)
         for i in range(len(indice_z[0])):
@@ -195,17 +195,24 @@ class PlotMaker:
         self.axs_each_rep[rep, 4].set_title(ax_title)
         # self.fig_each_rep.show()
 
-    def plot_each_heatmap_general(self, agent_e, rep, path_results, show=1, save=1):
+    def plot_each_heatmap_general(self, agent, rep, path_results, show=1, save=1,
+                                  exploration=1, final_policy=0):
+        if exploration + final_policy != 1:
+            raise Exception("exploration or final_policy, only one of them can be 1")
+        if exploration:
+            heatmap_mode = "exploration"
+        elif final_policy:
+            heatmap_mode = "final_policy"
         # fig = plt.figure(figsize=(5 * 3, 4 * 4))
         fig = plt.figure(figsize=(5 * 3, 5 * 4))
-        vmin = np.amin(agent_e.states_long_life)
-        vmax = np.amax(agent_e.states_long_life)
+        vmin = np.amin(agent.states_long_life)
+        vmax = np.amax(agent.states_long_life)
         my_cmap = 'hot'
         asp = 'equal'
         for k in range(2):
             for l in range(2):
                 for m in range(2):
-                    hm = agent_e.states_long_life[:, :, k, l, m]
+                    hm = agent.states_long_life[:, :, k, l, m]
                     print("hm.shape:", hm.shape)
                     if k == 0 and l == 0 and m == 0:
                         ax = fig.add_subplot(4, 3, 11)          # gist_ncar; rainbow
@@ -246,7 +253,7 @@ class PlotMaker:
             fig.show()
         if save:
             os.makedirs(f"{path_results}/building", exist_ok=True)
-            fig.savefig(f"{path_results}/building/building_heatmap_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
+            fig.savefig(f"{path_results}/building/building_{heatmap_mode}_rep{rep}.png", dpi=200, bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     def plot_each_cluster_layout(self, gensim_opt, num_clusters, rep, ax_title, plot_label=1):
         copy_cluster_layout = copy.deepcopy(gensim_opt.cluster_layout)
@@ -691,6 +698,8 @@ class PlotMaker:
             ls = '-'
         elif curve_label.startswith('T'):
             ls = '-'
+        else:
+            ls = '-'
 
         fs = 17
         fs2 = 13
@@ -893,7 +902,7 @@ class ExperimentMaker:
             'q_eps': q_eps,
             'lr': 0.1,
             'lambda': 0.9,
-            'gamma': 0.9999,
+            'gamma': 0.999,
             'omega': 100,
             'epsilon_q_max': 1,
             'epsilon_q_min': 0.1,
@@ -983,11 +992,15 @@ class ExperimentMaker:
 
             env.reset()
             agent_q.reset_eligibility()
+            agent_q.reset_episodic_staff()
             episode_reward = 0
             move_count = 0
             track = [str((env.state[0], env.state[1]))]
             a = agent_q.policy(env.state, env.actions(env.state))
             while not env.isTerminal(env.state):
+                agent_q.states_episodic[env.state[0], env.state[1], env.state[2], env.state[3], env.state[4]] += 1
+                if ep > self.ground_learning_config['q_eps']-3:  # for visualizing the finial policy
+                    agent_q.states_long_life[env.state[0], env.state[1], env.state[2], env.state[3], env.state[4]] += 1
                 abstract_state = amdp.get_abstract_state(env.state)
                 new_state = env.step(env.state, a)
                 move_count += 1
@@ -1003,8 +1016,9 @@ class ExperimentMaker:
 
                     value_new_abstract_state = amdp.get_value(new_abstract_state)
                     value_abstract_state = amdp.get_value(abstract_state)
-                    shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
-                              self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
+                    # shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
+                    #           self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
+                    shaping = (value_new_abstract_state - value_abstract_state) * self.ground_learning_config['omega']
                     # shaping = 0
                     agent_q.learn(env.state, a, new_state, a_prime, a_star, r + shaping)
 
@@ -1463,7 +1477,7 @@ class UniformExpMaker(ExperimentMaker):
         print("uniform approach uploaded to google sheet")
         print(" FINISHED!")
 
-    def run(self, time_comparison=0):
+    def run(self, time_comparison=0, final_policy=1):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
@@ -1492,12 +1506,19 @@ class UniformExpMaker(ExperimentMaker):
             # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'uniform', save=0)
 
             # ground learning
-            self._ground_learning(amdp)
+            agent_g = self._ground_learning(amdp)
 
             # experiment timing ends and saved
             end_experiment = time.time()
             experiment_time = end_experiment-start_experiment
             self.experiment_time_repetitions.append(experiment_time)
+
+            # To visualize the final policy
+            if final_policy:
+                value4walls = math.ceil(np.amax(agent_g.states_long_life) / 10)
+                for coord in np.argwhere(self.env.room_layout == "w"):
+                    agent_g.states_long_life[coord[0], coord[1], :, :, :] = -value4walls
+                self.plot_maker.plot_each_heatmap_general(agent_g, rep, self.path_results, show=1, save=0)
 
             # plot flags, reward, move_count for each rep
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes,
@@ -2007,7 +2028,7 @@ class GeneralExpMaker(ExperimentMaker):
         print("general approach uploaded to google sheet")
         print(" FINISHED!")
 
-    def run(self, evo=0, heatmap=0, cluster_layout=0, time_comparison=0):
+    def run(self, evo=0, heatmap=0, cluster_layout=0, time_comparison=0, final_policy=0):
         if not os.path.isdir(self.path_results):
             makedirs(self.path_results)
         self._print_before_start()
@@ -2048,11 +2069,11 @@ class GeneralExpMaker(ExperimentMaker):
 
             # build and solve amdp
             amdp = AMDP_General(self.sentences_period_complete, env=self.env, gensim_opt=gensim_opt)
-            # self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
+            self.plot_maker.plot_each_cluster_layout_t_u_g(self.env, amdp, rep, self.path_results)
             self._solve_amdp(amdp)
-            # self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'general')
+            self.plot_maker.plot_each_amdp_values_t_u_g(self.env, amdp, rep, self.path_results, 'general')
             # ground learning
-            self._ground_learning(amdp)
+            agent_g = self._ground_learning(amdp)
             # if evo == 0:
             #     self._ground_learning(amdp)
             # elif evo > 0:
@@ -2062,6 +2083,13 @@ class GeneralExpMaker(ExperimentMaker):
             end_experiment = time.time()
             experiment_time = end_experiment-start_experiment
             self.experiment_time_repetitions.append(experiment_time)
+
+            #To visualize the final policy
+            if final_policy:
+                value4walls = math.ceil(np.amax(agent_g.states_long_life)/10)
+                for coord in np.argwhere(self.env.room_layout == "w"):
+                    agent_g.states_long_life[coord[0], coord[1], :, :, :] = -value4walls
+                self.plot_maker.plot_each_heatmap_general(agent_g, rep, self.path_results, show=1, save=1)
 
             # plot flags, reward, move_count for each rep
             self.plot_maker.plot_each_flag_reward_movecount(self.flags_episodes[self.explore_config['e_eps']:],
