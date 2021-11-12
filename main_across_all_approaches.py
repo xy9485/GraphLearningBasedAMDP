@@ -1004,6 +1004,8 @@ class ExperimentMaker:
                 abstract_state = amdp.get_abstract_state(env.state)
                 new_state = env.step(env.state, a)
                 move_count += 1
+                # if move_count % 10000 == 0:
+                #     print(f"move_count in current episode {ep}:", move_count)
                 env.update_walls(move_count=sum(self.move_count_episodes))  # to comment when the env is not stochastic
                 available_states = env.actions(new_state)
                 if len(available_states) > 0:
@@ -1016,9 +1018,9 @@ class ExperimentMaker:
 
                     value_new_abstract_state = amdp.get_value(new_abstract_state)
                     value_abstract_state = amdp.get_value(abstract_state)
-                    # shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
-                    #           self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
-                    shaping = (value_new_abstract_state - value_abstract_state) * self.ground_learning_config['omega']
+                    shaping = self.ground_learning_config['gamma'] * value_new_abstract_state * \
+                              self.ground_learning_config['omega'] - value_abstract_state * self.ground_learning_config['omega']
+                    # shaping = (value_new_abstract_state - value_abstract_state) * self.ground_learning_config['omega']
                     # shaping = 0
                     agent_q.learn(env.state, a, new_state, a_prime, a_star, r + shaping)
 
