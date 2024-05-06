@@ -754,9 +754,9 @@ class AMDP_General:
 
 
 if __name__ == "__main__":
-    from envs.maze_env_general import Maze
+    from envs.maze_env_general_all_approaches import Maze
 
-    env = Maze(maze='open_space')  # initialize env 可修改
+    env = Maze(maze='open_space')  # initialize env
     amdp = AMDP_Topology_Uniform(env=env, tiling_mode=None, dw_clt_layout=None)
     # print(amdp.abstraction_layout)
     for i in range(len(amdp.adjacencies_for_each_astate)):

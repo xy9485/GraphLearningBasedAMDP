@@ -30,6 +30,8 @@ from RL_brains.RL_brain_all_approaches import QLambdaBrain
 from gensim_operations.gensim_operation_all_approaches import GensimOperator_General
 # from main_across_all_approaches import PlotMaker
 
+from utils import parse_args
+
 class MDP:
     def __init__(self, env):
         self.env = env
@@ -2564,44 +2566,45 @@ class GeneralExpMakerNaive(ExperimentMakerNaive):
         # self._results_upload()
 
 
-def compare_approaches():
-    maze = 'basic3'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
-    big = 1
-    e_mode = 'sarsa'  # 'sarsa' or 'softmax'
-    e_start = 'last'  # 'random' or 'last' or 'semi_random'
-    e_eps = 5000        # 3000 / 20000
-    mm = 100
-    ds_factor = 0.5
-    ds_repetitions = 4
+def compare_approaches(args):
+    approach_name = args.approach_name  # 'topology' or 'uniform' 
+    maze = args.maze  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = args.big  # 0 or 1
+    e_mode = args.e_mode # 'sarsa' or 'softmax'
+    e_start = args.e_start  # 'random' or 'last' or 'semi_random'
+    e_eps = args.e_eps
+    mm = args.mm
+    ds_factor = args.ds_factor
+    ds_repetitions = args.ds_repetitions  # times of down sampling for one trajectory
 
-    q_eps = 500
-    repetitions = 4
-    rep_size = 128
-    win_size = 50
-    sg = 1  # 'SG' or 'CBOW'
-    ng = 5
-    # numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
+    q_eps = args.q_eps
+    repetitions = args.repetitions
+    rep_size = args.rep_size # 128
+    win_size = args.win_size # 50
+    sg = args.sg  # 'SG' or 'CBOW'
+    
+    numbers_of_clusters = args.num_clusters     
+    # number of abstract states for Uniform will be matched with the number of clusters
 
-    k_means_pkg = 'sklearn'  # 'sklearn' or 'nltk'
-    interpreter = 'R'  # L or R
-    std_factor = 1 / np.sqrt(10)
+    k_means_pkg = args.k_means_pkg  # 'sklearn' or 'nltk'
+    interpreter = args.interpreter  # L or R
+    std_factor = args.std_factor
 
-    print_to_file = 0
-    show = 1
-    save = 0
+    print_to_file = args.print_to_file
+    show = args.show
+    save = args.save
     for i in range(len(numbers_of_clusters)):
         # set directory to store imgs and files
         # path_results = f"./cluster_layout/{maze}_big={big}" \
         #                f"/topology-vs-uniform{numbers_of_clusters}-oop/v4_rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
         #                f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
         path_results = f"./naive/{maze}_big={big}_irregular_traps" \
-                       f"/uniform{numbers_of_clusters}-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
-                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_ng{ng}_{k_means_pkg}_{interpreter}/" \
+                       f"/uniform{numbers_of_clusters}-oop/rp{repetitions}_{e_mode}{e_start}{e_eps}+{q_eps}_mm{mm}_" \
+                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/" \
                        f"k[{numbers_of_clusters[i]}]_trap_inout-2k_equal"
         if not os.path.isdir(path_results):
             makedirs(path_results)
-        if print_to_file == 1:
+        if print_to_file:
             sys.stdout = open(f"{path_results}/output.txt", 'w')
             sys.stderr = sys.stdout
 
@@ -2616,20 +2619,22 @@ def compare_approaches():
 
         # ===uniform approach===
         # ---match number of abstract state same with the one in topology approach, in order to be fair.
-        env = MazeNaive(maze=maze, big=big)
-        a = math.ceil(env.size[0] / np.sqrt(numbers_of_clusters[i]))
-        b = math.ceil(env.size[1] / np.sqrt(numbers_of_clusters[i]))
-        print("(a,b): ", (a, b))
-        uniform_maker = UniformExpMakerNaive(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
-                                        interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
-                                        path_results=path_results)
-        uniform_maker.run(time_comparison=1)
+        if approach_name == 'uniform':
+            env = MazeNaive(maze=maze, big=big)
+            a = math.ceil(env.size[0] / np.sqrt(numbers_of_clusters[i]))
+            b = math.ceil(env.size[1] / np.sqrt(numbers_of_clusters[i]))
+            print("(a,b): ", (a, b))
+            uniform_maker = UniformExpMakerNaive(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
+                                            interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
+                                            path_results=path_results)
+            uniform_maker.run(time_comparison=1)
 
         # ===general approach===
-        # general_maker = GeneralExpMakerNaive(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor, ds_repetitions=ds_repetitions,
-        #              rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
-        #              repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
-        # general_maker.run(p_heatmap=1, p_cluster_layout_and_values=1)
+        if approach_name == 'general':
+            general_maker = GeneralExpMakerNaive(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor, ds_repetitions=ds_repetitions,
+                        rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i], k_means_pkg=k_means_pkg, q_eps=q_eps,
+                        repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
+            general_maker.run(p_heatmap=1, p_cluster_layout_and_values=1)
 
         # ===plot and save summary===
         print("saving fig_each_rep ...")
@@ -2656,7 +2661,7 @@ def compare_approaches():
         #                                             dpi=200, facecolor='w', edgecolor='w', orientation='portrait',
         #                                             format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
-        if print_to_file == 1:
+        if print_to_file:
             sys.stdout.close()
 
 if __name__ == "__main__":
@@ -2664,8 +2669,9 @@ if __name__ == "__main__":
     # mdp = MDP(env)
     # mdp.solve_mdp(synchronous=0, monitor=0)
 
-    env = MazeNaive(maze="simple2", big=0)
+    # env = MazeNaive(maze="simple2", big=0)
     # PlotMakerNaive.plot_maze_trap(env, version=1, save=1)
-    PlotMakerNaive.plot_maze(env, version=1, save=0)
+    # PlotMakerNaive.plot_maze(env, version=1, save=0)
 
-    # compare_approaches()
+    args = parse_args()
+    compare_approaches(args)

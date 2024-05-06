@@ -19,7 +19,7 @@ from abstractions.abstraction_all_approaches import AMDP_Topology_Uniform, AMDP_
 from envs.maze_env_general_all_approaches import Maze
 from RL_brains.RL_brain_all_approaches import ExploreStateBrain, ExploreCoordBrain, QLambdaBrain
 from gensim_operations.gensim_operation_all_approaches import GensimOperator_Topology, GensimOperator_General
-from main_across_all_approaches import TopologyExpMaker, UniformExpMaker, GeneralExpMaker, PlotMaker
+from main_across_all_approaches import TopologyExpMaker, UniformExpMaker, GeneralExpMaker, PlotMaker, parse_args
 
 def plot_maze(maze, big, version):
     env = Maze(maze=maze, big=big, stochasticity=None)
@@ -63,30 +63,30 @@ def pload(path_results, approach, granu, expmaker):
         with open(f"{tm}/k{granu}_solve_kmeans.pkl", 'rb') as f:
             expmaker.solve_kmeans_time_repetitions = pickle.load(f)
 
-def compare_para_1approach():
-    maze = 'low_connectivity2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
-    big = 1
-    e_mode = 'sarsa'  # 'sarsa' or 'softmax'pwd
-    e_start = 'last'  # 'random' or 'last' or 'mix'
-    e_eps = 5000
-    mm = 100
-    ds_factor = 0.5
+def compare_para_1approach(args):
+    approach_name = args.approach_name
+    maze = args.maze  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = args.big
+    e_mode = args.e_mode  # 'sarsa' or 'softmax'
+    e_start = args.e_start  # 'random' or 'last' or 'semi_random'
+    e_eps = args.e_eps
+    mm = args.mm
+    ds_factor = args.ds_factor
 
-    q_eps = 500
-    repetitions = 25
-    rep_size = 128
-    win_size = 50
-    sg = 1  # 'SG' or 'CBOW'
-    numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    # numbers_of_clusters = [9]  # number of abstract states for Uniform will be matched with the number of clusters
+    q_eps = args.q_eps
+    repetitions = args.repetitions
+    rep_size = args.rep_size
+    win_size = args.win_size
+    sg = args.sg  # 'SG' or 'CBOW'
+    numbers_of_clusters = args.num_clusters  # number of abstract states for Uniform will be matched with the number of clusters
 
-    k_means_pkg = 'sklearn'  # 'sklearn' or 'nltk'
-    interpreter = 'R'  # L or R
-    std_factor = 1 / np.sqrt(10)
+    k_means_pkg = args.k_means_pkg  # 'sklearn' or 'nltk'
+    interpreter = args.interpreter  # L or R
+    std_factor = args.std_factor
 
-    print_to_file = 0
-    show = 0
-    save = 1
+    print_to_file = args.print_to_file
+    show = args.show
+    save = args.save
     # path_results = f"./cluster_layout/{maze}_big={big}" \
     #                f"/topo_compare_across_para-oop/gs0_rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
     #                f"ds{ds_factor}_c{numbers_of_clusters}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}"
@@ -95,38 +95,38 @@ def compare_para_1approach():
                    f"ds{ds_factor}_c{numbers_of_clusters}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}"
     if not os.path.isdir(path_results):
         makedirs(path_results)
-    if print_to_file == 1:
+    if print_to_file:
         sys.stdout = open(f"{path_results}/output.txt", 'w')
         sys.stderr = sys.stdout
 
     plot_maker = PlotMaker(repetitions, std_factor, len(numbers_of_clusters))
 
     for i in range(len(numbers_of_clusters)):
-        topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
-                                          rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i],
-                                          k_means_pkg=k_means_pkg, q_eps=q_eps,
-                                          repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
-                                          path_results=path_results)
-        pload(path_results, 'topology', numbers_of_clusters[i], topology_maker)
-        topology_maker.run(heatmap=0, cluster_layout=0, time_comparison=0)
-
-        # env = Maze(maze=maze, big=big)
-        # a = math.ceil(env.size[0] / np.sqrt(numbers_of_clusters[i]))
-        # b = math.ceil(env.size[1] / np.sqrt(numbers_of_clusters[i]))
-        # print("(a,b): ", (a, b))
-        # uniform_maker = UniformExpMaker(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
-        #                                 interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
-        #                                 path_results=path_results)
-        # pload(path_results, 'uniform', (a, b), uniform_maker)
-        # uniform_maker.run(time_comparison=1)
-
-        # general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps * 6), mm=mm, ds_factor=ds_factor,
-        #                                 rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i] * 8),
-        #                                 k_means_pkg=k_means_pkg, q_eps=q_eps,
-        #                                 repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
-        #                                 path_results=path_results)
-        # pload(path_results, 'general', numbers_of_clusters[i] * 8, general_maker)
-        # general_maker.run()
+        # topology_maker = TopologyExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
+        #                                   rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=numbers_of_clusters[i],
+        #                                   k_means_pkg=k_means_pkg, q_eps=q_eps,
+        #                                   repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
+        #                                   path_results=path_results)
+        # pload(path_results, 'topology', numbers_of_clusters[i], topology_maker)
+        # topology_maker.run(heatmap=0, cluster_layout=0, time_comparison=0)
+        if approach_name == 'uniform':
+            env = Maze(maze=maze, big=big)
+            a = math.ceil(env.size[0] / np.sqrt(numbers_of_clusters[i]))
+            b = math.ceil(env.size[1] / np.sqrt(numbers_of_clusters[i]))
+            print("(a,b): ", (a, b))
+            uniform_maker = UniformExpMaker(env_name=maze, big=big, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
+                                            interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
+                                            path_results=path_results)
+            # pload(path_results, 'uniform', (a, b), uniform_maker)
+            uniform_maker.run(time_comparison=1)
+        if approach_name == 'topology':
+            general_maker = GeneralExpMaker(env_name=maze, big=big, e_mode=e_mode, e_start='random', e_eps=int(e_eps * 6), mm=mm, ds_factor=ds_factor,
+                                            rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i] * 8),
+                                            k_means_pkg=k_means_pkg, q_eps=q_eps,
+                                            repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
+                                            path_results=path_results)
+            # pload(path_results, 'topology', numbers_of_clusters[i] * 8, general_maker)
+            general_maker.run(time_comparison=1)
 
     # ===plot and save summary===
     # print("saving fig_each_rep ...")
@@ -153,41 +153,40 @@ def compare_para_1approach():
                                                 dpi=200, facecolor='w', edgecolor='w', orientation='portrait',
                                                 format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
-    if print_to_file == 1:
+    if print_to_file:
         sys.stdout.close()
 
 
-def compare_para_2approaches():
-    maze = 'open_space'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
-    big = 0
-    e_mode = 'sarsa'  # 'sarsa' or 'softmax'pwd
-    e_start = 'random'  # 'random' or 'last' or 'mix'
-    e_eps = 500
-    mm = 100
-    ds_factor = 0.5
+def compare_para_2approaches(args):
+    maze = args.maze  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = args.big
+    e_mode = args.e_mode  # 'sarsa' or 'softmax'
+    e_start = args.e_start  # 'random' or 'last' or 'semi_random'
+    e_eps = args.e_eps
+    mm = args.mm
+    ds_factor = args.ds_factor
 
-    q_eps = 500
-    repetitions = 2
-    rep_size = 128
-    win_size = 50
-    sg = 1  # 'SG' or 'CBOW'
-    # numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    numbers_of_clusters = [16, 25]  # number of abstract states for Uniform will be matched with the number of clusters
+    q_eps = args.q_eps
+    repetitions = args.repetitions
+    rep_size = args.rep_size
+    win_size = args.win_size
+    sg = args.sg  # 'SG' or 'CBOW'
+    numbers_of_clusters = args.num_clusters  # number of abstract states for Uniform will be matched with the number of clusters
 
-    k_means_pkg = 'sklearn'  # 'sklearn' or 'nltk'
-    interpreter = 'R'  # L or R
-    std_factor = 1 / np.sqrt(10)
+    k_means_pkg = args.k_means_pkg  # 'sklearn' or 'nltk'
+    interpreter = args.interpreter  # L or R
+    std_factor = args.std_factor
 
-    print_to_file = 0
-    show = 1
-    save = 1
+    print_to_file = args.print_to_file
+    show = args.show
+    save = args.save
 
     path_results = f"./cluster_layout/{maze}_big={big}" \
                    f"/topology-vs-uniform-multi-clusters-oop/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
                    f"ds{ds_factor}_c{numbers_of_clusters}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}"
     if not os.path.isdir(path_results):
         makedirs(path_results)
-    if print_to_file == 1:
+    if print_to_file:
         sys.stdout = open(f"{path_results}/output.txt", 'w')
         sys.stderr = sys.stdout
 
@@ -246,39 +245,38 @@ def compare_para_2approaches():
                                                 dpi=500, facecolor='w', edgecolor='w', orientation='portrait',
                                                 format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
-    if print_to_file == 1:
+    if print_to_file:
         sys.stdout.close()
 
-def compare_approaches():
-    maze = 'basic2'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
-    big = 1
-    e_mode = 'sarsa'  # 'sarsa' or 'softmax'
-    e_start = 'random'  # 'random' or 'last' or 'semi_random'
-    e_eps = 5000
-    mm = 150
-    ds_factor = 0.5
+def compare_approaches(args):
+    maze = args.env_name  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = args.big
+    e_mode = args.e_mode  # 'sarsa' or 'softmax'
+    e_start = args.e_start  # 'random' or 'last' or 'semi_random'
+    e_eps = args.e_eps
+    mm = args.mm
+    ds_factor = args.ds_factor
 
-    q_eps = 500
-    repetitions = 10
-    rep_size = 128
-    win_size = 75
-    sg = 1  # 'SG' or 'CBOW'
-    numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    # numbers_of_clusters = [9, 16, 25]  # number of abstract states for Uniform will be matched with the number of clusters
+    q_eps = args.q_eps
+    repetitions = args.repetitions
+    rep_size = args.rep_size
+    win_size = args.win_size
+    sg = args.sg  # 'SG' or 'CBOW'
+    numbers_of_clusters = args.num_clusters  # number of abstract states for Uniform will be matched with the number of clusters
 
     stochasticity = {
-        "p2be_stochastic": 0.5,
-        "p2be_closed": 0.25,
-        "interval": 1
+        "p2be_stochastic": args.stochasticity[0],
+        "p2be_closed": args.stochasticity[1],
+        "interval": args.stochasticity[2]
     }
 
-    k_means_pkg = 'sklearn'  # 'sklearn' or 'nltk'
-    interpreter = 'R'  # L or R
-    std_factor = 1 / np.sqrt(10)
+    k_means_pkg = args.k_means_pkg  # 'sklearn' or 'nltk'
+    interpreter = args.interpreter  # L or R
+    std_factor = args.std_factor
 
-    print_to_file = 0
-    show = 1
-    save = 0
+    print_to_file = args.print_to_file
+    show = args.show
+    save = args.save
     # plot_maze(maze, big=0, version=1)
     for i in range(len(numbers_of_clusters)):
         # set directory to store imgs and files
@@ -293,7 +291,7 @@ def compare_approaches():
         #                f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]0--"
         if not os.path.isdir(path_results):
             makedirs(path_results)
-        if print_to_file == 1:
+        if print_to_file:
             sys.stdout = open(f"{path_results}/output.txt", 'w')
             sys.stderr = sys.stdout
         plot_maker = PlotMaker(repetitions, std_factor, 2)  # third argument should match num of approaches below
@@ -307,8 +305,8 @@ def compare_approaches():
         # topology_maker.run(time_comparison=1)
 
 
-        # ===general approach===
-        general_maker = GeneralExpMaker(env_name=maze, big=big, stochasticity=stochasticity, e_mode=e_mode, e_start='random', e_eps=int(e_eps*6), mm=mm, ds_factor=ds_factor,
+        # ===topology approach===
+        general_maker = GeneralExpMaker(env_name=maze, big=big, stochasticity=stochasticity, e_mode=e_mode, e_start=e_start, e_eps=e_eps, mm=mm, ds_factor=ds_factor,
                      rep_size=rep_size, win_size=win_size, sg=sg, num_clusters=int(numbers_of_clusters[i]*8), k_means_pkg=k_means_pkg, q_eps=q_eps,
                      repetitions=repetitions, interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker, path_results=path_results)
         # pload(path_results, 'general', numbers_of_clusters[i]*8, general_maker)
@@ -319,7 +317,7 @@ def compare_approaches():
         env = Maze(stochasticity=None, maze=maze, big=big)
         a = math.ceil(env.size[0] / np.sqrt(numbers_of_clusters[i]))
         b = math.ceil(env.size[1] / np.sqrt(numbers_of_clusters[i]))
-        print("(a,b): ", (a, b))
+        print("tiling size: ", (a, b))
         uniform_maker = UniformExpMaker(env_name=maze, big=big, stochasticity=stochasticity, tiling_size=(a, b), q_eps=q_eps, repetitions=repetitions,
                                         interpreter=interpreter, print_to_file=print_to_file, plot_maker=plot_maker,
                                         path_results=path_results)
@@ -348,52 +346,53 @@ def compare_approaches():
             plot_maker.fig_time_consumption.savefig(f"{path_results}/time_consumption2.png",
                                                     dpi=300, transparent=False, bbox_inches='tight', pad_inches=0.1)
 
-        if print_to_file == 1:
+        if print_to_file:
             sys.stdout.close()
 
-def compare_stochascities(): #pickle.load() from files to read data
-    maze = 'external_maze21x21_1'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
-    big = 1
-    e_mode = 'sarsa'  # 'sarsa' or 'softmax'
-    e_start = 'random'  # 'random' or 'last' or 'semi_random'
-    e_eps = 5000
-    mm = 150
-    ds_factor = 0.5
+def compare_stochas(args): #pickle.load() from files to read data
+    maze = args.maze  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
+    big = args.big
+    e_mode = args.e_mode  # 'sarsa' or 'softmax'
+    e_start = args.e_start  # 'random' or 'last' or 'semi_random'
+    e_eps = args.e_eps
+    mm = args.mm
+    ds_factor = args.ds_factor
 
-    q_eps = 500
-    repetitions = 20
-    rep_size = 128
-    win_size = 75
-    sg = 1  # 'SG' or 'CBOW'
-    numbers_of_clusters = [9, 16, 25, 36]  # number of abstract states for Uniform will be matched with the number of clusters
-    # numbers_of_clusters = [9]  # number of abstract states for Uniform will be matched with the number of clusters
+    q_eps = args.q_eps
+    repetitions = args.repetitions
+    rep_size = args.rep_size
+    win_size = args.win_size
+    sg = args.sg  # 'SG' or 'CBOW'
+    numbers_of_clusters = args.num_clusters # number of abstract states for Uniform will be matched with the number of clusters
 
     stochasticity = {
-        "p2be_stochastic": 0.9,
-        "p2be_closed": 0.5,
-        "interval": 1
+        "p2be_stochastic": args.stochasticity[0],
+        "p2be_closed": args.stochasticity[1],
+        "interval": args.stochasticity[2]
     }
 
-    k_means_pkg = 'sklearn'  # 'sklearn' or 'nltk'
-    interpreter = 'R'  # L or R
-    std_factor = 1 / np.sqrt(10)
+    k_means_pkg = args.k_means_pkg  # 'sklearn' or 'nltk'
+    interpreter = args.interpreter  # L or R
+    std_factor = args.std_factor
 
     approach = 'general'
-    print_to_file = 1
-    show = 1
-    save = 0
+    # print_to_file = args.print_to_file
+    show = args.show
+    save = args.save
     # plot_maze(maze, big=0, version=1)
-    numbers_of_clusters2 = [16]
-    stochs = [0.1, 0.5, 0.9]
+    # numbers_of_clusters2 = [16]
+    # stochs = [0.1, 0.5, 0.9]
+    stochs = [args.stochasticity[0], args.stochasticity[0]+ 0.4, args.stochasticity[0]+ 0.8]
 
-    for k in numbers_of_clusters2:
+    for k in numbers_of_clusters:
         env = Maze(stochasticity=None, maze=maze, big=big)
-        a = math.ceil(env.size[0] / np.sqrt(k))
-        b = math.ceil(env.size[1] / np.sqrt(k))
-        if approach == 'general':
+
+        if approach == 'topology':
             granu = int(k*8)
             cut = int(e_eps * 6)
         elif approach == 'uniform':
+            a = math.ceil(env.size[0] / np.sqrt(k))
+            b = math.ceil(env.size[1] / np.sqrt(k))
             granu = (a, b)
             cut = 0
         else:
@@ -402,7 +401,7 @@ def compare_stochascities(): #pickle.load() from files to read data
         for stoch in stochs:
             stochasticity["p2be_stochastic"] = stoch
             path_results = f"./cluster_layout/{maze}_big={big}" \
-                           f"/general-vs-uniform{numbers_of_clusters}-{stochasticity['p2be_stochastic']}opens{stochasticity['p2be_closed']}-itv{stochasticity['interval']}/rp{repetitions}_{e_start}{e_eps}+{q_eps}_mm{mm}_" \
+                           f"/general-vs-uniform{numbers_of_clusters}-{stochasticity['p2be_stochastic']}opens{stochasticity['p2be_closed']}-itv{stochasticity['interval']}/rp{repetitions}_{e_mode}{e_start}{e_eps}+{q_eps}_mm{mm}_" \
                            f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{k}]"
             print("path_results:", path_results)
             flags_episodes_repetitions, reward_episodes_repetitions, move_count_episodes_repetitions =\
@@ -420,7 +419,7 @@ def compare_stochascities(): #pickle.load() from files to read data
         if show:
             plot_maker.fig_mean_performance.show()
         if save:
-            plot_maker.fig_mean_performance.savefig(f"./cluster_layout/{maze}_big={big}/performance_{approach}_stochs{stochs}_close{stochasticity['p2be_closed']}_k{numbers_of_clusters2}.png",
+            plot_maker.fig_mean_performance.savefig(f"./cluster_layout/{maze}_big={big}/performance_{approach}_stochs{stochs}_close{stochasticity['p2be_closed']}_k{numbers_of_clusters}.png",
                                                     dpi=300, transparent=False, bbox_inches='tight', pad_inches=0.1)
 
 
@@ -438,9 +437,10 @@ def unpickler(approach, granu, path_results):
            move_count_episodes_repetitions
 
 if __name__ == "__main__":
+    args = parse_args()
     # compare_para_1approach()
     # compare_para_2approaches()
-    compare_approaches()
+    compare_approaches(args)
     # compare_stochascities()
     # plot_maze('strips3', big=0, version=1)     # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
     # plot_room_layout('simple', big=0, version=0)

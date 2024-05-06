@@ -1,7 +1,7 @@
 import gensim.models
 import numpy as np
 import os
-from envs.maze_env_general import Maze
+from envs.maze_env_general_all_approaches import Maze
 from sklearn.cluster import KMeans
 from sklearn import preprocessing  # to normalise existing X
 from sklearn.metrics import pairwise_distances_argmin_min

@@ -22,6 +22,8 @@ from envs.maze_env_general_all_approaches import Maze
 from RL_brains.RL_brain_all_approaches import ExploreStateBrain, ExploreCoordBrain, QLambdaBrain
 from gensim_operations.gensim_operation_all_approaches import GensimOperator_Topology,GensimOperator_General
 
+from utils import parse_args
+
 class PlotMaker:
     def __init__(self, num_of_repetitions, std_factor, num_approaches):
         self.num_of_repetitions = num_of_repetitions
@@ -2054,8 +2056,8 @@ class GeneralExpMaker(ExperimentMaker):
             self.gamma_episodes = []
 
             self.sentences_collected = []
-            self.sentences_period = []      # for gensim w2v
-            self.sentences_period_complete = []     # for building amdp transition
+            self.sentences_period = []      # for word2vec learning
+            self.sentences_period_complete = []     # for building the transition function of AMDP
 
             # exploration
             # agent_e = self._explore()
@@ -2122,29 +2124,31 @@ class GeneralExpMaker(ExperimentMaker):
         # self._results_upload()
 
 if __name__ == "__main__":
-    maze = 'basic'  # low_connectivity2/external_maze21x21_1/external_maze31x31_2/strips2/spiral/basic/open_space/high_connectivity
-    big = 0
-    e_mode = 'sarsa'   # 'sarsa' or 'softmax'pwd
-    e_start = 'last'   # 'random' or 'last' or 'mix'
-    e_eps = 1000
-    mm = 100
-    ds_factor = 0.5
+    # ===parse arguments===
+    args = parse_args()
+    maze = args.maze
+    big = args.big
+    e_mode = args.e_mode
+    e_start = args.e_start
+    e_eps = args.e_eps
+    mm = args.mm
+    ds_factor = args.ds_factor
 
-    q_eps = 500
-    repetitions = 2
-    rep_size = 128
-    win_size = 50
-    sg = 1  # 'SG' or 'CBOW'
-    # numbers_of_clusters = [9, 16, 25, 36]     # number of abstract states for Uniform will be matched with the number of clusters
-    numbers_of_clusters = [16]  # number of abstract states for Uniform will be matched with the number of clusters
+    q_eps = args.q_eps
+    repetitions = args.repetitions
+    rep_size = args.rep_size
+    win_size = args.win_size
+    sg = args.sg
+    numbers_of_clusters = args.numbers_of_clusters  
+    # number of abstract states for Uniform will be matched with the number of clusters
 
-    k_means_pkg = 'sklearn'    # 'sklearn' or 'nltk'
-    interpreter = 'R'     # L or R
+    k_means_pkg = args.k_means_pkg
+    interpreter = args.interpreter
     std_factor = 1 / np.sqrt(10)
 
-    print_to_file = 0
-    show = 1
-    save = 0
+    print_to_file = args.print_to_file
+    show = args.show
+    save = args.save
     for i in range(len(numbers_of_clusters)):
         # set directory to store imgs and files
         path_results =f"./cluster_layout/{maze}_big={big}" \
@@ -2152,7 +2156,7 @@ if __name__ == "__main__":
                       f"ds{ds_factor}_win{win_size}_rep{rep_size}_sg{sg}_{k_means_pkg}_{interpreter}/k[{numbers_of_clusters[i]}]"
         if not os.path.isdir(path_results):
             makedirs(path_results)
-        if print_to_file == 1:
+        if print_to_file:
             sys.stdout = open(f"{path_results}/output.txt", 'w')
             sys.stderr = sys.stdout
 
@@ -2205,5 +2209,5 @@ if __name__ == "__main__":
                                                     dpi=500, facecolor='w', edgecolor='w', orientation='portrait',
                                                     format=None, transparent=False, bbox_inches=None, pad_inches=0.1)
 
-        if print_to_file == 1:
+        if print_to_file:
             sys.stdout.close()
