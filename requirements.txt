@@ -1,0 +1,8 @@
+numpy
+matplotlib
+pandas
+gensim
+gspread
+oauth2client
+scikit-learn
+nltk
